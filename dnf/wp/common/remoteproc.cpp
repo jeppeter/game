@@ -1,5 +1,5 @@
 
-#include "remoteprocess.h"
+#include "remoteproc.h"
 #include <assert.h>
 #include <Windows.h>
 #include "..\\common\\output_debug.h"
