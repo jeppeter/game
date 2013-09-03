@@ -279,7 +279,7 @@ int main(int argc,TCHAR* argv[])
     }
     else
     {
-        ret = ProcRead2(st_ProcessId,(void*)st_ReadAddr,st_pWriteBuffer,st_Size);
+        ret = ProcRead(st_ProcessId,(void*)st_ReadAddr,st_pWriteBuffer,st_Size);
         if(ret < 0)
         {
             goto out;

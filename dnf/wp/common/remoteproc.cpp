@@ -1,5 +1,5 @@
 
-#include "remoteproc.h"
+#include "remoteprocess.h"
 #include <assert.h>
 #include <Windows.h>
 #include "..\\common\\output_debug.h"
@@ -8,9 +8,9 @@
 
 typedef unsigned long ptr_t;
 
-extern "C" int ProcRead2(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int datalen);
+extern "C" int ProcRead(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int datalen);
 
-int ProcRead2(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int datalen)
+int ProcRead(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int datalen)
 {
     HANDLE hProc=NULL;
     int ret;
