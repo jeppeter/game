@@ -1,19 +1,23 @@
 
 #include "remoteproc.h"
 #include <assert.h>
+#include <Windows.h>
+#include "..\\common\\output_debug.h"
 
 #define LAST_ERROR_CODE()  (GetLastError() ? GetLastError() : 1)
 
 typedef unsigned long ptr_t;
 
-int ProcRead(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int datalen)
+extern "C" int ProcRead2(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int datalen);
+
+int ProcRead2(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int datalen)
 {
     HANDLE hProc=NULL;
     int ret;
     int readlen=0;
     DWORD curret;
     unsigned char* pCurPtr=pData;
-    unsigned char* pCurRemote = pRemoteAddr;
+    unsigned char* pCurRemote = (unsigned char*)pRemoteAddr;
     BOOL bret;
 
 
@@ -64,14 +68,15 @@ fail:
 
 
 
+extern "C" int ProcWrite(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int datalen,int force);
 int ProcWrite(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int datalen,int force)
 {
     HANDLE hProc=NULL;
     int ret,res;
     int writelen=0;
-    DWORD curret,dret;
+    DWORD curret;
     unsigned char* pCurPtr=pData;
-    unsigned char* pCurRemote = pRemoteAddr;
+    unsigned char* pCurRemote = (unsigned char*)pRemoteAddr;
     BOOL bret;
     DWORD origbase,curbase;
     int setcurbase=0;
@@ -120,7 +125,7 @@ int ProcWrite(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int 
     if(setcurbase)
     {
 
-        bret = VirtaulProtectEx(hProc,pRemoteAddr,datalen,origbase,&curbase);
+        bret = VirtualProtectEx(hProc,pRemoteAddr,datalen,origbase,&curbase);
         if(!bret)
         {
             res = LAST_ERROR_CODE();
@@ -142,7 +147,7 @@ fail:
     if(setcurbase)
     {
 
-        bret = VirtaulProtectEx(hProc,pRemoteAddr,datalen,origbase,&curbase);
+        bret = VirtualProtectEx(hProc,pRemoteAddr,datalen,origbase,&curbase);
         if(!bret)
         {
             res = LAST_ERROR_CODE();

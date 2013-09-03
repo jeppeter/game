@@ -74,7 +74,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\common\output_debug.cpp" />
+    <ClCompile Include="..\common\remoteproc.cpp" />
+    <ClCompile Include="..\common\strtohex.cpp" />
+    <ClCompile Include="..\common\uniansi.cpp" />
     <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\common\output_debug.h" />
+    <ClInclude Include="..\common\remoteproc.h" />
+    <ClInclude Include="..\common\strtohex.h" />
+    <ClInclude Include="..\common\uniansi.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

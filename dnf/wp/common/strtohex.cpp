@@ -1,11 +1,12 @@
 
 
 #include "strtohex.h"
-
+#include <string.h>
+#include <ctype.h>
 unsigned int StrToHex(const char * pStart)
 {
     unsigned int ret=0;
-    char* pCurPtr=pStart;
+    char* pCurPtr=(char*)pStart;
     int base = 10;
     int curnum=0;
 
@@ -42,7 +43,7 @@ unsigned int StrToHex(const char * pStart)
             }
             else if(*pCurPtr >= 'A' && *pCurPtr <= 'F')
             {
-                curnum = 10 + *pCurPtr - 'A'
+                curnum = 10 + *pCurPtr - 'A';
             }
                      else
             {
@@ -65,7 +66,7 @@ unsigned int StrToHex(const char * pStart)
 unsigned long long StrToHexLL(const char * pStart)
 {
     unsigned long long ret;
-    char* pCurPtr=pStart;
+    char* pCurPtr=(char*)pStart;
     int base = 10;
     int curnum=0;
 
@@ -102,7 +103,7 @@ unsigned long long StrToHexLL(const char * pStart)
             }
             else if(*pCurPtr >= 'A' && *pCurPtr <= 'F')
             {
-                curnum = 10 + *pCurPtr - 'A'
+                curnum = 10 + *pCurPtr - 'A';
             }
                      else
             {

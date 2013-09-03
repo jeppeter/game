@@ -4,6 +4,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <assert.h>
+#include "..\\common\\strtohex.h"
+#include "..\\common\\output_debug.h"
+#include "..\\common\\remoteproc.h"
+#define LAST_ERROR_CODE()  (GetLastError() ? GetLastError() : 1)
 
 
 void Usage(int ec,const char* fmt,...)
@@ -28,7 +33,7 @@ void Usage(int ec,const char* fmt,...)
     fprintf(fp,"\t-w|--write writeaddr         | set write address\n");
     fprintf(fp,"\t-s|--size size               | read or write size\n");
     fprintf(fp,"\t-c|--content content         | write content it is in the value\n");
-	fprintf(fp,"\t-F|--force                   | to specify the force as for write\n");
+    fprintf(fp,"\t-F|--force                   | to specify the force as for write\n");
     //fprintf(fp,"\t-f filecontent     | write content from file\n");
     //fprintf(fp,"\t-l loaddll         | to load dll\n");
     //fprintf(fp,"\t-f funcname        | to call function name\n");
@@ -44,21 +49,21 @@ static unsigned char* st_pWriteBuffer=NULL;
 static int st_Force=0;
 
 #ifdef _UNICODE
-char* ChangeParam(int argc,wchar* argvw[])
+char** ChangeParam(int argc,wchar_t* argvw[])
 {
     int ret;
     char** pRetArgv=NULL;
     int retargc=argc,i;
     int *pRetArgvLen=NULL;
 
-    pRetArgvLen = calloc(sizeof(*pRetArgvLen),argc);
+    pRetArgvLen =(int*) calloc(sizeof(*pRetArgvLen),argc);
     if(pRetArgvLen == NULL)
     {
         ret = LAST_ERROR_CODE();
         goto fail;
     }
 
-    pRetArgv = calloc(sizeof(*pRetArgv),argc);
+    pRetArgv =(char**) calloc(sizeof(*pRetArgv),argc);
     if(pRetArgv == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -124,7 +129,7 @@ int ParseParam(int argc,char* argv[])
             {
                 Usage(3,"argv[%d] %s need an arg",i,argv[i]);
             }
-            st_ProcessId = atoi(argv[i+1]);
+            st_ProcessId = StrToHex(argv[i+1]);
             i += 1;
         }
         else if(strcmp(argv[i],"-r")==0 ||
@@ -150,11 +155,33 @@ int ParseParam(int argc,char* argv[])
         else if(strcmp(argv[i],"-s")==0 ||
                 strcmp(argv[i],"--size")==0)
         {
+            unsigned int oldsize=st_Size;
+            unsigned char* pOldBuffer=st_pWriteBuffer;
             if(argc <= (i+1))
             {
                 Usage(3,"argv[%d] %s need an arg",i,argv[i]);
             }
             st_Size= StrToHex(argv[i+1]);
+            if(st_Size == 0)
+            {
+                Usage(3,"size must > 0");
+            }
+
+            st_pWriteBuffer = (unsigned char*)malloc(st_Size);
+            if(st_pWriteBuffer == NULL)
+            {
+                ERROR_INFO("could not malloc size %d(0x%08x)\n",st_Size,st_Size);
+                exit(3);
+            }
+
+            if(pOldBuffer)
+            {
+                memcpy(st_pWriteBuffer,pOldBuffer,st_Size > oldsize ? oldsize: st_Size);
+                free(pOldBuffer);
+                pOldBuffer = NULL;
+                oldsize = 0;
+            }
+
             i += 1;
         }
         else if(strcmp(argv[i],"-c")==0 ||
@@ -172,7 +199,7 @@ int ParseParam(int argc,char* argv[])
                 {
                     st_Size = 4;
                 }
-                st_pWriteBuffer = malloc(st_Size);
+                st_pWriteBuffer =(unsigned char*) malloc(st_Size);
                 if(st_pWriteBuffer == NULL)
                 {
                     Usage(3,"can not allocate size %d",st_Size);
@@ -183,11 +210,11 @@ int ParseParam(int argc,char* argv[])
             memcpy(st_pWriteBuffer,&c,st_Size > 4 ? 4 : st_Size);
             i += 1;
         }
-		else if (strcmp(argv[i],"-F")==0 ||
-			strcmp(argv[i],"--force")==0)
-		{
-			st_Force = 1;
-		}
+        else if(strcmp(argv[i],"-F")==0 ||
+                strcmp(argv[i],"--force")==0)
+        {
+            st_Force = 1;
+        }
         else
         {
             Usage(3,"unknown params %s",argv[i]);
@@ -208,18 +235,18 @@ int ParseParam(int argc,char* argv[])
         Usage(3,"specify write address but not the content");
     }
 
-	if (st_ReadAddr && st_pWriteBuffer == NULL)
-	{
-		if (st_Size == 0)
-		{
-			st_Size = 4;
-		}
-		st_pWriteBuffer = malloc(st_Size);
-		if (st_pWriteBuffer == NULL)
-		{
-			Usage(3,"allocate read buffer error");
-		}
-	}
+    if(st_ReadAddr && st_pWriteBuffer == NULL)
+    {
+        if(st_Size == 0)
+        {
+            st_Size = 4;
+        }
+        st_pWriteBuffer = (unsigned char*)malloc(st_Size);
+        if(st_pWriteBuffer == NULL)
+        {
+            Usage(3,"allocate read buffer error");
+        }
+    }
 
     return 0;
 }
@@ -242,35 +269,35 @@ int main(int argc,TCHAR* argv[])
 #endif
 
 
-	if (st_WriteAddr)
-	{
-		ret = ProcWrite(st_ProcessId,(void*)st_WriteAddr,st_pWriteBuffer,st_Size,st_Force);
-		if (ret < 0)
-		{
-			goto out;
-		}
-	}
-	else
-	{
-		ret = ProcRead(st_ProcessId,(void*)st_ReadAddr,st_pWriteBuffer,st_Size);
-		if (ret < 0)
-		{
-			goto out;
-		}
+    if(st_WriteAddr)
+    {
+        ret = ProcWrite(st_ProcessId,(void*)st_WriteAddr,st_pWriteBuffer,st_Size,st_Force);
+        if(ret < 0)
+        {
+            goto out;
+        }
+    }
+    else
+    {
+        ret = ProcRead2(st_ProcessId,(void*)st_ReadAddr,st_pWriteBuffer,st_Size);
+        if(ret < 0)
+        {
+            goto out;
+        }
 
-		fprintf(stdout,"Read At 0x%08x(%d):",st_ReadAddr,st_Size);
-		for (i=0;i<st_Size;i++)
-		{
-			if ((i%16)==0)
-			{
-				fprintf(stdout,"\n0x%08x\t",i);
-			}
-			fprintf(stdout," 0x%02x",st_pWriteBuffer[i]);
-		}
-		fprintf(stdout,"\n");
-	}
+        fprintf(stdout,"Read At 0x%08x(%d):",st_ReadAddr,st_Size);
+        for(i=0; i<(int)st_Size; i++)
+        {
+            if((i%16)==0)
+            {
+                fprintf(stdout,"\n0x%08x\t",i);
+            }
+            fprintf(stdout," 0x%02x",st_pWriteBuffer[i]);
+        }
+        fprintf(stdout,"\n");
+    }
 
-	ret = 0;
+    ret = 0;
 
 out:
 #ifdef _UNICODE
@@ -287,6 +314,6 @@ out:
         free(pRetArgv);
     }
     pRetArgv = NULL;
-#endif	
+#endif
     return ret;
 }
