@@ -1,6 +1,9 @@
 
 #include <windows.h>
 #include "..\\common\\uniansi.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 
 void Usage(int ec,const char* fmt,...)
