@@ -1,13 +1,13 @@
 
 #include <windows.h>
-#include "..\\common\\uniansi.h"
+#include <common/uniansi.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
-#include "..\\common\\strtohex.h"
-#include "..\\common\\output_debug.h"
-#include "..\\common\\remoteproc.h"
+#include <common/strtohex.h>
+#include <common/output_debug.h>
+#include <common/remoteproc.h>
 #define LAST_ERROR_CODE()  (GetLastError() ? GetLastError() : 1)
 
 
