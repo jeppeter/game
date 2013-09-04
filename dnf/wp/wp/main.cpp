@@ -34,6 +34,7 @@ void Usage(int ec,const char* fmt,...)
     fprintf(fp,"\t-s|--size size               | read or write size\n");
     fprintf(fp,"\t-c|--content content         | write content it is in the value\n");
     fprintf(fp,"\t-F|--force                   | to specify the force as for write\n");
+    fprintf(fp,"\t-k|--kill                    | to kill the process\n");
     //fprintf(fp,"\t-f filecontent     | write content from file\n");
     //fprintf(fp,"\t-l loaddll         | to load dll\n");
     //fprintf(fp,"\t-f funcname        | to call function name\n");
@@ -47,6 +48,7 @@ static unsigned long st_WriteAddr = 0;
 static unsigned int st_Size=0;
 static unsigned char* st_pWriteBuffer=NULL;
 static int st_Force=0;
+static int st_KillProc=0;
 
 #ifdef _UNICODE
 char** ChangeParam(int argc,wchar_t* argvw[])
@@ -215,6 +217,11 @@ int ParseParam(int argc,char* argv[])
         {
             st_Force = 1;
         }
+        else if(strcmp(argv[i],"-k")== 0 ||
+                strcmp(argv[i],"--kill")==0)
+        {
+            st_KillProc = 1;
+        }
         else
         {
             Usage(3,"unknown params %s",argv[i]);
@@ -225,31 +232,36 @@ int ParseParam(int argc,char* argv[])
     {
         Usage(3,"must specify the processid");
     }
-    if(st_ReadAddr == 0 && st_WriteAddr == 0)
+    if(st_KillProc == 0)
     {
-        Usage(3,"must specify read/write address");
-    }
-
-    if(st_WriteAddr && st_pWriteBuffer == NULL)
-    {
-        Usage(3,"specify write address but not the content");
-    }
-
-    if(st_ReadAddr && st_pWriteBuffer == NULL)
-    {
-        if(st_Size == 0)
+        if(st_ReadAddr == 0 && st_WriteAddr == 0)
         {
-            st_Size = 4;
+            Usage(3,"must specify read/write address");
         }
-        st_pWriteBuffer = (unsigned char*)malloc(st_Size);
-        if(st_pWriteBuffer == NULL)
+
+        if(st_WriteAddr && st_pWriteBuffer == NULL)
         {
-            Usage(3,"allocate read buffer error");
+            Usage(3,"specify write address but not the content");
+        }
+
+        if(st_ReadAddr && st_pWriteBuffer == NULL)
+        {
+            if(st_Size == 0)
+            {
+                st_Size = 4;
+            }
+            st_pWriteBuffer = (unsigned char*)malloc(st_Size);
+            if(st_pWriteBuffer == NULL)
+            {
+                Usage(3,"allocate read buffer error");
+            }
         }
     }
 
     return 0;
 }
+
+
 
 int main(int argc,TCHAR* argv[])
 {
@@ -263,38 +275,50 @@ int main(int argc,TCHAR* argv[])
         ret = -1 * LAST_ERROR_CODE();
         goto out;
     }
-    ParseParam(argc,pRetArgv);
+    //ParseParam(argc,pRetArgv);
+	ParseParam(argc,(char**)argv);
 #else
     ParseParam(argc,argv);
 #endif
 
-
-    if(st_WriteAddr)
+    if(st_KillProc==0)
     {
-        ret = ProcWrite(st_ProcessId,(void*)st_WriteAddr,st_pWriteBuffer,st_Size,st_Force);
-        if(ret < 0)
+
+        if(st_WriteAddr)
         {
-            goto out;
+            ret = ProcWrite(st_ProcessId,(void*)st_WriteAddr,st_pWriteBuffer,st_Size,st_Force);
+            if(ret < 0)
+            {
+                goto out;
+            }
+        }
+        else
+        {
+            ret = ProcRead(st_ProcessId,(void*)st_ReadAddr,st_pWriteBuffer,st_Size);
+            if(ret < 0)
+            {
+                goto out;
+            }
+
+            fprintf(stdout,"Read At 0x%08x(%d):",st_ReadAddr,st_Size);
+            for(i=0; i<(int)st_Size; i++)
+            {
+                if((i%16)==0)
+                {
+                    fprintf(stdout,"\n0x%08x\t",i);
+                }
+                fprintf(stdout," 0x%02x",st_pWriteBuffer[i]);
+            }
+            fprintf(stdout,"\n");
         }
     }
     else
     {
-        ret = ProcRead(st_ProcessId,(void*)st_ReadAddr,st_pWriteBuffer,st_Size);
+        ret = ProcKill(st_ProcessId,1);
         if(ret < 0)
         {
             goto out;
         }
-
-        fprintf(stdout,"Read At 0x%08x(%d):",st_ReadAddr,st_Size);
-        for(i=0; i<(int)st_Size; i++)
-        {
-            if((i%16)==0)
-            {
-                fprintf(stdout,"\n0x%08x\t",i);
-            }
-            fprintf(stdout," 0x%02x",st_pWriteBuffer[i]);
-        }
-        fprintf(stdout,"\n");
     }
 
     ret = 0;

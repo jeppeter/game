@@ -167,3 +167,41 @@ fail:
 
 
 
+
+int ProcKill(unsigned int processid,int force)
+{
+    BOOL bret;
+    int ret;
+    HANDLE hProc=NULL;
+
+    hProc = OpenProcess(PROCESS_TERMINATE,FALSE,processid);
+    if(hProc==NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not open process (%d)(%d)\n",processid,ret);
+        goto fail;
+    }
+
+    bret = TerminateProcess(hProc,0);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not kill process(%d:0x%08x) error(%d)\n",processid,hProc,ret);
+        goto fail;
+    }
+    if(hProc)
+    {
+        CloseHandle(hProc);
+    }
+    hProc = NULL;
+
+    return 0;
+fail:
+    assert(ret > 0);
+    if(hProc)
+    {
+        CloseHandle(hProc);
+    }
+    hProc = NULL;
+    return -ret;
+}
