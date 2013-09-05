@@ -260,6 +260,7 @@ int ProcEnum(const char * exename,unsigned int ** ppPids,int * pSize)
         if(ret == 0)
         {
             /*it is compare ok ,so we should set it for the compare */
+			DEBUG_INFO("Find ||||||||||||||||||||||||||||| parent processid %d\n",procinfo.th32ParentProcessID);
 
             if(retsize <(count + 1))
             {
@@ -283,9 +284,9 @@ int ProcEnum(const char * exename,unsigned int ** ppPids,int * pSize)
                 }
                 pRetPids = pTmpPids;
                 pRetPids[count] = procinfo.th32ProcessID;
-                count ++;
                 pTmpPids = NULL;
             }
+			count ++;
         }
     }
 	DEBUG_INFO("End ++++++++++++++++++++\n");

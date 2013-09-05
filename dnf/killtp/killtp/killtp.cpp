@@ -78,6 +78,17 @@ int main(int argc, TCHAR* argv[])
         }
     }
 
+    /*to sleep for a while and get the memory size*/
+    Sleep(1000);
+    count = ProcEnum(exename,&pPids,&size);
+    if(count != 2)
+    {
+        ret = GetLastError() ? GetLastError() : 1;
+        ret = -ret;
+        fprintf(stderr,"get (%s) error (%d)\n",exename,ret);
+        goto fail;
+    }
+
     lastenable = EnableDebugLevel(1);
     if(lastenable < 0)
     {
@@ -93,21 +104,21 @@ int main(int argc, TCHAR* argv[])
         ret = ProcMemorySize(pPids[i],&mem[i]);
         if(ret < 0)
         {
-            fprintf(stderr,"could not get (%d) error %d\n",pPids[i],ret);
+            fprintf(stderr,"could not get (%d) memory error %d\n",pPids[i],ret);
             goto fail;
         }
     }
 
-	fprintf(stdout,"mem[0] %d(%d) mem[1] %d(%d)\n",mem[0],pPids[0],mem[1],pPids[1]);
+    fprintf(stdout,"mem[0] %d(%d) mem[1] %d(%d)\n",mem[0],pPids[0],mem[1],pPids[1]);
 
     if(mem[0] > mem[1])
     {
-    	fprintf(stdout,"Kill %d\n",pPids[1]);
+        fprintf(stdout,"Kill %d\n",pPids[1]);
         ret = ProcKill(pPids[1],1);
     }
     else
     {
-    	fprintf(stdout,"Kill %d\n",pPids[1]);
+        fprintf(stdout,"Kill %d\n",pPids[1]);
         ret = ProcKill(pPids[0],1);
     }
 
