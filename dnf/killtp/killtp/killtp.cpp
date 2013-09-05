@@ -15,6 +15,9 @@ int main(int argc, TCHAR* argv[])
     int i;
     int ret;
     unsigned int memsize;
+    int enabled =0;
+    int lastenable = 0;
+    int res;
 
     if(argc < 2)
     {
@@ -30,6 +33,16 @@ int main(int argc, TCHAR* argv[])
         goto fail;
     }
 
+    lastenable = EnableDebugLevel(1);
+    if(lastenable < 0)
+    {
+        ret = lastenable;
+        fprintf(stderr,"can not enable debug level error(%d)\n",ret);
+        goto fail;
+    }
+    enabled = 1;
+
+
     fprintf(stdout,"find (%s):\n",argv[1]);
     if(count > 0)
     {
@@ -41,9 +54,20 @@ int main(int argc, TCHAR* argv[])
                 fprintf(stderr,"could not get (%d) error %d\n",pPids[i],ret);
                 goto fail;
             }
-			fprintf(stdout,"[%d] %d size %d\n",i,pPids[i],memsize);
+            fprintf(stdout,"[%d] %d size %d\n",i,pPids[i],memsize);
         }
     }
+
+    if(enabled)
+    {
+        res = EnableDebugLevel(lastenable);
+        if(res < 0)
+        {
+            ret = res;
+            goto fail;
+        }
+    }
+    enabled = 0;
 
     if(pPids)
     {

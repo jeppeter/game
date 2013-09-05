@@ -20,7 +20,7 @@ int ProcMemorySize(unsigned int processid,unsigned int *pMemSize);
 *         0 origin is disabled
 *         negative error code
 ******************************************/
-int EnableDebugLevel(int enble);
+int EnableDebugLevel(int enable);
 
 #ifdef __cplusplus
 };

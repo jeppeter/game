@@ -347,7 +347,7 @@ int ProcMemorySize(unsigned int processid,unsigned int * pMemSize)
         ERROR_INFO("could not query info (%d) error(%d)\n",processid,ret);
     }
 
-	*pMemSize = proccounter.WorkingSetSize;
+    *pMemSize = proccounter.WorkingSetSize;
 
     if(hProc)
     {
@@ -365,4 +365,117 @@ fail:
     hProc = NULL;
     return -ret;
 }
+
+int EnableDebugLevel(int enable)
+{
+    int oldenable=0;
+    int ret;
+    HANDLE hToken=NULL;
+    BOOL bret;
+    TOKEN_PRIVILEGES tp,*poldtp=NULL;
+    DWORD oldsize=0,oldcount=1,oldlen;
+    unsigned int i;
+
+    bret = OpenProcessToken(GetCurrentProcess(),TOKEN_ADJUST_PRIVILEGES,&hToken);
+    if(!bret)
+    {
+        hToken= NULL;
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not opentoken error(%d)\n",ret);
+        goto fail;
+    }
+
+    tp.PrivilegeCount = 1;
+    bret = LookupPrivilegeValue(NULL,SE_DEBUG_NAME,&(tp.Privileges[0].Luid));
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not lookup %s name error(%d)\n",
+                   SE_DEBUG_NAME,ret);
+        goto fail;
+    }
+	DEBUG_INFO("se_debug_name %S\n",SE_DEBUG_NAME);
+
+    if(enable)
+    {
+        tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+    }
+    else
+    {
+        tp.Privileges[0].Attributes = 0;
+    }
+
+    oldsize = sizeof(*poldtp);
+    poldtp = (TOKEN_PRIVILEGES*) calloc(oldsize,1);
+    if(poldtp == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not allocate %d size\n",oldsize);
+        goto fail;
+    }
+    poldtp->PrivilegeCount = oldcount;
+    while(1)
+    {
+
+        SetLastError(0);
+        oldlen = oldsize;
+        bret =  AdjustTokenPrivileges(hToken,FALSE,&tp,sizeof(tp),poldtp,&oldlen);
+        if(!bret)
+        {
+
+            break;
+        }
+
+        ERROR_INFO("LastError %d oldlen %d oldsize %d\n",GetLastError(),oldlen,oldsize);
+
+        oldsize += sizeof(poldtp->Privileges[0]);
+        free(poldtp);
+        poldtp = (TOKEN_PRIVILEGES*) calloc(oldsize,1);
+        if(poldtp == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            ERROR_INFO("could not allocate %d size\n",oldsize);
+            goto fail;
+        }
+        oldcount ++;
+        poldtp->PrivilegeCount = oldcount;
+    }
+
+	DEBUG_INFO("count %d\n",poldtp->PrivilegeCount);
+    for(i=0; i<poldtp->PrivilegeCount; i++)
+    {
+        DEBUG_INFO("[%d] luid %ld:%ld attr %ld\n",i,poldtp->Privileges[i].Luid.HighPart,poldtp->Privileges[i].Luid.LowPart,
+                   poldtp->Privileges[i].Attributes);
+
+		DEBUG_BUFFER(&(tp.Privileges[0].Luid),sizeof(tp.Privileges[0].Luid));
+		DEBUG_BUFFER(&(poldtp->Privileges[i].Luid),sizeof(poldtp->Privileges[i].Luid));
+        if(memcmp(&(tp.Privileges[0].Luid),&(poldtp->Privileges[i].Luid),sizeof(tp.Privileges[0].Luid))==0)
+        {
+        	DEBUG_INFO("\n");
+            if(poldtp->Privileges[i].Attributes & SE_PRIVILEGE_ENABLED)
+            {
+                oldenable = 1;
+            }
+        }
+    }
+
+    if(hToken)
+    {
+        CloseHandle(hToken);
+    }
+    hToken = NULL;
+
+
+    return oldenable;
+fail:
+    assert(ret);
+    if(hToken)
+    {
+        CloseHandle(hToken);
+    }
+    hToken = NULL;
+    SetLastError(ret);
+    return -ret;
+}
+
 
