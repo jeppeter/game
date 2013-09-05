@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <malloc.h>
 
+
+
 int main(int argc, TCHAR* argv[])
 {
     unsigned int *pPids=NULL;
@@ -14,10 +16,12 @@ int main(int argc, TCHAR* argv[])
     int count;
     int i;
     int ret;
-    unsigned int memsize;
     int enabled =0;
     int lastenable = 0;
     int res;
+    const char* exename = NULL;
+    unsigned int mem[2];
+    int times = 0;
 
     if(argc < 2)
     {
@@ -25,12 +29,53 @@ int main(int argc, TCHAR* argv[])
         return -3;
     }
 
-    count = ProcEnum((const char*)argv[1],&pPids,&size);
-    if(count < 0)
+    if(argc == 2)
     {
-        ret = count;
-        fprintf(stderr,"could not get %s exe error\n",argv[1]);
+        exename = (const char*)argv[1];
+        count = ProcEnum(exename,&pPids,&size);
+        if(count < 0)
+        {
+            ret = count;
+            fprintf(stderr,"could not get %s\n",exename);
+            goto fail;
+        }
+
+        fprintf(stdout,"exe (%s) (count %d)\t",exename,count);
+        for(i=0; i<count; i++)
+        {
+            fprintf(stdout," %d",pPids[i]);
+        }
+        fprintf(stdout,"\n");
+        ret = 0;
         goto fail;
+    }
+    else
+    {
+        exename = (const char*)argv[2];
+    }
+
+
+
+    while(1)
+    {
+        count = ProcEnum(exename,&pPids,&size);
+        if(count  == 2)
+        {
+            ret = count;
+            fprintf(stderr,"could not get %s exe error\n",exename);
+            break;
+        }
+        Sleep(500);
+        times ++;
+        if((times% 10)==0)
+        {
+            fprintf(stdout,"could not get %s (count %d)\t",exename,count);
+            for(i=0; i<count; i++)
+            {
+                fprintf(stdout," %d",pPids[i]);
+            }
+            fprintf(stdout,"\n");
+        }
     }
 
     lastenable = EnableDebugLevel(1);
@@ -43,20 +88,35 @@ int main(int argc, TCHAR* argv[])
     enabled = 1;
 
 
-    fprintf(stdout,"find (%s):\n",argv[1]);
-    if(count > 0)
+    for(i=0; i<count; i++)
     {
-        for(i=0; i<count; i++)
+        ret = ProcMemorySize(pPids[i],&mem[i]);
+        if(ret < 0)
         {
-            ret = ProcMemorySize(pPids[i],&memsize);
-            if(ret < 0)
-            {
-                fprintf(stderr,"could not get (%d) error %d\n",pPids[i],ret);
-                goto fail;
-            }
-            fprintf(stdout,"[%d] %d size %d\n",i,pPids[i],memsize);
+            fprintf(stderr,"could not get (%d) error %d\n",pPids[i],ret);
+            goto fail;
         }
     }
+
+	fprintf(stdout,"mem[0] %d(%d) mem[1] %d(%d)\n",mem[0],pPids[0],mem[1],pPids[1]);
+
+    if(mem[0] > mem[1])
+    {
+    	fprintf(stdout,"Kill %d\n",pPids[1]);
+        ret = ProcKill(pPids[1],1);
+    }
+    else
+    {
+    	fprintf(stdout,"Kill %d\n",pPids[1]);
+        ret = ProcKill(pPids[0],1);
+    }
+
+    if(ret < 0)
+    {
+        fprintf(stderr,"could not kill %s error(%d)\n",exename,ret);
+        goto fail;
+    }
+    fprintf(stdout,"Kill succ\n");
 
     if(enabled)
     {
@@ -78,6 +138,15 @@ int main(int argc, TCHAR* argv[])
     return 0;
 
 fail:
+    if(enabled)
+    {
+        res = EnableDebugLevel(lastenable);
+        if(res < 0)
+        {
+            fprintf(stderr,"could not disable debug error(%d)\n",res);
+        }
+    }
+    enabled = 0;
     if(pPids)
     {
         free(pPids);

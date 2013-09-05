@@ -246,12 +246,16 @@ int ProcEnum(const char * exename,unsigned int ** ppPids,int * pSize)
     }
 
     procinfo.dwSize = sizeof(procinfo);
+	DEBUG_INFO("Start ++++++++++++++++++++\n");
     for(i=0,procinfo.dwSize = sizeof(procinfo),bret=Process32First(hSnap,&procinfo); bret; i++,procinfo.dwSize=sizeof(procinfo),bret=Process32Next(hSnap,&procinfo))
     {
+
 #ifdef _UNICODE
         ret = _wcsicmp(pExeNameW,procinfo.szExeFile);
+        DEBUG_INFO("szExeFile %S pExeNameW %S(%s) (%d)\n",procinfo.szExeFile,pExeNameW,exename ,ret);
 #else
         ret = _stricmp(exename,procinfo.szExeFile);
+		DEBUG_INFO("szExeFile %s exename(%s) (%d)\n",procinfo.szExeFile,exename,ret);
 #endif
         if(ret == 0)
         {
@@ -284,6 +288,7 @@ int ProcEnum(const char * exename,unsigned int ** ppPids,int * pSize)
             }
         }
     }
+	DEBUG_INFO("End ++++++++++++++++++++\n");
 
     ret = LAST_ERROR_CODE();
     if(ret != ERROR_NO_MORE_FILES)
@@ -394,7 +399,7 @@ int EnableDebugLevel(int enable)
                    SE_DEBUG_NAME,ret);
         goto fail;
     }
-	DEBUG_INFO("se_debug_name %S\n",SE_DEBUG_NAME);
+    DEBUG_INFO("se_debug_name %S luid (%ld:%ld) attribute 0x%08x\n",SE_DEBUG_NAME,tp.Privileges[0].Luid.HighPart,tp.Privileges[0].Luid.LowPart,tp.Privileges[0].Attributes);
 
     if(enable)
     {
@@ -414,19 +419,20 @@ int EnableDebugLevel(int enable)
         goto fail;
     }
     poldtp->PrivilegeCount = oldcount;
+    poldtp->Privileges[0].Luid = tp.Privileges[0].Luid;
     while(1)
     {
 
         SetLastError(0);
         oldlen = oldsize;
-        bret =  AdjustTokenPrivileges(hToken,FALSE,&tp,sizeof(tp),poldtp,&oldlen);
-        if(!bret)
+        DEBUG_INFO("oldsize %d sizeof(%d) oldcount (%d)\n",oldsize,sizeof(tp),oldcount);
+        //bret =  AdjustTokenPrivileges(hToken,FALSE,&tp,sizeof(tp),poldtp,&oldlen);
+        bret =  AdjustTokenPrivileges(hToken,FALSE,&tp,sizeof(TOKEN_PRIVILEGES),NULL,NULL);
+        if(bret)
         {
-
             break;
         }
 
-        ERROR_INFO("LastError %d oldlen %d oldsize %d\n",GetLastError(),oldlen,oldsize);
 
         oldsize += sizeof(poldtp->Privileges[0]);
         free(poldtp);
@@ -439,19 +445,13 @@ int EnableDebugLevel(int enable)
         }
         oldcount ++;
         poldtp->PrivilegeCount = oldcount;
+        poldtp->Privileges[0].Luid = tp.Privileges[0].Luid;
     }
 
-	DEBUG_INFO("count %d\n",poldtp->PrivilegeCount);
     for(i=0; i<poldtp->PrivilegeCount; i++)
     {
-        DEBUG_INFO("[%d] luid %ld:%ld attr %ld\n",i,poldtp->Privileges[i].Luid.HighPart,poldtp->Privileges[i].Luid.LowPart,
-                   poldtp->Privileges[i].Attributes);
-
-		DEBUG_BUFFER(&(tp.Privileges[0].Luid),sizeof(tp.Privileges[0].Luid));
-		DEBUG_BUFFER(&(poldtp->Privileges[i].Luid),sizeof(poldtp->Privileges[i].Luid));
         if(memcmp(&(tp.Privileges[0].Luid),&(poldtp->Privileges[i].Luid),sizeof(tp.Privileges[0].Luid))==0)
         {
-        	DEBUG_INFO("\n");
             if(poldtp->Privileges[i].Attributes & SE_PRIVILEGE_ENABLED)
             {
                 oldenable = 1;
