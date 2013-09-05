@@ -9,8 +9,13 @@ extern "C"{
 int ProcRead(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int datalen);
 int ProcWrite(unsigned int processid,void* pRemoteAddr,unsigned char* pData,int datalen,int force);
 int ProcKill(unsigned int processid,int force);
+int ProcEnum(const char* exename,unsigned int**ppPids,int *pSize);
+int ProcMemorySize(unsigned int processid,unsigned int *pMemSize);
+
+int RaiseTokenPriviledge();
+
 #ifdef __cplusplus
-}
+};
 #endif
 
 #endif /*__REMOTE_PROC_H__*/

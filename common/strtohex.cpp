@@ -65,7 +65,7 @@ unsigned int StrToHex(const char * pStart)
 
 unsigned long long StrToHexLL(const char * pStart)
 {
-    unsigned long long ret;
+    unsigned long long ret=0;
     char* pCurPtr=(char*)pStart;
     int base = 10;
     int curnum=0;
