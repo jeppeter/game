@@ -62,7 +62,7 @@ int main(int argc, TCHAR* argv[])
         if(count  == 2)
         {
             ret = count;
-            fprintf(stderr,"could not get %s exe error\n",exename);
+            fprintf(stderr,"get %s exe ok\n",exename);
             break;
         }
         Sleep(500);

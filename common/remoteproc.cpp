@@ -508,20 +508,36 @@ int ProcMemorySize(unsigned int processid ,unsigned int* pMemSize)
 {
     HANDLE hProc=NULL;
     int ret;
+    BOOL bret;
+    PROCESS_MEMORY_COUNTERS procmem;
 
-    hProc = OpenProcess(PROCESS_QUERY_INFORMATION,FALSE,processid);
+	*pMemSize = 0;
+    hProc = OpenProcess(PROCESS_QUERY_INFORMATION ,FALSE,processid);
     if(hProc == NULL)
     {
-    	ret = LAST_ERROR_CODE();
-		ERROR_INFO("could not open process %d error(%d)\n",processid,ret);
-		goto fail;
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not open process %d error(%d)\n",processid,ret);
+        goto fail;
     }
 
-	DEBUG_INFO("processid %d open handle 0x%08x\n",processid,hProc);
+    DEBUG_INFO("processid %d open handle 0x%08x\n",processid,hProc);
 
-	CloseHandle(hProc);
+	procmem.cb = sizeof(procmem);
+    bret = GetProcessMemoryInfo(hProc,&procmem,sizeof(procmem));
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not get processmemory info %d\n",ret);
+        goto fail;
+    }
 
-	return 0;
+	*pMemSize = procmem.WorkingSetSize;
+	DEBUG_INFO("process %d MEMSIZE %d\n",processid,procmem.WorkingSetSize);
+
+
+    CloseHandle(hProc);
+
+    return 0;
 
 fail:
     if(hProc)
@@ -529,7 +545,7 @@ fail:
         CloseHandle(hProc);
     }
     hProc = NULL;
-    return ret;
+    return -ret;
 }
 
 #endif
