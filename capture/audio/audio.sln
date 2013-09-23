@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pcmcapinject", "pcmcapinject\pcmcapinject.vcxproj", "{68EC6CFC-9014-4413-BF3B-B7FD2FDAC73F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pcmcap", "pcmcap\pcmcap.vcxproj", "{72F06273-CC20-443E-9D12-A51C79B97ADD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{68EC6CFC-9014-4413-BF3B-B7FD2FDAC73F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{68EC6CFC-9014-4413-BF3B-B7FD2FDAC73F}.Debug|Win32.Build.0 = Debug|Win32
+		{68EC6CFC-9014-4413-BF3B-B7FD2FDAC73F}.Release|Win32.ActiveCfg = Release|Win32
+		{68EC6CFC-9014-4413-BF3B-B7FD2FDAC73F}.Release|Win32.Build.0 = Release|Win32
+		{72F06273-CC20-443E-9D12-A51C79B97ADD}.Debug|Win32.ActiveCfg = Debug|Win32
+		{72F06273-CC20-443E-9D12-A51C79B97ADD}.Debug|Win32.Build.0 = Debug|Win32
+		{72F06273-CC20-443E-9D12-A51C79B97ADD}.Release|Win32.ActiveCfg = Release|Win32
+		{72F06273-CC20-443E-9D12-A51C79B97ADD}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
