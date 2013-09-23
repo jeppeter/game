@@ -17,32 +17,51 @@ static int SetFormat(WAVEFORMATEX* pFormatEx)
 {
 	int ret=0;
 	int formatsize=0;
-	EnterCriticalSection(&st_StateCS);
+	WAVEFORMATEX *pCopied=NULL;
 
+	if (pFormatEx)
+	{
+		formatsize = sizeof(*pFormatEx);
+		formatsize += pFormatEx->cbSize;
+		
+		pCopied = (WAVEFORMATEX*)malloc(formatsize);
+		if (pCopied==NULL)
+		{
+			ret = LAST_ERROR_CODE();
+			goto out;
+		}
+		
+		memcpy(pCopied,pFormatEx,formatsize);
+	}
+	EnterCriticalSection(&st_StateCS);
 	if (st_pFormatEx)
 	{
 		free(st_pFormatEx);
 	}
 	st_pFormatEx = NULL;
-
-	/*now to test for the format size*/
-	formatsize = sizeof(*pFormatEx);
-	formatsize += pFormatEx->cbSize;
-
-	st_pFormatEx = (WAVEFORMATEX*)malloc(formatsize);
-	if (st_pFormatEx==NULL)
-	{
-		ret = LAST_ERROR_CODE();
-		goto release;
-	}
-
-	memcpy(st_pFormatEx,pFormatEx,formatsize);
-	
-release:
+	st_pFormatEx = pCopied;	
 	LeaveCriticalSection(&st_StateCS);
+out:	
 	return ret > 0 ? -ret : 0;
 }
 
+
+static int GetFormat(int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample)
+{
+	int ret = 0;
+	EnterCriticalSection(&st_StateCS);
+
+	if (st_pFormatEx)
+	{
+		*pFormat = st_pFormatEx->wFormatTag;
+		*pChannels = st_pFormatEx->nChannels;
+		*pSampleRate = st_pFormatEx->nSamplesPerSec;
+		*pBitsPerSample = st_pFormatEx->wBitsPerSample;
+		ret = 1;
+	}
+	LeaveCriticalSection(&st_StateCS);
+	return ret;
+}
 
 
 
