@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pcmcapinject", "pcmcapinjec
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pcmcap", "pcmcap\pcmcap.vcxproj", "{72F06273-CC20-443E-9D12-A51C79B97ADD}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "controldemo", "controldemo\controldemo.vcxproj", "{754F000F-0E95-4EA6-A29A-06D97B40340A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +21,10 @@ Global
 		{72F06273-CC20-443E-9D12-A51C79B97ADD}.Debug|Win32.Build.0 = Debug|Win32
 		{72F06273-CC20-443E-9D12-A51C79B97ADD}.Release|Win32.ActiveCfg = Release|Win32
 		{72F06273-CC20-443E-9D12-A51C79B97ADD}.Release|Win32.Build.0 = Release|Win32
+		{754F000F-0E95-4EA6-A29A-06D97B40340A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{754F000F-0E95-4EA6-A29A-06D97B40340A}.Debug|Win32.Build.0 = Debug|Win32
+		{754F000F-0E95-4EA6-A29A-06D97B40340A}.Release|Win32.ActiveCfg = Release|Win32
+		{754F000F-0E95-4EA6-A29A-06D97B40340A}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
