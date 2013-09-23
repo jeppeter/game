@@ -13,15 +13,8 @@
 #define PCMCAPINJECT_API __declspec(dllimport)
 #endif
 
-// 此类是从 pcmcapinject.dll 导出的
-class PCMCAPINJECT_API Cpcmcapinject {
-public:
-	Cpcmcapinject(void);
-	// TODO: 在此添加您的方法。
-};
 
-extern PCMCAPINJECT_API int npcmcapinject;
-
-PCMCAPINJECT_API int;
+extern "C" int PcmCapInjectInit(void);
+extern "C" void PcmCapInjectFini(void);
 
 #endif /*__PCMCAP_INJECT_H__*/
