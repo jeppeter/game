@@ -13,7 +13,8 @@
 #define PCMCAPINJECT_API __declspec(dllimport)
 #endif
 
-
+extern "C" PCMCAPINJECT_API int PcmCapInject_SetAudioOperation(int iOperation);
+extern "C" PCMCAPINJECT_API int PcmCapInject_SetAudioState(int iState);
 extern "C" int PcmCapInjectInit(void);
 extern "C" void PcmCapInjectFini(void);
 
