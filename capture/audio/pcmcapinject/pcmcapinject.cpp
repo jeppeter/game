@@ -3,13 +3,33 @@
 
 #include "stdafx.h"
 #include "pcmcapinject.h"
+#include <assert.h>
 #include <Mmreg.h>
 #include <stdlib.h>
+#include "../common/output_debug.h"
+#include "../common/detours.h"
+#include <MMDeviceApi.h>
+
+#pragma comment(lib,"common.lib")
 
 #define LAST_ERROR_CODE() (GetLastError() ? GetLastError() : 1)
 
 static CRITICAL_SECTION st_DetourCS;
 static CRITICAL_SECTION st_StateCS;
+
+typedef ULONG(WINAPI *EnumeratorReleaseFunc_t)(IMMDeviceEnumerator* pThis);
+static EnumeratorReleaseFunc_t EnumeratorReleaseNext=NULL;
+static int st_EnumeratorReleaseDetoured=0;
+
+typedef HRESULT(WINAPI *EnumeratorEnumAudioEndpointsFunc_t)(IMMDeviceEnumerator* pThis,EDataFlow dataFlow,DWORD dwStateMask,IMMDeviceCollection **ppDevices);
+static EnumeratorEnumAudioEndpointsFunc_t EnumeratorEnumAudioEndpointsNext=NULL;
+static int st_EnumeratorEnumAudioEndpointsDetoured=0;
+
+typedef HRESULT(WINAPI *EnumeratorGetDeviceFunc_t)(IMMDeviceEnumerator* pThis,LPCWSTR pwstrId,IMMDevice **ppDevice);
+static EnumeratorGetDeviceFunc_t EnumeratorGetDeviceNext=NULL;
+static int st_EnumeratorGetDeviceDetoured=0;
+
+
 
 static WAVEFORMATEX *st_pFormatEx=NULL;
 static int st_PcmCapInited=0;
@@ -79,6 +99,65 @@ int PcmCapInject_SetAudioState(int iState)
 }
 
 
+typedef unsigned long ptr_type_t;
+static int DetourVirtualFuncTable(CRITICAL_SECTION* pCS,int* pChanged,void**ppNextFunc,void*pCallBackFunc,void* pObject,int virtfuncnum)
+{
+	int ret =0;
+	EnterCriticalSection(pCS);
+	if (pChanged && *pChanged == 0)
+	{
+		/*now to make sure */
+		ptr_type_t** vptrptr = (ptr_type_t **)pObject;
+		ptr_type_t* vptr = *vptrptr;
+
+		assert(ppNextFunc && *ppNextFunc == NULL);
+		*ppNextFunc =(void*) vptr[virtfuncnum];
+		DetourTransactionBegin();
+		DetourUpdateThread(GetCurrentThread());
+		DetourAttach(ppNextFunc,pCallBackFunc);
+		DetourTransactionCommit();
+
+		*pChanged = 1;
+		ret = 1;
+	}
+	LeaveCriticalSection(pCS);
+	return ret;
+}
+
+
+static  HRESULT(WINAPI *CoCreateInstanceNext)(
+    REFCLSID rclsid,
+    LPUNKNOWN pUnkOuter,
+    DWORD dwClsContext,
+    REFIID riid,
+    LPVOID *ppv
+) = CoCreateInstance;
+
+HRESULT WINAPI  CoCreateInstanceCallBack(
+    REFCLSID rclsid,
+    LPUNKNOWN pUnkOuter,
+    DWORD dwClsContext,
+    REFIID riid,
+    LPVOID *ppv
+)
+{
+    HRESULT hr;
+    hr = CoCreateInstanceNext(rclsid,
+                              pUnkOuter,dwClsContext,riid,ppv);
+    if(SUCCEEDED(hr))
+    {
+		if(rclsid == __uuidof(MMDeviceEnumerator))
+        {
+            IMMDeviceEnumerator* pEnumerator = (IMMDeviceEnumerator*)(*ppv);
+			/*now we should change function*/
+        }
+
+    }
+    return hr;
+}
+
+
+
 
 
 void PcmCapInjectFini(void)
@@ -90,11 +169,26 @@ void PcmCapInjectFini(void)
 	return;
 }
 
+static int DetourPCMCapFunctions(void)
+{
+	
+	return 0;
+}
+
 int PcmCapInjectInit(void)
 {
+	int ret;
 	InitializeCriticalSection(&st_StateCS);
 	InitializeCriticalSection(&st_DetourCS);
+
+	ret = DetourPCMCapFunctions();
+	if (ret < 0)
+	{
+		return ret;
+	}
+	
 	st_PcmCapInited = 1;
+	DEBUG_INFO("Init PcmCapInject succ\n");
 	return 0;
 }
 
