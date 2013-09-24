@@ -72,12 +72,22 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="detoured.h" />
+    <ClInclude Include="detours.h" />
     <ClInclude Include="output_debug.h" />
     <ClInclude Include="uniansi.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="creatwth.cpp" />
+    <ClCompile Include="detours.cpp" />
+    <ClCompile Include="disasm.cpp" />
+    <ClCompile Include="image.cpp" />
+    <ClCompile Include="modules.cpp" />
     <ClCompile Include="output_debug.cpp" />
     <ClCompile Include="uniansi.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="detoured.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
