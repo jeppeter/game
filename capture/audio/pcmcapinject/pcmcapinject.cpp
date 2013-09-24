@@ -11,7 +11,8 @@
 static CRITICAL_SECTION st_DetourCS;
 static CRITICAL_SECTION st_StateCS;
 
-static WAVEFORMATEX *st_pFormatEx;
+static WAVEFORMATEX *st_pFormatEx=NULL;
+static int st_PcmCapInited=0;
 
 static int SetFormat(WAVEFORMATEX* pFormatEx)
 {
@@ -82,11 +83,18 @@ int PcmCapInject_SetAudioState(int iState)
 
 void PcmCapInjectFini(void)
 {
+	if (st_PcmCapInited)
+	{
+		;
+	}
 	return;
 }
 
 int PcmCapInjectInit(void)
 {
+	InitializeCriticalSection(&st_StateCS);
+	InitializeCriticalSection(&st_DetourCS);
+	st_PcmCapInited = 1;
 	return 0;
 }
 
