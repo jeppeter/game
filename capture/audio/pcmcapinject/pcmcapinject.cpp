@@ -17,13 +17,26 @@
 static CRITICAL_SECTION st_DetourCS;
 static CRITICAL_SECTION st_StateCS;
 
+
+#define ENUMERATOR_RELEASE_VIRT_NUM   2
+
 typedef ULONG(WINAPI *EnumeratorReleaseFunc_t)(IMMDeviceEnumerator* pThis);
 static EnumeratorReleaseFunc_t EnumeratorReleaseNext=NULL;
 static int st_EnumeratorReleaseDetoured=0;
 
+ULONG WINAPI EnumeratorReleaseCallBack(IMMDeviceEnumerator* pThis)
+{
+	ULONG uret;
+
+	uret = EnumeratorReleaseNext(pThis);
+	return uret;
+}
+
 typedef HRESULT(WINAPI *EnumeratorEnumAudioEndpointsFunc_t)(IMMDeviceEnumerator* pThis,EDataFlow dataFlow,DWORD dwStateMask,IMMDeviceCollection **ppDevices);
 static EnumeratorEnumAudioEndpointsFunc_t EnumeratorEnumAudioEndpointsNext=NULL;
 static int st_EnumeratorEnumAudioEndpointsDetoured=0;
+
+
 
 typedef HRESULT(WINAPI *EnumeratorGetDeviceFunc_t)(IMMDeviceEnumerator* pThis,LPCWSTR pwstrId,IMMDevice **ppDevice);
 static EnumeratorGetDeviceFunc_t EnumeratorGetDeviceNext=NULL;
@@ -150,6 +163,7 @@ HRESULT WINAPI  CoCreateInstanceCallBack(
         {
             IMMDeviceEnumerator* pEnumerator = (IMMDeviceEnumerator*)(*ppv);
 			/*now we should change function*/
+			DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorReleaseDetoured,(void**)&EnumeratorGetDeviceNext,EnumeratorReleaseCallBack,*ppv,ENUMERATOR_RELEASE_VIRT_NUM);
         }
 
     }
