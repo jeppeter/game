@@ -182,6 +182,14 @@ HRESULT WINAPI AudioClientGetServiceCallBack(IAudioClient* pClient,REFIID riid,v
     HRESULT hr;
 
     hr = AudioClientGetServiceNext(pClient,riid,ppv);
+	if (SUCCEEDED(hr))
+	{
+		if (riid == __uuidof(IAudioRenderClient))
+		{
+			IAudioRenderClient* pRender = (IAudioRenderClient*)*ppv;
+			DetourAudioRenderClientVirtFunctions(pRender);
+		}
+	}
     return hr;
 }
 
