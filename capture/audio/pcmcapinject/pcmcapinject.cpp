@@ -48,6 +48,60 @@ static int DetourVirtualFuncTable(CRITICAL_SECTION* pCS,int* pChanged,void**ppNe
 }
 
 /*****************************************************
+* stream audio volume
+*****************************************************/
+#define  STREAM_AUDIO_VOLUME_RELEASE_NUM             2
+#define  STREAM_AUDIO_VOLUME_SET_CHANNEL_VOLUME_NUM  4
+#define  STREAM_AUDIO_VOLUME_SET_ALL_VOLUMES_NUM     6
+
+typedef ULONG(WINAPI *StreamAudioVolumeReleaseFunc_t)(IAudioStreamVolume* pThis);
+static StreamAudioVolumeReleaseFunc_t StreamAudioVolumeReleaseNext=NULL;
+static int st_StreamAudioVolumeReleaseDetoured=0;
+
+ULONG WINAPI  StreamAudioVolumeReleaseCallBack(IAudioStreamVolume *pThis)
+{
+    ULONG uret;
+
+    uret = StreamAudioVolumeReleaseNext(pThis);
+    return uret;
+}
+
+typedef HRESULT(WINAPI  *StreamAudioVolumeSetChannelVolumeFunc_t)(IAudioStreamVolume * pThis,UINT32 dwIndex,const float fLevel);
+static StreamAudioVolumeSetChannelVolumeFunc_t StreamAudioVolumeSetChannelVolumeNext=NULL;
+static int st_StreamAudioVolumeSetChannelVolumeDetoured=0;
+
+HRESULT WINAPI StreamAudioVolumeSetChannelVolumeCallBack(IAudioStreamVolume * pThis,UINT32 dwIndex,const float fLevel)
+{
+    HRESULT hr;
+    hr = StreamAudioVolumeSetChannelVolumeNext(pThis,dwIndex,fLevel);
+    return hr;
+}
+
+
+typedef HRESULT(WINAPI *StreamAudioVolumeSetAllVolumesFunc_t)(IAudioStreamVolume * This,UINT32 dwCount,const float *pfVolumes);
+static StreamAudioVolumeSetAllVolumesFunc_t StreamAudioVolumeSetAllVolumesNext=NULL;
+static int st_StreamAudioVolumeSetAllVolumesDetoured=0;
+
+HRESULT WINAPI StreamAudioVolumeSetAllVolumesCallBack(IAudioStreamVolume * This,UINT32 dwCount,const float *pfVolumes)
+{
+    HRESULT hr;
+
+    hr = StreamAudioVolumeSetAllVolumesNext(This,dwCount,pfVolumes);
+    return hr;
+}
+
+int DetourStreamAudioVolumeVirtFunctions(IAudioStreamVolume *pStream)
+{
+    DetourVirtualFuncTable(&st_DetourCS,&st_StreamAudioVolumeReleaseDetoured,(void**)&StreamAudioVolumeReleaseNext,StreamAudioVolumeReleaseCallBack,pStream,STREAM_AUDIO_VOLUME_RELEASE_NUM);
+    DetourVirtualFuncTable(&st_DetourCS,&st_StreamAudioVolumeSetChannelVolumeDetoured,(void**)&StreamAudioVolumeSetChannelVolumeNext,StreamAudioVolumeSetChannelVolumeCallBack,pStream,STREAM_AUDIO_VOLUME_SET_CHANNEL_VOLUME_NUM);
+    DetourVirtualFuncTable(&st_DetourCS,&st_StreamAudioVolumeSetAllVolumesDetoured,(void**)&StreamAudioVolumeSetAllVolumesNext,StreamAudioVolumeSetAllVolumesCallBack,pStream,STREAM_AUDIO_VOLUME_SET_ALL_VOLUMES_NUM);
+    return 0;
+}
+
+
+
+
+/*****************************************************
 * channel audio volume
 *****************************************************/
 #define  CHANNEL_AUDIO_VOLUME_RELEASE_NUM            2
