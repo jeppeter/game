@@ -48,6 +48,43 @@ static int DetourVirtualFuncTable(CRITICAL_SECTION* pCS,int* pChanged,void**ppNe
 }
 
 
+/*****************************************************
+* simple audio volume
+*****************************************************/
+#define  SIMPLE_AUDIO_VOLUME_RELEASE_NUM             2
+#define  SIMPLE_AUDIO_VOLUME_SET_MASTER_VOLUME_NUM   3
+
+typedef ULONG(WINAPI *SimpleAudioVolumeReleaseFunc_t)(ISimpleAudioVolume *pThis);
+static SimpleAudioVolumeReleaseFunc_t SimpleAudioVolumeReleaseNext=NULL;
+static int st_SimpleAudioVolumeReleaseDetoured=0;
+
+ULONG WINAPI SimpleAudioVolumeReleaseCallBack(ISimpleAudioVolume *pThis)
+{
+    ULONG uret;
+
+    uret = SimpleAudioVolumeReleaseNext(pThis);
+    return uret;
+}
+
+typedef HRESULT(WINAPI *SimpleAudioVolumeSetMasterVolumeFunc_t)(ISimpleAudioVolume * pThis,float fLevel,LPCGUID EventContext);
+static SimpleAudioVolumeSetMasterVolumeFunc_t SimpleAudioVolumeSetMasterVolumeNext=NULL;
+static int st_SimpleAudioVolumeSetMasterVolumeDetoured=0;
+
+HRESULT WINAPI SimpleAudioVolumeSetMasterVolumeCallBack(ISimpleAudioVolume * pThis,float fLevel,LPCGUID EventContext)
+{
+    HRESULT hr;
+
+    hr = SimpleAudioVolumeSetMasterVolumeNext(pThis,fLevel,EventContext);
+    return hr;
+}
+
+
+static int DetourSimpleAudioVolumeVirtFunctions(ISimpleAudioVolume *pThis)
+{
+    DetourVirtualFuncTable(&st_DetourCS,&st_SimpleAudioVolumeReleaseDetoured,(void**)&SimpleAudioVolumeReleaseNext,SimpleAudioVolumeReleaseCallBack,pThis,SIMPLE_AUDIO_VOLUME_RELEASE_NUM);
+    DetourVirtualFuncTable(&st_DetourCS,&st_SimpleAudioVolumeSetMasterVolumeDetoured,(void**)&SimpleAudioVolumeSetMasterVolumeNext,SimpleAudioVolumeSetMasterVolumeCallBack,pThis,SIMPLE_AUDIO_VOLUME_SET_MASTER_VOLUME_NUM);
+    return 0;
+}
 
 /*****************************************************
 * audio render client
@@ -188,6 +225,15 @@ HRESULT WINAPI AudioClientGetServiceCallBack(IAudioClient* pClient,REFIID riid,v
         {
             IAudioRenderClient* pRender = (IAudioRenderClient*)*ppv;
             DetourAudioRenderClientVirtFunctions(pRender);
+        }
+        else if(riid == __uuidof(IAudioStreamVolume))
+        {
+        }
+        else if(riid == __uuidof(IChannelAudioVolume))
+        {
+        }
+        else if(riid == __uuidof(ISimpleAudioVolume))
+        {
         }
     }
     return hr;
@@ -405,7 +451,7 @@ out:
 }
 
 
-static int GetFormat(IAudioRenderClient* pRender,int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample)
+static int GetFormat(IAudioRenderClient* pRender,int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample,float* pVolume)
 {
     int ret = 0;
     EnterCriticalSection(&st_StateCS);
