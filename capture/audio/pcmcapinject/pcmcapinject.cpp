@@ -367,9 +367,10 @@ HRESULT EnumeratorGetDeviceCallBack(IMMDeviceEnumerator* pThis,LPCWSTR pwstrId,I
 *  format set and get handler
 *****************************************************/
 static WAVEFORMATEX *st_pFormatEx=NULL;
+static IAudioClient *st_pHandleAudioClient=NULL;
 static int st_PcmCapInited=0;
 
-static int SetFormat(WAVEFORMATEX* pFormatEx)
+static int SetFormat(IAudioClient* pClient,WAVEFORMATEX* pFormatEx)
 {
     int ret=0;
     int formatsize=0;
@@ -396,18 +397,19 @@ static int SetFormat(WAVEFORMATEX* pFormatEx)
     }
     st_pFormatEx = NULL;
     st_pFormatEx = pCopied;
+	st_pHandleAudioClient= pClient;
     LeaveCriticalSection(&st_StateCS);
 out:
     return ret > 0 ? -ret : 0;
 }
 
 
-static int GetFormat(int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample)
+static int GetFormat(IAudioClient* pClient,int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample)
 {
     int ret = 0;
     EnterCriticalSection(&st_StateCS);
 
-    if(st_pFormatEx)
+    if(st_pFormatEx && st_pHandleAudioClient == pClient)
     {
         *pFormat = st_pFormatEx->wFormatTag;
         *pChannels = st_pFormatEx->nChannels;
