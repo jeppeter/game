@@ -182,14 +182,14 @@ HRESULT WINAPI AudioClientGetServiceCallBack(IAudioClient* pClient,REFIID riid,v
     HRESULT hr;
 
     hr = AudioClientGetServiceNext(pClient,riid,ppv);
-	if (SUCCEEDED(hr))
-	{
-		if (riid == __uuidof(IAudioRenderClient))
-		{
-			IAudioRenderClient* pRender = (IAudioRenderClient*)*ppv;
-			DetourAudioRenderClientVirtFunctions(pRender);
-		}
-	}
+    if(SUCCEEDED(hr))
+    {
+        if(riid == __uuidof(IAudioRenderClient))
+        {
+            IAudioRenderClient* pRender = (IAudioRenderClient*)*ppv;
+            DetourAudioRenderClientVirtFunctions(pRender);
+        }
+    }
     return hr;
 }
 
@@ -368,6 +368,7 @@ HRESULT EnumeratorGetDeviceCallBack(IMMDeviceEnumerator* pThis,LPCWSTR pwstrId,I
 *****************************************************/
 static WAVEFORMATEX *st_pFormatEx=NULL;
 static IAudioClient *st_pHandleAudioClient=NULL;
+static IAudioRenderClient *st_pAudioRenderClient=NULL;
 static int st_PcmCapInited=0;
 
 static int SetFormat(IAudioClient* pClient,WAVEFORMATEX* pFormatEx)
@@ -397,19 +398,19 @@ static int SetFormat(IAudioClient* pClient,WAVEFORMATEX* pFormatEx)
     }
     st_pFormatEx = NULL;
     st_pFormatEx = pCopied;
-	st_pHandleAudioClient= pClient;
+    st_pHandleAudioClient= pClient;
     LeaveCriticalSection(&st_StateCS);
 out:
     return ret > 0 ? -ret : 0;
 }
 
 
-static int GetFormat(IAudioClient* pClient,int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample)
+static int GetFormat(IAudioRenderClient* pRender,int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample)
 {
     int ret = 0;
     EnterCriticalSection(&st_StateCS);
 
-    if(st_pFormatEx && st_pHandleAudioClient == pClient)
+    if(st_pFormatEx && pRender && st_pAudioRenderClient == pRender)
     {
         *pFormat = st_pFormatEx->wFormatTag;
         *pChannels = st_pFormatEx->nChannels;
