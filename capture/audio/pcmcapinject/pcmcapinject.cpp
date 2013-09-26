@@ -15,9 +15,16 @@
 
 #define LAST_ERROR_CODE() (GetLastError() ? GetLastError() : 1)
 
+
+
+
 static CRITICAL_SECTION st_DetourCS;
 static CRITICAL_SECTION st_StateCS;
 
+
+/*****************************************************
+*  to handle for the 
+*****************************************************/
 
 /*****************************************************
 * detour function call table
