@@ -7,7 +7,7 @@
 #include <common/strtohex.h>
 #include <assert.h>
 
-#define LAST_ERROR_CODE()  (GetLastError() ? GetLastError() : 1)
+#define LAST_ERROR_CODE()  ((int)(GetLastError() ? GetLastError() : 1))
 
 
 void Usage(int ec,const char* fmt,...)
@@ -27,7 +27,7 @@ void Usage(int ec,const char* fmt,...)
 
     fprintf(fp,"wp [OPTIONS]\n");
     fprintf(fp,"\t-h|--help                    | to display this help information\n");
-	fprintf(fp,"\t-C|--create                  | to use create for mem share\n");
+    fprintf(fp,"\t-C|--create                  | to use create for mem share\n");
     fprintf(fp,"\t-n|--name sharename          | to set for memory shared name\n");
     fprintf(fp,"\t-m|--memsize share size      | to set share memory size\n");
     fprintf(fp,"\t-r|--read read offset        | to read offset\n");
@@ -36,8 +36,8 @@ void Usage(int ec,const char* fmt,...)
     fprintf(fp,"\t-c|--content content         | write content it is in the value\n");
     fprintf(fp,"\t-f|--from file               | write content from file\n");
     fprintf(fp,"\t-t|--to  file                | read content dump to file\n");
-	fprintf(fp,"\t-T|--time sec                | set timeout for write\n");
-	
+    fprintf(fp,"\t-T|--time sec                | set timeout for write\n");
+
     exit(ec);
 }
 
@@ -74,7 +74,7 @@ int ParseParam(int argc,char* argv[])
                 Usage(3,"argv[%d] %s need an arg",i,argv[i]);
             }
             st_ReadOffset = StrToHex(argv[i+1]);
-			st_ReadInit = 1;
+            st_ReadInit = 1;
             i += 1;
         }
         else if(strcmp(argv[i],"-w")==0 ||
@@ -85,7 +85,7 @@ int ParseParam(int argc,char* argv[])
                 Usage(3,"argv[%d] %s need an arg",i,argv[i]);
             }
             st_WriteOffset = StrToHex(argv[i+1]);
-			st_WriteInit = 1;
+            st_WriteInit = 1;
             i += 1;
         }
         else if(strcmp(argv[i],"-m")==0 ||
@@ -96,10 +96,10 @@ int ParseParam(int argc,char* argv[])
                 Usage(3,"argv[%d] %s need an arg",i,argv[i]);
             }
             st_MemSize = StrToHex(argv[i+1]);
-			if (st_MemSize == 0)
-			{
-				Usage(3,"memsize can not be 0");
-			}
+            if(st_MemSize == 0)
+            {
+                Usage(3,"memsize can not be 0");
+            }
             i += 1;
         }
         else if(strcmp(argv[i],"-s")==0 ||
@@ -182,8 +182,8 @@ int ParseParam(int argc,char* argv[])
             {
                 Usage(3,"argv[%d] %s need an arg",i,argv[i]);
             }
-			st_pFromFile = argv[i+1];
-			i +=  1;
+            st_pFromFile = argv[i+1];
+            i +=  1;
         }
         else if(strcmp(argv[i],"-t") == 0 ||
                 strcmp(argv[i],"--to") == 0)
@@ -192,8 +192,8 @@ int ParseParam(int argc,char* argv[])
             {
                 Usage(3,"argv[%d] %s need an arg",i,argv[i]);
             }
-			st_pToFile = argv[i+1];
-			i +=  1;
+            st_pToFile = argv[i+1];
+            i +=  1;
         }
         else if(strcmp(argv[i],"-T") == 0 ||
                 strcmp(argv[i],"--timeout") == 0)
@@ -202,8 +202,8 @@ int ParseParam(int argc,char* argv[])
             {
                 Usage(3,"argv[%d] %s need an arg",i,argv[i]);
             }
-			st_Timeout = StrToHex(argv[i+1]);
-			i +=  1;
+            st_Timeout = StrToHex(argv[i+1]);
+            i +=  1;
         }
         else
         {
@@ -211,34 +211,34 @@ int ParseParam(int argc,char* argv[])
         }
     }
 
-	if (st_pShareName == NULL)
-	{
-		Usage(3,"must specify share name");
-	}
+    if(st_pShareName == NULL)
+    {
+        Usage(3,"must specify share name");
+    }
 
-	if (st_MemSize == 0)
-	{
-		Usage(3,"must specify memsize");
-	}
+    if(st_MemSize == 0)
+    {
+        Usage(3,"must specify memsize");
+    }
 
-	if (st_BufSize == 0)
-	{
-		st_BufSize = 4;
-		assert (st_pBuffer == NULL);
-		{
-			st_pBuffer = (unsigned char*)malloc(st_BufSize);
-			if (st_pBuffer == NULL)
-			{
-				ERROR_INFO("could not get the %d size buffer\n",st_BufSize);
-				exit (3);
-			}
-		}
-	}
+    if(st_BufSize == 0)
+    {
+        st_BufSize = 4;
+        assert(st_pBuffer == NULL);
+        {
+            st_pBuffer = (unsigned char*)malloc(st_BufSize);
+            if(st_pBuffer == NULL)
+            {
+                ERROR_INFO("could not get the %d size buffer\n",st_BufSize);
+                exit(3);
+            }
+        }
+    }
 
-	if (st_ReadInit == 0 && st_WriteInit == 0)
-	{
-		Usage(3,"must specify read/write use (-r/-w)");
-	}
+    if(st_ReadInit == 0 && st_WriteInit == 0)
+    {
+        Usage(3,"must specify read/write use (-r/-w)");
+    }
 
 
     return 0;
@@ -248,48 +248,217 @@ int ParseParam(int argc,char* argv[])
 
 int ReadShareMem(unsigned char* pBasePtr,int offset,unsigned char* pBuffer,int bufsize)
 {
-	int ret=bufsize;
-	unsigned char* pSrcPtr=(pBasePtr+offset);
+    int ret=bufsize;
+    unsigned char* pSrcPtr=(pBasePtr+offset);
 
-	__try
-	{
-		memcpy(pBuffer,pSrcPtr,bufsize);
-	}
+    __try
+    {
+        memcpy(pBuffer,pSrcPtr,bufsize);
+    }
 
-	__except(EXCEPTION_EXECUTE_HANDLER)
-	{
-		ret = -ERROR_INVALID_ADDRESS;
-	}
+    __except(EXCEPTION_EXECUTE_HANDLER)
+    {
+        ret = -ERROR_INVALID_ADDRESS;
+    }
 
-	return ret;
+    return ret;
 }
 
 int WriteShareMem(unsigned char* pBasePtr,int offset,unsigned char* pBuffer,int bufsize)
 {
-	int ret=bufsize;
-	unsigned char* pDstPtr=(pBasePtr+offset);
+    int ret=bufsize;
+    unsigned char* pDstPtr=(pBasePtr+offset);
 
-	__try
-	{
-		memcpy(pDstPtr,pBuffer,bufsize);
-	}
+    __try
+    {
+        memcpy(pDstPtr,pBuffer,bufsize);
+    }
 
-	__except(EXCEPTION_EXECUTE_HANDLER)
-	{
-		ret = -ERROR_INVALID_ADDRESS;
-	}
+    __except(EXCEPTION_EXECUTE_HANDLER)
+    {
+        ret = -ERROR_INVALID_ADDRESS;
+    }
 
-	return ret;
+    return ret;
 }
 
+HANDLE CreateMapFile(const char* pMapFileName,int size,int create)
+{
+    HANDLE hMapFile=NULL;
+    int ret;
+#ifdef _UNICODE
+    wchar_t* pMapFileW=NULL;
+    int mapfilesize=0;
+    ret = AnsiToUnicode((char*)pMapFileName,&pMapFileW,&mapfilesize);
+    if(ret < 0)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
+    if(create)
+    {
+        hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,size,pMapFileW);
+    }
+    else
+    {
+        hMapFile =  OpenFileMapping(FILE_MAP_ALL_ACCESS,FALSE,pMapFileW);
+    }
+#else
+    if(create)
+    {
+        hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,size,pMapFileName);
+    }
+    else
+    {
+        hMapFile = OpenFileMapping(FILE_MAP_ALL_ACCESS,FALSE,pMapFileName);
+    }
+#endif
+
+    if(hMapFile == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
+
+#ifdef _UNICODE
+    AnsiToUnicode(NULL,&pMapFileW,&mapfilesize);
+#endif
+
+    return hMapFile;
+fail:
+    if(hMapFile)
+    {
+        CloseHandle(hMapFile);
+    }
+    hMapFile = NULL;
+#ifdef _UNICODE
+    AnsiToUnicode(NULL,&pMapFileW,&mapfilesize);
+#endif
+    SetLastError(ret);
+    return NULL;
+}
+
+unsigned char* MapFileBuffer(HANDLE hMapFile,int size)
+{
+    void* pMemBase=NULL;
+
+    pMemBase = MapViewOfFile(hMapFile,FILE_MAP_ALL_ACCESS,0,0,size);
+    return (unsigned char*)pMemBase;
+}
 
 int main(int argc, char* argv[])
 {
-    int i;
-	
-	ParseParam(argc,argv);
+    int ret;
+    HANDLE hMapFile=NULL;
+    unsigned char* pMemBase=NULL;
+    FILE* fp=NULL;
 
-	
+    ParseParam(argc,argv);
+
+    hMapFile = CreateMapFile(st_pShareName,st_MemSize,st_CreateMem);
+    if(hMapFile== NULL)
+    {
+        ret = -(LAST_ERROR_CODE());
+        goto out;
+    }
+
+    pMemBase = MapFileBuffer(hMapFile,st_MemSize);
+    if(pMemBase == NULL)
+    {
+        ret = -(LAST_ERROR_CODE());
+        goto out;
+    }
+
+    /*now to read from the file*/
+    if(st_pFromFile && st_WriteInit)
+    {
+        ret = fopen_s(&fp,st_pFromFile,"r");
+        if(fp == NULL)
+        {
+            ret = -(LAST_ERROR_CODE());
+            goto out;
+        }
+
+        ret = fread(st_pBuffer,st_BufSize,1,fp);
+        if(ret != 1)
+        {
+            ret = -(LAST_ERROR_CODE());
+            fprintf(stderr,"could not read %d from %s (%d)\n",st_BufSize,st_pFromFile,ret);
+            goto out;
+        }
+
+        ret = WriteShareMem(pMemBase,st_WriteOffset,st_pBuffer,st_BufSize);
+        if(ret < 0)
+        {
+            ret = -(LAST_ERROR_CODE());
+            fprintf(stderr,"could not write at offset %d (0x%x) in mem (%d:0x%x) for size(%d:0x%x) error(%d)\n",st_WriteOffset,st_WriteOffset,st_MemSize,st_MemSize,
+                    st_BufSize,st_BufSize,ret);
+            goto out;
+        }
+    }
+    else if(st_pToFile && st_ReadInit)
+    {
+        ret = fopen_s(&fp,st_pToFile,"w");
+        if(fp == NULL)
+        {
+            ret = -(LAST_ERROR_CODE());
+            goto out;
+        }
+
+        ret = ReadShareMem(pMemBase,st_ReadOffset,st_pBuffer,st_BufSize);
+        if(ret < 0)
+        {
+            ret = -(LAST_ERROR_CODE());
+            fprintf(stderr,"could not read at offset (%d:0x%x) in mem (%d:0x%x) for size(%d:0x%x) error(%d)\n",
+                    st_ReadOffset,st_ReadOffset,st_MemSize,st_MemSize,
+                    st_BufSize,st_BufSize,ret);
+            goto out;
+        }
+
+        ret = fwrite(st_pBuffer,st_BufSize,1,fp);
+        if(ret != 1)
+        {
+            ret = -(LAST_ERROR_CODE());
+            fprintf(stderr,"could not write %s for size (%d:0x%x) error(%d)\n",st_pToFile,
+                    st_BufSize,st_BufSize,ret);
+            goto out;
+        }
+    }
+    else if(st_WriteInit)
+    {
+    }
+    else if(st_ReadInit)
+    {
+    }
+
+
+    ret = 0;
+
+out:
+    if(fp)
+    {
+        fclose(fp);
+    }
+    fp = NULL;
+    if(pMemBase)
+    {
+        UnmapViewOfFile(pMemBase);
+    }
+    pMemBase = NULL;
+
+    if(hMapFile)
+    {
+        CloseHandle(hMapFile);
+    }
+    hMapFile = NULL;
+
+    if(st_pBuffer)
+    {
+        free(st_pBuffer);
+    }
+    st_pBuffer = NULL;
+    st_BufSize = 0;
+
     return 0;
 }
 
