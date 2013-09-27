@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "memshare", "memshare\memsha
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "segfault", "segfault\segfault.vcxproj", "{A9D402E7-6B11-450A-901F-542C83221A2E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "evcall", "evcall\evcall.vcxproj", "{79AAEBA6-D1B9-450B-A835-B6C42BF68A25}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +21,10 @@ Global
 		{A9D402E7-6B11-450A-901F-542C83221A2E}.Debug|Win32.Build.0 = Debug|Win32
 		{A9D402E7-6B11-450A-901F-542C83221A2E}.Release|Win32.ActiveCfg = Release|Win32
 		{A9D402E7-6B11-450A-901F-542C83221A2E}.Release|Win32.Build.0 = Release|Win32
+		{79AAEBA6-D1B9-450B-A835-B6C42BF68A25}.Debug|Win32.ActiveCfg = Debug|Win32
+		{79AAEBA6-D1B9-450B-A835-B6C42BF68A25}.Debug|Win32.Build.0 = Debug|Win32
+		{79AAEBA6-D1B9-450B-A835-B6C42BF68A25}.Release|Win32.ActiveCfg = Release|Win32
+		{79AAEBA6-D1B9-450B-A835-B6C42BF68A25}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
