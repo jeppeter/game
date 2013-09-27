@@ -39,70 +39,6 @@ void Usage(int ec,const char* fmt,...)
 }
 
 
-#ifdef _UNICODE
-char** ChangeParam(int argc,wchar_t* argvw[])
-{
-    int ret;
-    char** pRetArgv=NULL;
-    int retargc=argc,i;
-    int *pRetArgvLen=NULL;
-
-    pRetArgvLen =(int*) calloc(sizeof(*pRetArgvLen),argc);
-    if(pRetArgvLen == NULL)
-    {
-        ret = LAST_ERROR_CODE();
-        goto fail;
-    }
-
-    pRetArgv =(char**) calloc(sizeof(*pRetArgv),argc);
-    if(pRetArgv == NULL)
-    {
-        ret = LAST_ERROR_CODE();
-        goto fail;
-    }
-
-    for(i=0; i<argc; i++)
-    {
-        ret = UnicodeToAnsi(argvw[i],&(pRetArgv[i]),&(pRetArgvLen[i]));
-        if(ret < 0)
-        {
-            ret = LAST_ERROR_CODE();
-            goto fail;
-        }
-    }
-
-    if(pRetArgvLen)
-    {
-        free(pRetArgvLen);
-    }
-    pRetArgvLen = NULL;
-    return pRetArgv;
-fail:
-    if(pRetArgv)
-    {
-        for(i=0; i<retargc; i++)
-        {
-            assert(pRetArgvLen);
-            if(pRetArgv[i])
-            {
-                free(pRetArgv[i]);
-            }
-            pRetArgv[i] = NULL;
-        }
-
-        free(pRetArgv);
-    }
-
-    if(pRetArgvLen)
-    {
-        free(pRetArgvLen);
-    }
-    pRetArgvLen = NULL;
-    SetLastError(ret);
-    return NULL;
-}
-#endif
-
 
 static unsigned long st_ReadOffset = 0;
 static unsigned long st_WriteOffset = 0;
@@ -286,13 +222,11 @@ int ParseParam(int argc,char* argv[])
 
 
 
-int _tmain(int argc, _TCHAR* argv[])
+int main(int argc, char* argv[])
 {
     int i;
-    for(i=0; i<argc; i++)
-    {
-        fprintf(stderr,"[%d] %S\n",i,argv[i]);
-    }
+
+	ParseParam(argc,argv);
     return 0;
 }
 
