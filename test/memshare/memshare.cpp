@@ -205,6 +205,21 @@ int ParseParam(int argc,char* argv[])
             st_Timeout = StrToHex(argv[i+1]);
             i +=  1;
         }
+		else if (strcmp(argv[i],"-C") == 0 ||
+			strcmp(argv[i],"--create") == 0)
+		{
+			st_CreateMem = 1;
+		}
+        else if(strcmp(argv[i],"-n") == 0 ||
+                strcmp(argv[i],"--name") == 0)
+        {
+            if(argc <= (i+1))
+            {
+                Usage(3,"argv[%d] %s need an arg",i,argv[i]);
+            }
+            st_pShareName = argv[i+1];
+            i +=  1;
+        }
         else
         {
             Usage(3,"unknown params %s",argv[i]);
@@ -349,25 +364,32 @@ unsigned char* MapFileBuffer(HANDLE hMapFile,int size)
 int main(int argc, char* argv[])
 {
     int ret;
+	int i;
     HANDLE hMapFile=NULL;
     unsigned char* pMemBase=NULL;
     FILE* fp=NULL;
+	DWORD stick,etick,ctick;
 
+	DEBUG_INFO("\n");
     ParseParam(argc,argv);
-
+	DEBUG_INFO("\n");
     hMapFile = CreateMapFile(st_pShareName,st_MemSize,st_CreateMem);
     if(hMapFile== NULL)
     {
         ret = -(LAST_ERROR_CODE());
+		ERROR_INFO("\n");
         goto out;
     }
+	DEBUG_INFO("\n");
 
     pMemBase = MapFileBuffer(hMapFile,st_MemSize);
     if(pMemBase == NULL)
     {
         ret = -(LAST_ERROR_CODE());
+		ERROR_INFO("\n");
         goto out;
     }
+	DEBUG_INFO("\n");
 
     /*now to read from the file*/
     if(st_pFromFile && st_WriteInit)
@@ -376,6 +398,7 @@ int main(int argc, char* argv[])
         if(fp == NULL)
         {
             ret = -(LAST_ERROR_CODE());
+			ERROR_INFO("\n");
             goto out;
         }
 
@@ -402,6 +425,7 @@ int main(int argc, char* argv[])
         if(fp == NULL)
         {
             ret = -(LAST_ERROR_CODE());
+			ERROR_INFO("\n");
             goto out;
         }
 
@@ -426,10 +450,58 @@ int main(int argc, char* argv[])
     }
     else if(st_WriteInit)
     {
+		ret = WriteShareMem(pMemBase,st_WriteOffset,st_pBuffer,st_BufSize);
+		if (ret < 0)
+		{
+			ret = -(LAST_ERROR_CODE());
+			fprintf(stderr,"could not write (%s) at offset (%d:0x%x) in mem (%d:0x%x) for size (%d:0x%x) error (%d)\n",
+				st_pShareName,st_WriteOffset,st_WriteOffset,st_MemSize,st_MemSize,st_BufSize,st_BufSize,ret);
+			goto out;
+		}
+
+		fprintf(stdout,"Write(%s) offset(%d:0x%x):\n",st_pShareName,st_WriteOffset,st_WriteOffset);
+		for(i=0;i<st_BufSize;i++)
+		{
+			if ((i%16)==0)
+			{
+				fprintf(stdout,"\n0x%08x:\t",i);
+			}
+			fprintf(stdout," 0x%02x",st_pBuffer[i]);
+		}
+		fprintf(stdout,"\nsuccess\n");
     }
     else if(st_ReadInit)
     {
+		ret=  ReadShareMem(pMemBase,st_ReadOffset,st_pBuffer,st_BufSize);
+		if (ret < 0)
+		{
+			ret = -(LAST_ERROR_CODE());
+			fprintf(stderr,"could not read (%s) at offset (%d:0x%x) in mem (%d:0x%x) for size (%d:0x%x) error (%d)\n",
+				st_pShareName,st_ReadOffset,st_ReadOffset,st_MemSize,st_MemSize,st_BufSize,st_BufSize,ret);
+			goto out;
+		}
+
+		fprintf(stdout,"Read(%s) offset(%d:0x%x):\n",st_pShareName,st_ReadOffset,st_ReadOffset);
+		for(i=0;i<st_BufSize;i++)
+		{
+			if ((i%16)==0)
+			{
+				fprintf(stdout,"\n0x%08x:\t",i);
+			}
+			fprintf(stdout," 0x%02x",st_pBuffer[i]);
+		}
+		fprintf(stdout,"\nsuccess\n");
     }
+
+	stick = GetTickCount();
+	etick = stick + st_Timeout * 1000;
+	ctick = stick;
+
+	while (st_Timeout == 0 || ctick >= etick)
+	{
+		Sleep(1000);
+		ctick = GetTickCount();
+	}
 
 
     ret = 0;
