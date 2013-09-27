@@ -27,6 +27,7 @@ void Usage(int ec,const char* fmt,...)
 
     fprintf(fp,"wp [OPTIONS]\n");
     fprintf(fp,"\t-h|--help                    | to display this help information\n");
+	fprintf(fp,"\t-C|--create                  | to use create for mem share\n");
     fprintf(fp,"\t-n|--name sharename          | to set for memory shared name\n");
     fprintf(fp,"\t-m|--memsize share size      | to set share memory size\n");
     fprintf(fp,"\t-r|--read read offset        | to read offset\n");
@@ -35,19 +36,25 @@ void Usage(int ec,const char* fmt,...)
     fprintf(fp,"\t-c|--content content         | write content it is in the value\n");
     fprintf(fp,"\t-f|--from file               | write content from file\n");
     fprintf(fp,"\t-t|--to  file                | read content dump to file\n");
+	fprintf(fp,"\t-T|--time sec                | set timeout for write\n");
+	
     exit(ec);
 }
 
 
 
 static unsigned long st_ReadOffset = 0;
+static int st_ReadInit=0;
 static unsigned long st_WriteOffset = 0;
+static int st_WriteInit=0;
 static unsigned long st_MemSize =0 ;
 static char* st_pShareName=NULL;
 static unsigned char* st_pBuffer=NULL;
 static unsigned long st_BufSize=0;
 static char* st_pFromFile=NULL;
 static char* st_pToFile=NULL;
+static int st_Timeout=0;
+static int st_CreateMem=0;
 
 int ParseParam(int argc,char* argv[])
 {
@@ -67,6 +74,7 @@ int ParseParam(int argc,char* argv[])
                 Usage(3,"argv[%d] %s need an arg",i,argv[i]);
             }
             st_ReadOffset = StrToHex(argv[i+1]);
+			st_ReadInit = 1;
             i += 1;
         }
         else if(strcmp(argv[i],"-w")==0 ||
@@ -77,6 +85,7 @@ int ParseParam(int argc,char* argv[])
                 Usage(3,"argv[%d] %s need an arg",i,argv[i]);
             }
             st_WriteOffset = StrToHex(argv[i+1]);
+			st_WriteInit = 1;
             i += 1;
         }
         else if(strcmp(argv[i],"-m")==0 ||
@@ -186,6 +195,16 @@ int ParseParam(int argc,char* argv[])
 			st_pToFile = argv[i+1];
 			i +=  1;
         }
+        else if(strcmp(argv[i],"-T") == 0 ||
+                strcmp(argv[i],"--timeout") == 0)
+        {
+            if(argc <= (i+1))
+            {
+                Usage(3,"argv[%d] %s need an arg",i,argv[i]);
+            }
+			st_Timeout = StrToHex(argv[i+1]);
+			i +=  1;
+        }
         else
         {
             Usage(3,"unknown params %s",argv[i]);
@@ -216,17 +235,61 @@ int ParseParam(int argc,char* argv[])
 		}
 	}
 
+	if (st_ReadInit == 0 && st_WriteInit == 0)
+	{
+		Usage(3,"must specify read/write use (-r/-w)");
+	}
+
 
     return 0;
 }
 
 
 
+int ReadShareMem(unsigned char* pBasePtr,int offset,unsigned char* pBuffer,int bufsize)
+{
+	int ret=bufsize;
+	unsigned char* pSrcPtr=(pBasePtr+offset);
+
+	__try
+	{
+		memcpy(pBuffer,pSrcPtr,bufsize);
+	}
+
+	__except(EXCEPTION_EXECUTE_HANDLER)
+	{
+		ret = -ERROR_INVALID_ADDRESS;
+	}
+
+	return ret;
+}
+
+int WriteShareMem(unsigned char* pBasePtr,int offset,unsigned char* pBuffer,int bufsize)
+{
+	int ret=bufsize;
+	unsigned char* pDstPtr=(pBasePtr+offset);
+
+	__try
+	{
+		memcpy(pDstPtr,pBuffer,bufsize);
+	}
+
+	__except(EXCEPTION_EXECUTE_HANDLER)
+	{
+		ret = -ERROR_INVALID_ADDRESS;
+	}
+
+	return ret;
+}
+
+
 int main(int argc, char* argv[])
 {
     int i;
-
+	
 	ParseParam(argc,argv);
+
+	
     return 0;
 }
 

@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "memshare", "memshare\memshare.vcxproj", "{85A0BE8F-4F80-468D-9ED1-98E7C7A4A1FF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "segfault", "segfault\segfault.vcxproj", "{A9D402E7-6B11-450A-901F-542C83221A2E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -13,6 +15,10 @@ Global
 		{85A0BE8F-4F80-468D-9ED1-98E7C7A4A1FF}.Debug|Win32.Build.0 = Debug|Win32
 		{85A0BE8F-4F80-468D-9ED1-98E7C7A4A1FF}.Release|Win32.ActiveCfg = Release|Win32
 		{85A0BE8F-4F80-468D-9ED1-98E7C7A4A1FF}.Release|Win32.Build.0 = Release|Win32
+		{A9D402E7-6B11-450A-901F-542C83221A2E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A9D402E7-6B11-450A-901F-542C83221A2E}.Debug|Win32.Build.0 = Debug|Win32
+		{A9D402E7-6B11-450A-901F-542C83221A2E}.Release|Win32.ActiveCfg = Release|Win32
+		{A9D402E7-6B11-450A-901F-542C83221A2E}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
