@@ -9,6 +9,7 @@
 
 #define LAST_ERROR_CODE()  ((int)(GetLastError() ? GetLastError() : 1))
 
+#define SDEBUG(...)  do{fprintf(stdout,"%s:%d\t",__FILE__,__LINE__);fprintf(stdout,__VA_ARGS__);}while(0)
 
 void Usage(int ec,const char* fmt,...)
 {
@@ -371,21 +372,27 @@ int main(int argc, char* argv[])
 	DWORD stick,etick,ctick;
 
 	DEBUG_INFO("\n");
+	SDEBUG("\n");
     ParseParam(argc,argv);
+	SDEBUG("\n");
 	DEBUG_INFO("\n");
     hMapFile = CreateMapFile(st_pShareName,st_MemSize,st_CreateMem);
     if(hMapFile== NULL)
     {
         ret = -(LAST_ERROR_CODE());
+		SDEBUG("can not %s %s memsize(%d:0x%x) error(%d)\n",
+			st_CreateMem ? "Create" : "Open",st_pShareName,st_MemSize,st_MemSize,ret);
 		ERROR_INFO("\n");
         goto out;
     }
 	DEBUG_INFO("\n");
+	SDEBUG("\n");
 
     pMemBase = MapFileBuffer(hMapFile,st_MemSize);
     if(pMemBase == NULL)
     {
         ret = -(LAST_ERROR_CODE());
+		SDEBUG("\n");
 		ERROR_INFO("\n");
         goto out;
     }
