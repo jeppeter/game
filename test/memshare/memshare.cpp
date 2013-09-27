@@ -26,7 +26,7 @@ void Usage(int ec,const char* fmt,...)
         fprintf(fp,"\n");
     }
 
-    fprintf(fp,"wp [OPTIONS]\n");
+    fprintf(fp,"memshare [OPTIONS]\n");
     fprintf(fp,"\t-h|--help                    | to display this help information\n");
     fprintf(fp,"\t-C|--create                  | to use create for mem share\n");
     fprintf(fp,"\t-n|--name sharename          | to set for memory shared name\n");
