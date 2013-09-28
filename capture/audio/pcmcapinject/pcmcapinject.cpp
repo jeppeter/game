@@ -130,21 +130,28 @@ static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,cha
     {
         pEventList[i].m_hNotifyEvent = NULL;
         pEventList[i].m_Error =0 ;
-		pEventList[i].m_Idx = i;
-		pEventList[i].m_BaseAddr = (ptr_type_t)pBaseAddr;
-		pEventList[i].m_Offset = i * packsize;		
+        pEventList[i].m_Idx = i;
+        pEventList[i].m_BaseAddr = (ptr_type_t)pBaseAddr;
+        pEventList[i].m_Offset = i * packsize;
     }
 
-	for (i=0;i<num;i++)
-		{
-			snprintf();
-		}
+    for(i=0; i<num; i++)
+    {
+        snprintf(evtname,sizeof(evtname),"%s%d",pNotifyEvtNameBase,i);
+        pEventList[i].m_hNotifyEvent = GetEvent(evtname,0);
+        if(pEventList[i].m_hNotifyEvent)
+        {
+            ret = -(LAST_ERROR_CODE());
+            goto fail;
+        }
+    }
 
     ret = 0;
     EnterCriticalSection(&st_ListCS);
     if(st_pWholeList == NULL)
     {
         st_pWholeList = pEventList;
+		st_WholeListNum = num;
     }
     else
     {
