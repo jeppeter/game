@@ -5,11 +5,16 @@
 
 typedef struct
 {
+	int m_Format;
+	int m_Channels;
+	int m_SampleRate;
+	int m_BitsPerSample;
+	float m_Volume;
+	int m_DataLen;
+	int m_DataSize;
+	unsigned int m_Data[4];
 } PCMCAP_AUDIO_BUFFER_t;
 
-typedef struct
-{
-}PCMCAP_AUDIO_NOTIFY_t;
 
 #define  PCMCAP_AUDIO_GET             1
 #define  PCMCAP_AUDIO_SET             2
@@ -18,10 +23,6 @@ typedef struct
 #define  PCMCAP_AUDIO_START           5
 #define  PCMCAP_AUDIO_STOP            6
 
-typedef struct 
-{
-	unsigned int m_Cmd;
-} PCMCAP_COMMAND_t;
 
 
 

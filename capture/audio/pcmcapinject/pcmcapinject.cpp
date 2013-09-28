@@ -20,11 +20,92 @@
 
 static CRITICAL_SECTION st_DetourCS;
 static CRITICAL_SECTION st_StateCS;
+static CRITICAL_SECTION st_ListCS;
 
+static float st_Volume = 0.0;
 
 /*****************************************************
-*  to handle for the 
+*  to handle for the volume
 *****************************************************/
+static int SetVolume(float volume)
+{
+	int ret =0;
+	EnterCriticalSection(&st_StateCS);
+	st_Volume = volume;
+	LeaveCriticalSection(&st_StateCS);
+	return ret;
+}
+
+/*****************************************************
+*  format set and get handler
+*****************************************************/
+static WAVEFORMATEX *st_pFormatEx=NULL;
+static IAudioClient *st_pHandleAudioClient=NULL;
+static IAudioRenderClient *st_pAudioRenderClient=NULL;
+static int st_PcmCapInited=0;
+
+static int SetFormat(IAudioClient* pClient,WAVEFORMATEX* pFormatEx)
+{
+    int ret=0;
+    int formatsize=0;
+    WAVEFORMATEX *pCopied=NULL;
+
+    if(pFormatEx)
+    {
+        formatsize = sizeof(*pFormatEx);
+        formatsize += pFormatEx->cbSize;
+
+        pCopied = (WAVEFORMATEX*)malloc(formatsize);
+        if(pCopied==NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            goto out;
+        }
+
+        memcpy(pCopied,pFormatEx,formatsize);
+    }
+    EnterCriticalSection(&st_StateCS);
+    if(st_pFormatEx)
+    {
+        free(st_pFormatEx);
+    }
+    st_pFormatEx = NULL;
+    st_pFormatEx = pCopied;
+    st_pHandleAudioClient= pClient;
+    LeaveCriticalSection(&st_StateCS);
+out:
+    return ret > 0 ? -ret : 0;
+}
+
+
+static int GetFormat(IAudioRenderClient* pRender,int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample,float* pVolume)
+{
+    int ret = 0;
+    EnterCriticalSection(&st_StateCS);
+
+    if(st_pFormatEx && pRender && st_pAudioRenderClient == pRender)
+    {
+        *pFormat = st_pFormatEx->wFormatTag;
+        *pChannels = st_pFormatEx->nChannels;
+        *pSampleRate = st_pFormatEx->nSamplesPerSec;
+        *pBitsPerSample = st_pFormatEx->wBitsPerSample;
+		*pVolume = st_Volume;
+        ret = 1;
+    }
+    LeaveCriticalSection(&st_StateCS);
+    return ret;
+}
+
+typedef struct
+{
+	HANDLE hNotifyEvent;
+	ptr_type_t m_BaseAddr;
+	ptr_type_t m_Offset;
+} EVENT_LIST_t;
+
+static std::vector<EVENT_LIST_t*> st_FreeList;
+static std::vector<EVENT_LIST_t*> st_ReleaseList;
+
 
 /*****************************************************
 * detour function call table
@@ -520,64 +601,6 @@ HRESULT EnumeratorGetDeviceCallBack(IMMDeviceEnumerator* pThis,LPCWSTR pwstrId,I
 }
 
 
-/*****************************************************
-*  format set and get handler
-*****************************************************/
-static WAVEFORMATEX *st_pFormatEx=NULL;
-static IAudioClient *st_pHandleAudioClient=NULL;
-static IAudioRenderClient *st_pAudioRenderClient=NULL;
-static int st_PcmCapInited=0;
-
-static int SetFormat(IAudioClient* pClient,WAVEFORMATEX* pFormatEx)
-{
-    int ret=0;
-    int formatsize=0;
-    WAVEFORMATEX *pCopied=NULL;
-
-    if(pFormatEx)
-    {
-        formatsize = sizeof(*pFormatEx);
-        formatsize += pFormatEx->cbSize;
-
-        pCopied = (WAVEFORMATEX*)malloc(formatsize);
-        if(pCopied==NULL)
-        {
-            ret = LAST_ERROR_CODE();
-            goto out;
-        }
-
-        memcpy(pCopied,pFormatEx,formatsize);
-    }
-    EnterCriticalSection(&st_StateCS);
-    if(st_pFormatEx)
-    {
-        free(st_pFormatEx);
-    }
-    st_pFormatEx = NULL;
-    st_pFormatEx = pCopied;
-    st_pHandleAudioClient= pClient;
-    LeaveCriticalSection(&st_StateCS);
-out:
-    return ret > 0 ? -ret : 0;
-}
-
-
-static int GetFormat(IAudioRenderClient* pRender,int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample,float* pVolume)
-{
-    int ret = 0;
-    EnterCriticalSection(&st_StateCS);
-
-    if(st_pFormatEx && pRender && st_pAudioRenderClient == pRender)
-    {
-        *pFormat = st_pFormatEx->wFormatTag;
-        *pChannels = st_pFormatEx->nChannels;
-        *pSampleRate = st_pFormatEx->nSamplesPerSec;
-        *pBitsPerSample = st_pFormatEx->wBitsPerSample;
-        ret = 1;
-    }
-    LeaveCriticalSection(&st_StateCS);
-    return ret;
-}
 
 
 
