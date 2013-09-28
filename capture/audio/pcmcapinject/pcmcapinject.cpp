@@ -106,11 +106,73 @@ typedef struct
 
 static std::vector<EVENT_LIST_t*> st_FreeList;
 static std::vector<EVENT_LIST_t*> st_ReleaseList;
-static EVENT_LIST_t *st_pWholeList;
-static int st_WholeListNum;
+static EVENT_LIST_t *st_pWholeList=NULL;
+static int st_WholeListNum=0;
+static int st_GetWholeListNum=0;
+
 
 static CRITICAL_SECTION st_ListCS;
 
+
+static EVENT_LIST_t* GetFreeList()
+{
+    EVENT_LIST_t* pEventList=NULL;
+
+    EnterCriticalSection(&st_ListCS);
+    if(st_FreeList.size() > 0)
+    {
+        pEventList = st_FreeList[0];
+        st_FreeList.erase(st_FreeList.begin());
+        st_GetWholeListNum ++;
+    }
+    LeaveCriticalSection(&st_ListCS);
+    return pEventList;
+}
+
+static int PutRelaseList(EVENT_LIST_t* pEventList)
+{
+	int ret=0;
+    EnterCriticalSection(&st_ListCS);
+    if(st_pWholeList)
+    {
+    	st_ReleaseList.push_back(pEventList);
+		assert(st_GetWholeListNum > 0);
+		st_GetWholeListNum -- ;
+    }
+    LeaveCriticalSection(&st_ListCS);
+	
+}
+
+static int ChangeToFreeList(int idx)
+{
+    int ret = 0;
+    EVENT_LIST_t* pEventList=NULL;
+    unsigned int i;
+    int findidx=-1;
+
+
+    EnterCriticalSection(&st_ListCS);
+    if(st_pWholeList)
+    {
+        for(i=0; i<st_ReleaseList.size(); i++)
+        {
+            if(st_ReleaseList[i]->m_Idx == idx)
+            {
+                findidx = i;
+                pEventList = st_ReleaseList[i];
+                break;
+            }
+        }
+
+        if(findidx >=0)
+        {
+            st_ReleaseList.erase(st_ReleaseList.begin() + findidx);
+            st_FreeList.push_back(pEventList);
+        }
+    }
+    LeaveCriticalSection(&st_ListCS);
+    return ret;
+}
 
 static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,char* pNotifyEvtNameBase)
 {
@@ -186,18 +248,35 @@ fail:
 }
 
 
+
+
+
 void DeInitializeWholeList(void)
 {
     EVENT_LIST_t* pEventList=NULL;
     int num=0;
     int i;
+    int ret;
 
-    EnterCriticalSection(&st_ListCS);
-    pEventList = st_pWholeList;
-    num = st_WholeListNum;
-    st_pWholeList = NULL;
-    num = 0;
-    LeaveCriticalSection(&st_ListCS);
+    do
+    {
+        ret =0;
+        EnterCriticalSection(&st_ListCS);
+        if(st_GetWholeListNum == 0)
+        {
+            pEventList = st_pWholeList;
+            num = st_WholeListNum;
+            st_pWholeList = NULL;
+            num = 0;
+            ret = 1;
+        }
+        LeaveCriticalSection(&st_ListCS);
+        if(ret == 0)
+        {
+            SchedOut();
+        }
+    }
+    while(ret == 0);
 
     if(pEventList)
     {
