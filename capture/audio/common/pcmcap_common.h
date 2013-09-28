@@ -5,14 +5,19 @@
 
 typedef struct
 {
-	int m_Format;
-	int m_Channels;
-	int m_SampleRate;
-	int m_BitsPerSample;
-	float m_Volume;
-	int m_DataLen;
-	int m_DataSize;
-	unsigned int m_Data[4];
+    int m_DataLen;
+    int m_DataSize;
+    unsigned int m_Data[4];
+} PCM_AUDIO_DATA_t;
+
+typedef struct
+{
+    int m_Format;
+    int m_Channels;
+    int m_SampleRate;
+    int m_BitsPerSample;
+    float m_Volume;
+	PCM_AUDIO_DATA_t m_AudioData;
 } PCMCAP_AUDIO_BUFFER_t;
 
 

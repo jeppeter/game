@@ -77,7 +77,7 @@ out:
 }
 
 
-static int GetFormat(IAudioRenderClient* pRender,int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample,float* pVolume)
+static int GetFormat(int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample,float* pVolume)
 {
     int ret = 0;
     EnterCriticalSection(&st_StateCS);
@@ -102,6 +102,7 @@ typedef struct
     int m_Idx;
     ptr_type_t m_BaseAddr;
     ptr_type_t m_Offset;
+    int m_Size;
 } EVENT_LIST_t;
 
 static std::vector<EVENT_LIST_t*> st_FreeList;
@@ -129,18 +130,35 @@ static EVENT_LIST_t* GetFreeList()
     return pEventList;
 }
 
-static int PutRelaseList(EVENT_LIST_t* pEventList)
+static int PutReleaseList(EVENT_LIST_t* pEventList)
 {
-	int ret=0;
+    int ret=0;
     EnterCriticalSection(&st_ListCS);
     if(st_pWholeList)
     {
-    	st_ReleaseList.push_back(pEventList);
-		assert(st_GetWholeListNum > 0);
-		st_GetWholeListNum -- ;
+        st_ReleaseList.push_back(pEventList);
+        assert(st_GetWholeListNum > 0);
+        st_GetWholeListNum -- ;
+        ret = 1;
     }
     LeaveCriticalSection(&st_ListCS);
-	
+    return ret;
+
+}
+
+static int PutFreeList(EVENT_LIST_t* pEventList)
+{
+    int ret=0;
+    EnterCriticalSection(&st_ListCS);
+    if(st_pWholeList)
+    {
+        st_FreeList.push_back(pEventList);
+        assert(st_GetWholeListNum > 0);
+        st_GetWholeListNum -- ;
+        ret = 1;
+    }
+    LeaveCriticalSection(&st_ListCS);
+    return ret;
 }
 
 static int ChangeToFreeList(int idx)
@@ -195,6 +213,7 @@ static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,cha
         pEventList[i].m_Idx = i;
         pEventList[i].m_BaseAddr = (ptr_type_t)pBaseAddr;
         pEventList[i].m_Offset = i * packsize;
+        pEventList[i].m_Size = packsize;
     }
 
     for(i=0; i<num; i++)
@@ -302,6 +321,67 @@ void DeInitializeWholeList(void)
     pEventList = NULL;
 
     return;
+}
+
+
+int WriteSendBuffer(unsigned char* pBuffer,int numpacks)
+{
+    EVENT_LIST_t* pEventList=NULL;
+    int ret;
+    int format,channels,samplerate,bitspersample;
+    float volume;
+    int numbytes;
+    PCMCAP_AUDIO_BUFFER_t* pAudioBuffer=NULL;
+    PCMCAP_AUDIO_BUFFER_t audioformat;
+
+    pEventList = GetFreeList();
+    if(pEventList == NULL)
+    {
+        return 0;
+    }
+
+    ret = GetFormat(&(audioformat.m_Format),&(audioformat.m_Channels),&(audioformat.m_SampleRate),&(audioformat.m_BitsPerSample),&(audioformat.m_Volume));
+    if(ret < 0)
+    {
+        PutFreeList(pEventList);
+        return 0;
+    }
+
+    /*now to copy the file*/
+    numbytes = numpacks * channels *(bitspersample / 8);
+    pAudioBuffer = (PCMCAP_AUDIO_BUFFER_t*)((ptr_type_t)pEventList->m_BaseAddr+pEventList->m_Offset);
+    ret = WriteShareMem(pAudioBuffer,0,&audioformat,sizeof(audioformat)-sizeof(audioformat.m_AudioData));
+    if(ret < 0)
+    {
+        PutFreeList(pEventList);
+        return 0;
+    }
+
+    if(numbytes > pEventList->m_Size)
+    {
+        PutFreeList(pEventList);
+        return 0;
+    }
+
+
+    ret = WriteShareMem(&(pAudioBuffer->m_AudioData.m_Data),0,pBuffer,numbytes);
+    if(ret < 0)
+    {
+        PutFreeList(pEventList);
+        return 0;
+    }
+
+	ret = WriteShareMem(&(pAudioBuffer->m_AudioData.m_DataLen),0,&(numbytes),sizeof(numbytes));
+	if (ret < 0)
+		{
+			PutFreeList(pEventList);
+			return 0;
+		}
+
+	/*now ok ,so we notify the other of the */
+	SetEvent(pEventList->m_hNotifyEvent);
+	PutReleaseList(pEventList);
+	return 1;
 }
 
 
