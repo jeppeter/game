@@ -151,7 +151,7 @@ static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,cha
     if(st_pWholeList == NULL)
     {
         st_pWholeList = pEventList;
-		st_WholeListNum = num;
+        st_WholeListNum = num;
     }
     else
     {
@@ -183,6 +183,46 @@ fail:
     }
     pEventList = NULL;
     return ret;
+}
+
+
+void DeInitializeWholeList(void)
+{
+    EVENT_LIST_t* pEventList=NULL;
+    int num=0;
+    int i;
+
+    EnterCriticalSection(&st_ListCS);
+    pEventList = st_pWholeList;
+    num = st_WholeListNum;
+    st_pWholeList = NULL;
+    num = 0;
+    LeaveCriticalSection(&st_ListCS);
+
+    if(pEventList)
+    {
+        for(i=0; i<num; i++)
+        {
+            if(pEventList[i].m_hNotifyEvent)
+            {
+                CloseHandle(pEventList[i].m_hNotifyEvent);
+            }
+            pEventList[i].m_hNotifyEvent = NULL;
+        }
+
+        free(pEventList);
+    }
+    else
+    {
+        if(num != 0)
+        {
+            ERROR_INFO("set pWholeList num %d\n",num);
+        }
+    }
+
+    pEventList = NULL;
+
+    return;
 }
 
 
