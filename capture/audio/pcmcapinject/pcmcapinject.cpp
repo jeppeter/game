@@ -117,11 +117,30 @@ static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,cha
     int ret = -ERROR_ALREADY_EXISTS;
     EVENT_LIST_t* pEventList=NULL;
     int i;
+    unsigned char evtname[128];
 
     pEventList= calloc(sizeof(*pEventList),num);
     if(pEventList == NULL)
+    {
+        ret = -(LAST_ERROR_CODE());
+        goto fail;
+    }
 
-        ret = 0;
+    for(i=0; i<num; i++)
+    {
+        pEventList[i].m_hNotifyEvent = NULL;
+        pEventList[i].m_Error =0 ;
+		pEventList[i].m_Idx = i;
+		pEventList[i].m_BaseAddr = (ptr_type_t)pBaseAddr;
+		pEventList[i].m_Offset = i * packsize;		
+    }
+
+	for (i=0;i<num;i++)
+		{
+			snprintf();
+		}
+
+    ret = 0;
     EnterCriticalSection(&st_ListCS);
     if(st_pWholeList == NULL)
     {
