@@ -20,7 +20,6 @@
 
 static CRITICAL_SECTION st_DetourCS;
 static CRITICAL_SECTION st_StateCS;
-static CRITICAL_SECTION st_ListCS;
 
 static float st_Volume = 0.0;
 
@@ -29,11 +28,11 @@ static float st_Volume = 0.0;
 *****************************************************/
 static int SetVolume(float volume)
 {
-	int ret =0;
-	EnterCriticalSection(&st_StateCS);
-	st_Volume = volume;
-	LeaveCriticalSection(&st_StateCS);
-	return ret;
+    int ret =0;
+    EnterCriticalSection(&st_StateCS);
+    st_Volume = volume;
+    LeaveCriticalSection(&st_StateCS);
+    return ret;
 }
 
 /*****************************************************
@@ -89,7 +88,7 @@ static int GetFormat(IAudioRenderClient* pRender,int* pFormat,int* pChannels,int
         *pChannels = st_pFormatEx->nChannels;
         *pSampleRate = st_pFormatEx->nSamplesPerSec;
         *pBitsPerSample = st_pFormatEx->wBitsPerSample;
-		*pVolume = st_Volume;
+        *pVolume = st_Volume;
         ret = 1;
     }
     LeaveCriticalSection(&st_StateCS);
@@ -98,13 +97,67 @@ static int GetFormat(IAudioRenderClient* pRender,int* pFormat,int* pChannels,int
 
 typedef struct
 {
-	HANDLE hNotifyEvent;
-	ptr_type_t m_BaseAddr;
-	ptr_type_t m_Offset;
+    HANDLE m_hNotifyEvent;
+    int m_Error;
+    int m_Idx;
+    ptr_type_t m_BaseAddr;
+    ptr_type_t m_Offset;
 } EVENT_LIST_t;
 
 static std::vector<EVENT_LIST_t*> st_FreeList;
 static std::vector<EVENT_LIST_t*> st_ReleaseList;
+static EVENT_LIST_t *st_pWholeList;
+static int st_WholeListNum;
+
+static CRITICAL_SECTION st_ListCS;
+
+
+static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,char* pNotifyEvtNameBase)
+{
+    int ret = -ERROR_ALREADY_EXISTS;
+    EVENT_LIST_t* pEventList=NULL;
+    int i;
+
+    pEventList= calloc(sizeof(*pEventList),num);
+    if(pEventList == NULL)
+
+        ret = 0;
+    EnterCriticalSection(&st_ListCS);
+    if(st_pWholeList == NULL)
+    {
+        st_pWholeList = pEventList;
+    }
+    else
+    {
+        ret = -ERROR_ALREADY_EXISTS;
+    }
+    LeaveCriticalSection(&st_ListCS);
+    if(ret < 0)
+    {
+        goto fail;
+    }
+    return 0;
+fail:
+    if(pEventList)
+    {
+        for(i=0; i<num; i++)
+        {
+            if(pEventList[i].m_hNotifyEvent)
+            {
+                CloseHandle(pEventList[i].m_hNotifyEvent);
+            }
+            pEventList[i].m_hNotifyEvent = NULL;
+            pEventList[i].m_Error = 0;
+            pEventList[i].m_BaseAddr = 0;
+            pEventList[i].m_Offset = 0;
+            pEventList[i].m_Idx =0;
+        }
+
+        free(pEventList);
+    }
+    pEventList = NULL;
+    return ret;
+}
 
 
 /*****************************************************
