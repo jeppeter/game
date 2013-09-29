@@ -212,6 +212,7 @@ static int ChangeToFreeList(int idx)
         {
             st_ReleaseList.erase(st_ReleaseList.begin() + findidx);
             st_FreeList.push_back(pEventList);
+			ret = 1;
         }
     }
     LeaveCriticalSection(&st_ListCS);
@@ -487,6 +488,158 @@ int SetStopNotify(HANDLE hStopNotifyEvt)
     return 0;
 }
 
+
+/*****************************************************
+* to make the start and stop thread
+*****************************************************/
+
+static HANDLE *st_pFreeEvt=NULL;
+static int st_TotalPacks;
+
+typedef struct
+{
+    HANDLE m_hThread;
+    DWORD m_ThreadId;
+    int m_ThreadRunning;
+    int m_ThreadExited;
+
+    int m_PackNums;
+    HANDLE m_NotifyHandle;
+    HANDLE m_FreeEvt[1];
+} THREAD_INFO_t;
+
+
+void* __WaitThreadImpl(void* arg)
+{
+    int ret;
+    THREAD_INFO_t *pThreadInfo= (THREAD_INFO_t*)arg;
+    DWORD dret;
+    HANDLE *pWaitHandles  = NULL;
+    int i,idx;
+
+    pWaitHandles = calloc(sizeof(*pWaitHandles),pThreadInfo->m_PackNums + 1);
+    if(pWaitHandles == NULL)
+    {
+        ret = -LAST_ERROR_CODE();
+        goto out;
+    }
+
+    for(i=0; i<pThreadInfo->m_PackNums; i++)
+    {
+        pWaitHandles[i] = pThreadInfo->m_FreeEvt[i];
+    }
+
+	pWaitHandles[pThreadInfo->m_PackNums] = pThreadInfo->m_NotifyHandle;
+
+    while(pThreadInfo->m_ThreadRunning)
+    {
+        /*now we should  wait for 1 second ,this will give enough time */
+        dret = WaitForMultipleObjects(pThreadInfo->m_PackNums+1,pWaitHandles,FALSE,INFINITE);
+        if(dret == WAIT_TIMEOUT)
+        {
+            continue;
+        }
+		else if (dret >= WAIT_OBJECT_0 && dret <= (WAIT_OBJECT_0 + pThreadInfo->m_PackNums))
+		{
+			/*this is the free list event */
+			idx = dret - WAIT_OBJECT_0;
+
+			ret = ChangeToFreeList(idx);
+			assert(ret > 0);			
+		}
+		else if (dret == (WAIT_OBJECT_0 + pThreadInfo->m_PackNums + 1))
+		{
+			/*this is the notify packs*/
+			continue;
+		}
+		else if (dret == WAIT_FAILED)
+		{
+			ret = -LAST_ERROR_CODE();
+			ERROR_INFO("wait %d event error (%d)\n",pThreadInfo->m_PackNums + 1,ret);
+			goto out;
+		}
+
+		
+    }
+
+	ret = 0;
+out:
+    if(pWaitHandles)
+    {
+        free(pWaitHandles);
+    }
+    pWaitHandles = NULL;
+    pThreadInfo->m_ThreadExited = 1;
+    return ret;
+}
+
+
+static THREAD_INFO_t *st_pThreadInfo=NULL;
+static HANDLE st_hThreadSema=NULL;
+
+void FreeThreadInfo()
+{
+}
+
+int __HandleAudioRecordStart(PCMCAP_CONTROL_t *pControl)
+{
+    int ret =0;
+
+    if(st_pThreadInfo)
+    {
+        return -ERROR_ALREADY_EXISTS;
+    }
+
+
+
+    return ret;
+fail:
+    assert(ret > 0);
+    SetLastError(ret);
+    return -ret;
+}
+
+int __HandleAudioRecordStop(PCMCAP_CONTROL_t *pControl)
+{
+}
+
+
+int HandleAudioOperation(PCMCAP_CONTROL_t *pControl)
+{
+    int ret = 0;
+    unsigned int tmms = pControl->m_Timeout* 1000;
+    DWORD dret;
+    if(st_hThreadSema == NULL)
+    {
+        return -ERROR_BAD_ENVIRONMENT;
+    }
+
+    dret = WaitForSingleObject(st_hThreadSema , tmms ? tmms : INFINITE);
+    if(dret != WAIT_OBJECT_0)
+    {
+        ret = -(LAST_ERROR_CODE());
+        ERROR_INFO("could not wait thread sema in %d error(%d)\n",pControl->m_Timeout,ret);
+        return ret;
+    }
+
+    switch(pControl->m_Operation)
+    {
+    case PCMCAP_AUDIO_CAPTURE:
+    case PCMCAP_AUDIO_BOTH:
+        ret = __HandleAudioRecordStart(pControl);
+        break;
+    case PCMCAP_AUDIO_NONE:
+    case PCMCAP_AUDIO_RENDER:
+        ret = __HandleAudioRecordStop(pControl);
+        break;
+    default:
+        ret = -ERROR_NOT_SUPPORTED;
+        break;
+    }
+
+    ReleaseSemaphore(st_hThreadSema);
+    return ret;
+}
 
 
 

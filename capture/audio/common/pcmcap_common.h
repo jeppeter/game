@@ -20,14 +20,23 @@ typedef struct
 	PCM_AUDIO_DATA_t m_AudioData;
 } PCMCAP_AUDIO_BUFFER_t;
 
+#define  PCMCAP_AUDIO_NONE             0
+#define  PCMCAP_AUDIO_CAPTURE          1
+#define  PCMCAP_AUDIO_RENDER           2
+#define  PCMCAP_AUDIO_BOTH             3
 
-#define  PCMCAP_AUDIO_GET             1
-#define  PCMCAP_AUDIO_SET             2
-#define  PCMCAP_AUDIO_NOTIFY_START    3
-#define  PCMCAP_AUDIO_NOTIFY_STOP     4
-#define  PCMCAP_AUDIO_START           5
-#define  PCMCAP_AUDIO_STOP            6
 
+typedef struct
+{
+	unsigned int  m_Operation;       /*operation code*/
+	unsigned int  m_Timeout;         /*the timeout for handle waiting*/
+	unsigned char m_MemShareName[128];
+	unsigned int  m_MemShareSize;
+	unsigned int  m_PackSize;        /*this is for the one packet size*/
+	unsigned int  m_NumPacks;        /*packets to do*/
+	unsigned char m_FreeListSemNameBase[128]; /*the semphore for free in the injected one get the signalled ,the pointer of packet will into the */
+	unsigned char m_FillListSemNameBase[128]; /*the semaphore for release in the injected one ,to signal the filled list */	
+}PCMCAP_CONTROL_t;
 
 
 
