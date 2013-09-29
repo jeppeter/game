@@ -1483,12 +1483,17 @@ HRESULT WINAPI  CoCreateInstanceCallBack(
 
 
 
+static PCMCAP_CONTROL_t st_DummyControl;
 
 void PcmCapInjectFini(void)
 {
     if(st_PcmCapInited)
     {
-        ;
+    	memset(&st_DummyControl,0,sizeof(st_DummyControl));
+		st_DummyControl.m_Operation = PCMCAP_AUDIO_NONE;
+		HandleAudioOperation(&st_DummyControl);
+		CloseHandle(st_hThreadSema);
+		st_hThreadSema = NULL;
     }
     return;
 }
@@ -1505,6 +1510,12 @@ int PcmCapInjectInit(void)
     InitializeCriticalSection(&st_StateCS);
     InitializeCriticalSection(&st_DetourCS);
     InitializeCriticalSection(&st_ListCS);
+	st_hThreadSema = CreateSemaphore(NULL,1,10,NULL);
+	if (st_hThreadSema == NULL)
+	{
+		/*we do not success*/
+		return 0;
+	}
 
     ret = DetourPCMCapFunctions();
     if(ret < 0)
