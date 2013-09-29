@@ -215,7 +215,7 @@ static int ChangeToFreeList(int idx)
         {
             st_ReleaseList.erase(st_ReleaseList.begin() + findidx);
             st_FreeList.push_back(pEventList);
-			ret = 1;
+            ret = 1;
         }
     }
     LeaveCriticalSection(&st_ListCS);
@@ -229,7 +229,7 @@ static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,cha
     EVENT_LIST_t* pEventList=NULL;
     int i;
     unsigned char evtname[128];
-	int pushbacked=0;
+    int pushbacked=0;
 
     pEventList= calloc(sizeof(*pEventList),num);
     if(pEventList == NULL)
@@ -265,13 +265,13 @@ static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,cha
     {
         st_pWholeList = pEventList;
         st_WholeListNum = num;
-		assert(st_ReleaseList.size() == 0);
-		assert(st_FreeList.size() == 0);
-		for (i=0;i<num;i++)
-		{
-			st_ReleaseList.push_back(&(pEventList[i]));
-			pushbacked= 1;
-		}
+        assert(st_ReleaseList.size() == 0);
+        assert(st_FreeList.size() == 0);
+        for(i=0; i<num; i++)
+        {
+            st_ReleaseList.push_back(&(pEventList[i]));
+            pushbacked= 1;
+        }
     }
     else
     {
@@ -284,22 +284,22 @@ static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,cha
     }
     return 0;
 fail:
-	if (pushbacked)
-	{
-		assert(pEventList);
-		EnterCriticalSection(&st_ListCS);
-		while(st_ReleaseList.size() > 0)
-		{
-			st_ReleaseList.erase(st_ReleaseList.begin());
-		}
-	
-		while(st_FreeList.size() > 0)
-		{
-			st_FreeList.erase(st_FreeList.begin());
-		}
-		LeaveCriticalSection(&st_ListCS);
-	}
-	pushbacked = 0;
+    if(pushbacked)
+    {
+        assert(pEventList);
+        EnterCriticalSection(&st_ListCS);
+        while(st_ReleaseList.size() > 0)
+        {
+            st_ReleaseList.erase(st_ReleaseList.begin());
+        }
+
+        while(st_FreeList.size() > 0)
+        {
+            st_FreeList.erase(st_FreeList.begin());
+        }
+        LeaveCriticalSection(&st_ListCS);
+    }
+    pushbacked = 0;
     if(pEventList)
     {
         for(i=0; i<num; i++)
@@ -556,7 +556,7 @@ void* __WaitThreadImpl(void* arg)
         pWaitHandles[i] = pThreadInfo->m_FreeEvt[i];
     }
 
-	pWaitHandles[pThreadInfo->m_PackNums] = pThreadInfo->m_NotifyHandle;
+    pWaitHandles[pThreadInfo->m_PackNums] = pThreadInfo->m_NotifyHandle;
 
     while(pThreadInfo->m_ThreadRunning)
     {
@@ -566,30 +566,30 @@ void* __WaitThreadImpl(void* arg)
         {
             continue;
         }
-		else if (dret >= WAIT_OBJECT_0 && dret <= (WAIT_OBJECT_0 + pThreadInfo->m_PackNums))
-		{
-			/*this is the free list event */
-			idx = dret - WAIT_OBJECT_0;
+        else if(dret >= WAIT_OBJECT_0 && dret <= (WAIT_OBJECT_0 + pThreadInfo->m_PackNums))
+        {
+            /*this is the free list event */
+            idx = dret - WAIT_OBJECT_0;
 
-			ret = ChangeToFreeList(idx);
-			assert(ret > 0);			
-		}
-		else if (dret == (WAIT_OBJECT_0 + pThreadInfo->m_PackNums + 1))
-		{
-			/*this is the notify packs*/
-			continue;
-		}
-		else if (dret == WAIT_FAILED)
-		{
-			ret = -LAST_ERROR_CODE();
-			ERROR_INFO("wait %d event error (%d)\n",pThreadInfo->m_PackNums + 1,ret);
-			goto out;
-		}
+            ret = ChangeToFreeList(idx);
+            assert(ret > 0);
+        }
+        else if(dret == (WAIT_OBJECT_0 + pThreadInfo->m_PackNums + 1))
+        {
+            /*this is the notify packs*/
+            continue;
+        }
+        else if(dret == WAIT_FAILED)
+        {
+            ret = -LAST_ERROR_CODE();
+            ERROR_INFO("wait %d event error (%d)\n",pThreadInfo->m_PackNums + 1,ret);
+            goto out;
+        }
 
-		
+
     }
 
-	ret = 0;
+    ret = 0;
 out:
     if(pWaitHandles)
     {
@@ -604,107 +604,109 @@ out:
 static THREAD_INFO_t *st_pThreadInfo=NULL;
 static HANDLE st_hThreadSema=NULL;
 
-void FreeThreadInfo(THREAD_INFO_t* pThreadInfo)
+void FreeThreadInfo(THREAD_INFO_t** ppThreadInfo)
 {
-	/*now first to test whether the thread is running*/
-	BOOL bret;
-	int ret;
-	int i;
+    /*now first to test whether the thread is running*/
+    BOOL bret;
+    int ret;
+    int i;
+    THREAD_INFO* pThreadInfo= *ppThreadInfo;
 
-	if (pThreadInfo == NULL)
-	{
-		return;
-	}
-	
-	pThreadInfo->m_ThreadRunning = 0;
-	while(pThreadInfo->m_ThreadExited == 0)
-	{
-		if (pThreadInfo->m_NotifyHandle)
-		{
-			bret = SetEvent(pThreadInfo->m_NotifyHandle);
-			if (!bret)
-			{
-				ret = LAST_ERROR_CODE();
-				ERROR_INFO("could not set notify handle error %d\n",ret);
-			}
-		}
-		SchedOut();
-	}
+    if(pThreadInfo == NULL)
+    {
+        return;
+    }
 
-	/*now we are ok*/
-	if (pThreadInfo->m_NotifyHandle)
-	{
-		bret = CloseHandle(pThreadInfo->m_NotifyHandle);
-		if (!bret)
-		{
-			ret=  LAST_ERROR_CODE();
-			ERROR_INFO("close notify handle error(%d)\n",ret);
-		}
-	}
-	pThreadInfo->m_NotifyHandle = NULL;
+    pThreadInfo->m_ThreadRunning = 0;
+    while(pThreadInfo->m_ThreadExited == 0)
+    {
+        if(pThreadInfo->m_NotifyHandle)
+        {
+            bret = SetEvent(pThreadInfo->m_NotifyHandle);
+            if(!bret)
+            {
+                ret = LAST_ERROR_CODE();
+                ERROR_INFO("could not set notify handle error %d\n",ret);
+            }
+        }
+        SchedOut();
+    }
 
-	if (pThreadInfo->m_hThread)
-	{
-		bret = CloseHandle(pThreadInfo->m_hThread);
-		if (!bret)
-		{
-			ret = LAST_ERROR_CODE();
-			ERROR_INFO("close thread handle error(%d)\n",ret);
-		}
-	}
-	pThreadInfo->m_hThread = NULL;
-	pThreadInfo->m_ThreadId = 0;
+    /*now we are ok*/
+    if(pThreadInfo->m_NotifyHandle)
+    {
+        bret = CloseHandle(pThreadInfo->m_NotifyHandle);
+        if(!bret)
+        {
+            ret=  LAST_ERROR_CODE();
+            ERROR_INFO("close notify handle error(%d)\n",ret);
+        }
+    }
+    pThreadInfo->m_NotifyHandle = NULL;
 
-	for (i=0;i<pThreadInfo->m_PackNums;i++)
-	{
-		if (pThreadInfo->m_FreeEvt[i])
-		{
-			bret = CloseHandle(pThreadInfo->m_FreeEvt[i]);
-			if (!bret)
-			{
-				ret = LAST_ERROR_CODE();
-				ERROR_INFO("close[%d] free event error(%d)\n",i,ret);
-			}
-		}
-		pThreadInfo->m_FreeEvt[i] = NULL;
-	}
+    if(pThreadInfo->m_hThread)
+    {
+        bret = CloseHandle(pThreadInfo->m_hThread);
+        if(!bret)
+        {
+            ret = LAST_ERROR_CODE();
+            ERROR_INFO("close thread handle error(%d)\n",ret);
+        }
+    }
+    pThreadInfo->m_hThread = NULL;
+    pThreadInfo->m_ThreadId = 0;
 
-	pThreadInfo->m_PackNums = 0;
-	free(pThreadInfo);	
-	return ;
+    for(i=0; i<pThreadInfo->m_PackNums; i++)
+    {
+        if(pThreadInfo->m_FreeEvt[i])
+        {
+            bret = CloseHandle(pThreadInfo->m_FreeEvt[i]);
+            if(!bret)
+            {
+                ret = LAST_ERROR_CODE();
+                ERROR_INFO("close[%d] free event error(%d)\n",i,ret);
+            }
+        }
+        pThreadInfo->m_FreeEvt[i] = NULL;
+    }
+
+    pThreadInfo->m_PackNums = 0;
+    free(pThreadInfo);
+    *ppThreadInfo = NULL;
+    return ;
 }
 
 THREAD_INFO_t* AllocateThreadInfo(unsigned int numpacks)
 {
-	THREAD_INFO_t* pThreadInfo=NULL;
-	int size=sizeof(*pThreadInfo);
-	int i;
+    THREAD_INFO_t* pThreadInfo=NULL;
+    int size=sizeof(*pThreadInfo);
+    int i;
 
-	if (numpacks < 1)
-	{
-		SetLastError(ERROR_INVALID_PARAMETER);
-		return NULL;
-	}
+    if(numpacks < 1)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return NULL;
+    }
 
-	size += (numpacks-1)*sizeof(pThreadInfo->m_FreeEvt[0]);
-	pThreadInfo =(THREAD_INFO_t*) malloc(size);
-	if (pThreadInfo == NULL)
-	{
-		return NULL;
-	}
+    size += (numpacks-1)*sizeof(pThreadInfo->m_FreeEvt[0]);
+    pThreadInfo =(THREAD_INFO_t*) malloc(size);
+    if(pThreadInfo == NULL)
+    {
+        return NULL;
+    }
 
-	memset(pThreadInfo,0,size);
-	pThreadInfo->m_hThread = NULL;
-	pThreadInfo->m_ThreadId = 0;
-	pThreadInfo->m_ThreadRunning = 1;
-	pThreadInfo->m_ThreadExited = 1;
-	pThreadInfo->m_PackNums = numpacks;
-	pThreadInfo->m_NotifyHandle = NULL;
-	for (i=0;i<pThreadInfo->m_PackNums;i++)
-	{
-		pThreadInfo->m_FreeEvt[i] = NULL;
-	}
-	return pThreadInfo;	
+    memset(pThreadInfo,0,size);
+    pThreadInfo->m_hThread = NULL;
+    pThreadInfo->m_ThreadId = 0;
+    pThreadInfo->m_ThreadRunning = 1;
+    pThreadInfo->m_ThreadExited = 1;
+    pThreadInfo->m_PackNums = numpacks;
+    pThreadInfo->m_NotifyHandle = NULL;
+    for(i=0; i<pThreadInfo->m_PackNums; i++)
+    {
+        pThreadInfo->m_FreeEvt[i] = NULL;
+    }
+    return pThreadInfo;
 }
 
 
@@ -712,55 +714,106 @@ THREAD_INFO_t* AllocateThreadInfo(unsigned int numpacks)
 int __HandleAudioRecordStart(PCMCAP_CONTROL_t *pControl)
 {
     int ret =0;
-	unsigned int i;
-	unsigned char eventname[128];
+    unsigned int i;
+    unsigned char eventname[128];
 
     if(st_pThreadInfo)
     {
         return -ERROR_ALREADY_EXISTS;
     }
 
-	st_pThreadInfo = AllocateThreadInfo(pControl->m_NumPacks);
-	if (st_pThreadInfo == NULL)
-	{
-		ret = LAST_ERROR_CODE();
-		goto fail;
-	}
+    st_pThreadInfo = AllocateThreadInfo(pControl->m_NumPacks);
+    if(st_pThreadInfo == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
 
-	/*now we should set for the handle*/
-	st_pThreadInfo->m_NotifyHandle = GetEvent(NULL,1);
-	if (st_pThreadInfo->m_NotifyHandle == NULL)
-	{
-		ret = LAST_ERROR_CODE();
-		goto fail;
-	}
+    /*now we should set for the handle*/
+    st_pThreadInfo->m_NotifyHandle = GetEvent(NULL,1);
+    if(st_pThreadInfo->m_NotifyHandle == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
 
-	/*now for the name*/
-	for (i=0;i<pControl->m_NumPacks;i++)
-	{
-		snprintf(eventname,sizeof(eventname),"%s%d",pControl->m_FreeListSemNameBase,i);
-		st_pThreadInfo->m_FreeEvt[i] = GetEvent(eventname,0);
-		if (st_pThreadInfo->m_FreeEvt[i] == NULL)
-		{
-			ret = LAST_ERROR_CODE();
-			goto fail;
-		}
-	}
+    /*now for the name*/
+    for(i=0; i<pControl->m_NumPacks; i++)
+    {
+        snprintf(eventname,sizeof(eventname),"%s%d",pControl->m_FreeListSemNameBase,i);
+        st_pThreadInfo->m_FreeEvt[i] = GetEvent(eventname,0);
+        if(st_pThreadInfo->m_FreeEvt[i] == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            goto fail;
+        }
+    }
 
-	/*now we should to give the memory get */
+    /*now we should to give the memory get */
+    assert(st_hMemMap == NULL && st_pMemBase == NULL);
+    st_hMemMap = CreateMapFile(pControl->m_MemShareName,pControl->m_MemShareSize,0);
+    if(st_hMemMap==NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not create mapfile %s with size (%d:0x%x) error(%d)\n",
+                   pControl->m_MemShareName,pControl->m_MemShareSize,pControl->m_MemShareSize,ret);
+        goto fail;
+    }
 
+    st_pMemBase = MapFileBuffer(st_hMemMap,pControl->m_MemShareSize);
+    if(st_pMemBase  == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not mapfile size (%d:0x%x) error(%d)\n",
+                   pControl->m_MemShareSize,pControl->m_MemShareSize,ret);
+        goto fail;
+    }
 
+    /*now it is time to give the mem*/
+    ret = InitializeWholeList(pControl->m_NumPacks,st_pMemBase,pControl->m_MemShareSize / pControl->m_NumPacks,pControl->m_FillListSemNameBase);
+    if(ret < 0)
+    {
+        goto fail;
+    }
 
-    return ret;
+    /*now to start the kernel to do this */
+    st_pThreadInfo->m_ThreadRunning = 1;
+    st_pThreadInfo->m_ThreadExited = 0;
+
+    /*now to create thread*/
+    st_pThreadInfo->m_hThread = CreateThread(NULL,0,__WaitThreadImpl,st_pThreadInfo,0,&(st_pThreadInfo->m_ThreadId));
+    if(st_pThreadInfo->m_hThread == NULL)
+    {
+        st_pThreadInfo->m_ThreadExited = 1;
+        st_pThreadInfo->m_ThreadRunning = 0;
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not create thread %d\n",ret);
+        goto fail;
+    }
+
+	/*now we should do things ok for it will let the thread running back and it will make the first */
+	SetOperation(pControl->m_Operation);
+	
+
+    return 0;
 fail:
     assert(ret > 0);
-	FreeThreadInfo(st_pThreadInfo);	
+    DeInitializeWholeList();
+    FreeThreadInfo(&st_pThreadInfo);
+    UnMapFileBuffer(&st_pMemBase);
+    CloseMapFileHandle(&st_hMemMap);
     SetLastError(ret);
     return -ret;
 }
 
 int __HandleAudioRecordStop(PCMCAP_CONTROL_t *pControl)
 {
+    DeInitializeWholeList();
+    FreeThreadInfo(&st_pThreadInfo);
+    UnMapFileBuffer(&st_pMemBase);
+    CloseMapFileHandle(&st_hMemMap);
+	SetOperation(pControl->m_Operation);
+	return 0;
 }
 
 
