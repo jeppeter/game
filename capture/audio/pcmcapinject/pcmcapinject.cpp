@@ -502,7 +502,6 @@ typedef struct
     DWORD m_ThreadId;
     int m_ThreadRunning;
     int m_ThreadExited;
-
     int m_PackNums;
     HANDLE m_NotifyHandle;
     HANDLE m_FreeEvt[1];
@@ -577,8 +576,102 @@ out:
 static THREAD_INFO_t *st_pThreadInfo=NULL;
 static HANDLE st_hThreadSema=NULL;
 
-void FreeThreadInfo()
+void FreeThreadInfo(THREAD_INFO_t* pThreadInfo)
 {
+	/*now first to test whether the thread is running*/
+	BOOL bret;
+	int ret;
+	int i;
+
+	if (pThreadInfo == NULL)
+	{
+		return;
+	}
+	
+	pThreadInfo->m_ThreadRunning = 0;
+	while(pThreadInfo->m_ThreadExited == 0)
+	{
+		if (pThreadInfo->m_NotifyHandle)
+		{
+			bret = SetEvent(pThreadInfo->m_NotifyHandle);
+			if (!bret)
+			{
+				ret = LAST_ERROR_CODE();
+				ERROR_INFO("could not set notify handle error %d\n",ret);
+			}
+		}
+		SchedOut();
+	}
+
+	/*now we are ok*/
+	if (pThreadInfo->m_NotifyHandle)
+	{
+		bret = CloseHandle(pThreadInfo->m_NotifyHandle);
+		if (!bret)
+		{
+			ret=  LAST_ERROR_CODE();
+			ERROR_INFO("close notify handle error(%d)\n",ret);
+		}
+	}
+	pThreadInfo->m_NotifyHandle = NULL;
+
+	if (pThreadInfo->m_hThread)
+	{
+		bret = CloseHandle(pThreadInfo->m_hThread);
+		if (!bret)
+		{
+			ret = LAST_ERROR_CODE();
+			ERROR_INFO("close thread handle error(%d)\n",ret);
+		}
+	}
+	pThreadInfo->m_hThread = NULL;
+	pThreadInfo->m_ThreadId = 0;
+
+	for (i=0;i<pThreadInfo->m_PackNums;i++)
+	{
+		if (pThreadInfo->m_FreeEvt[i])
+		{
+			bret = CloseHandle(pThreadInfo->m_FreeEvt[i]);
+			if (!bret)
+			{
+				ret = LAST_ERROR_CODE();
+				ERROR_INFO("close[%d] free event error(%d)\n",i,ret);
+			}
+		}
+		pThreadInfo->m_FreeEvt[i] = NULL;
+	}
+
+	pThreadInfo->m_PackNums = 0;
+	free(pThreadInfo);	
+}
+
+THREAD_INFO_t* AllocateThreadInfo(unsigned int numpacks)
+{
+	THREAD_INFO_t* pThreadInfo=NULL;
+	int size=sizeof(*pThreadInfo);
+	int i;
+
+	if (numpacks < 1)
+	{
+		return NULL;
+	}
+
+	size += (numpacks-1)*sizeof(pThreadInfo->m_FreeEvt[0]);
+	pThreadInfo =(THREAD_INFO_t*) malloc(size);
+	if (pThreadInfo == NULL)
+	{
+		return NULL;
+	}
+
+	memset(pThreadInfo,0,size);
+	pThreadInfo->m_hThread = NULL;
+	pThreadInfo->m_ThreadId = 0;
+	pThreadInfo->m_ThreadRunning = 1;
+	pThreadInfo->m_ThreadExited = 1;
+	pThreadInfo->m_PackNums = numpacks;
+	pThreadInfo->m_NotifyHandle = NULL;
+	
+	
 }
 
 int __HandleAudioRecordStart(PCMCAP_CONTROL_t *pControl)
