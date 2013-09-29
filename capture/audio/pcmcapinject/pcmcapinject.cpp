@@ -43,11 +43,11 @@ static IAudioClient *st_pHandleAudioClient=NULL;
 static IAudioRenderClient *st_pAudioRenderClient=NULL;
 static int st_PcmCapInited=0;
 
-static int SetFormat(IAudioClient* pClient,WAVEFORMATEX* pFormatEx)
+static int SetFormat(WAVEFORMATEX* pFormatEx)
 {
     int ret=0;
     int formatsize=0;
-    WAVEFORMATEX *pCopied=NULL;
+    WAVEFORMATEX *pCopied=NULL,*pFreed=NULL;
 
     if(pFormatEx)
     {
@@ -64,14 +64,15 @@ static int SetFormat(IAudioClient* pClient,WAVEFORMATEX* pFormatEx)
         memcpy(pCopied,pFormatEx,formatsize);
     }
     EnterCriticalSection(&st_StateCS);
-    if(st_pFormatEx)
-    {
-        free(st_pFormatEx);
-    }
+    pFreed = st_pFormatEx;
     st_pFormatEx = NULL;
     st_pFormatEx = pCopied;
-    st_pHandleAudioClient= pClient;
     LeaveCriticalSection(&st_StateCS);
+    if(pFreed)
+    {
+        free(pFreed);
+    }
+    pFreed = NULL;
 out:
     return ret > 0 ? -ret : 0;
 }
@@ -82,7 +83,7 @@ static int GetFormat(int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSa
     int ret = 0;
     EnterCriticalSection(&st_StateCS);
 
-    if(st_pFormatEx && pRender && st_pAudioRenderClient == pRender)
+    if(st_pFormatEx)
     {
         *pFormat = st_pFormatEx->wFormatTag;
         *pChannels = st_pFormatEx->nChannels;
@@ -93,6 +94,28 @@ static int GetFormat(int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSa
     }
     LeaveCriticalSection(&st_StateCS);
     return ret;
+}
+
+
+static int st_Operation=PCMCAPPER_OPERATION_RENDER;
+
+static int SetOperation(int operation)
+{
+    int oldoperation;
+    EnterCriticalSection(&st_StateCS);
+    oldoperation = st_Operation;
+    st_Operation = operation;
+    LeaveCriticalSection(&st_StateCS);
+    return oldoperation;
+}
+
+static int GetOperation()
+{
+    int oldoperation;
+    EnterCriticalSection(&st_StateCS);
+    oldoperation = st_Operation;
+    LeaveCriticalSection(&st_StateCS);
+    return oldoperation;
 }
 
 typedef struct
@@ -110,6 +133,9 @@ static std::vector<EVENT_LIST_t*> st_ReleaseList;
 static EVENT_LIST_t *st_pWholeList=NULL;
 static int st_WholeListNum=0;
 static int st_GetWholeListNum=0;
+
+static HANDLE st_hStartNotifyEvent=NULL;
+static HANDLE st_hStopNotifyEvent=NULL;
 
 
 static CRITICAL_SECTION st_ListCS;
@@ -341,7 +367,7 @@ int WriteSendBuffer(unsigned char* pBuffer,int numpacks)
     }
 
     ret = GetFormat(&(audioformat.m_Format),&(audioformat.m_Channels),&(audioformat.m_SampleRate),&(audioformat.m_BitsPerSample),&(audioformat.m_Volume));
-    if(ret < 0)
+    if(ret <= 0)
     {
         PutFreeList(pEventList);
         return 0;
@@ -371,18 +397,97 @@ int WriteSendBuffer(unsigned char* pBuffer,int numpacks)
         return 0;
     }
 
-	ret = WriteShareMem(&(pAudioBuffer->m_AudioData.m_DataLen),0,&(numbytes),sizeof(numbytes));
-	if (ret < 0)
-		{
-			PutFreeList(pEventList);
-			return 0;
-		}
+    ret = WriteShareMem(&(pAudioBuffer->m_AudioData.m_DataLen),0,&(numbytes),sizeof(numbytes));
+    if(ret < 0)
+    {
+        PutFreeList(pEventList);
+        return 0;
+    }
 
-	/*now ok ,so we notify the other of the */
-	SetEvent(pEventList->m_hNotifyEvent);
-	PutReleaseList(pEventList);
-	return 1;
+    /*now ok ,so we notify the other of the */
+    SetEvent(pEventList->m_hNotifyEvent);
+    PutReleaseList(pEventList);
+    return 1;
 }
+
+int NotifyAudioStart(void)
+{
+    int ret=0;
+    BOOL bret;
+    EnterCriticalSection(&st_ListCS);
+    if(st_hStartNotifyEvent)
+    {
+        bret = SetEvent(st_hStartNotifyEvent);
+        if(bret)
+        {
+            ret = 1;
+        }
+        else
+        {
+            ret = -LAST_ERROR_CODE();
+        }
+    }
+    LeaveCriticalSection(&st_ListCS);
+    return ret;
+}
+
+
+int NotifyAudioStop(void)
+{
+    int ret=0;
+    BOOL bret;
+    EnterCriticalSection(&st_ListCS);
+    if(st_hStopNotifyEvent)
+    {
+        bret = SetEvent(st_hStopNotifyEvent);
+        if(bret)
+        {
+            ret = 1;
+        }
+        else
+        {
+            ret = -LAST_ERROR_CODE();
+        }
+    }
+    LeaveCriticalSection(&st_ListCS);
+    return ret;
+}
+
+int SetStartNotify(HANDLE hStartNotifyEvt)
+{
+    HANDLE origevt=NULL;
+
+    EnterCriticalSection(&st_ListCS);
+    origevt = st_hStartNotifyEvent;
+    st_hStartNotifyEvent = hStartNotifyEvt;
+    LeaveCriticalSection(&st_ListCS);
+
+    if(origevt)
+    {
+        CloseHandle(origevt);
+    }
+    origevt = NULL;
+    return 0;
+}
+
+int SetStopNotify(HANDLE hStopNotifyEvt)
+{
+    HANDLE origevt=NULL;
+
+    EnterCriticalSection(&st_ListCS);
+    origevt = st_hStopNotifyEvent;
+    st_hStopNotifyEvent = hStopNotifyEvt;
+    LeaveCriticalSection(&st_ListCS);
+
+    if(origevt)
+    {
+        CloseHandle(origevt);
+    }
+    origevt = NULL;
+    return 0;
+}
+
+
 
 
 /*****************************************************
@@ -440,6 +545,10 @@ HRESULT WINAPI StreamAudioVolumeSetChannelVolumeCallBack(IAudioStreamVolume * pT
 {
     HRESULT hr;
     hr = StreamAudioVolumeSetChannelVolumeNext(pThis,dwIndex,fLevel);
+    if(SUCCEEDED(hr) && dwIndex == 0)
+    {
+        SetVolume(fLevel);
+    }
     return hr;
 }
 
@@ -453,6 +562,10 @@ HRESULT WINAPI StreamAudioVolumeSetAllVolumesCallBack(IAudioStreamVolume * This,
     HRESULT hr;
 
     hr = StreamAudioVolumeSetAllVolumesNext(This,dwCount,pfVolumes);
+    if(SUCCEEDED(hr) && dwCount > 0)
+    {
+        SetVolume(pfVolumes[0]);
+    }
     return hr;
 }
 
@@ -494,6 +607,10 @@ HRESULT WINAPI ChannelAudioVolumeSetChannelVolumeCallBack(IChannelAudioVolume * 
 {
     HRESULT hr;
     hr = ChannelAudioVolumeSetChannelVolumeNext(pThis,dwIndex,fLevel,EventContext);
+    if(SUCCEEDED(hr) && dwIndex == 0)
+    {
+        SetVolume(fLevel);
+    }
     return hr;
 }
 
@@ -507,6 +624,10 @@ HRESULT WINAPI ChannelAudioVolumeSetAllVolumesCallBack(IChannelAudioVolume * Thi
     HRESULT hr;
 
     hr = ChannelAudioVolumeSetAllVolumesNext(This,dwCount,pfVolumes,EventContext);
+    if(SUCCEEDED(hr) && dwCount > 0)
+    {
+        SetVolume(pfVolumes[0]);
+    }
     return hr;
 }
 
@@ -545,6 +666,10 @@ HRESULT WINAPI SimpleAudioVolumeSetMasterVolumeCallBack(ISimpleAudioVolume * pTh
     HRESULT hr;
 
     hr = SimpleAudioVolumeSetMasterVolumeNext(pThis,fLevel,EventContext);
+    if(SUCCEEDED(hr))
+    {
+        SetVolume(fLevel);
+    }
     return hr;
 }
 
@@ -579,10 +704,16 @@ typedef HRESULT(WINAPI *AudioRenderClientGetBufferFunc_t)(IAudioRenderClient* pR
 static AudioRenderClientGetBufferFunc_t AudioRenderClientGetBufferNext=NULL;
 static int st_AudioRenderClientGetBufferDetoured=0;
 
+static unsigned char* st_pRenderBuffer=NULL;
+
 HRESULT WINAPI AudioRenderClientGetBufferCallBack(IAudioRenderClient* pRender,UINT32 NumFramesRequested,BYTE **ppData)
 {
     HRESULT hr;
     hr = AudioRenderClientGetBufferNext(pRender,NumFramesRequested,ppData);
+    if(SUCCEEDED(hr))
+    {
+        st_pRenderBuffer = *ppData;
+    }
     return hr;
 }
 
@@ -594,7 +725,29 @@ static int st_AudioRenderClientReleaseBufferDetoured=0;
 HRESULT WINAPI AudioRenderClientReleaseBufferCallBack(IAudioRenderClient* pRender,UINT32 NumFramesWritten,DWORD dwFlags)
 {
     HRESULT hr;
-    hr = AudioRenderClientReleaseBufferNext(pRender,NumFramesWritten,dwFlags);
+    int operation;
+    DWORD newdwflag=dwFlags;
+
+    operation = GetOperation();
+    if(operation == PCMCAPPER_OPERATION_NONE ||
+            operation == PCMCAPPER_OPERATION_CAPTURE)
+    {
+        newdwflag |= AUDCLNT_BUFFERFLAGS_SILENT;
+    }
+
+    hr = AudioRenderClientReleaseBufferNext(pRender,NumFramesWritten,newdwflag);
+    if(SUCCEEDED(hr))
+    {
+        if(st_pRenderBuffer)
+        {
+            /*write buffer */
+            if(!(dwFlags & AUDCLNT_BUFFERFLAGS_SILENT) && (operation == PCMCAPPER_OPERATION_CAPTURE || operation == PCMCAPPER_OPERATION_BOTH))
+            {
+                WriteSendBuffer(st_pRenderBuffer,NumFramesWritten);
+            }
+        }
+        st_pRenderBuffer = NULL;
+    }
     return hr;
 }
 
@@ -639,6 +792,10 @@ HRESULT WINAPI AudioClientInitializeCallBack(IAudioClient* pClient,AUDCLNT_SHARE
     HRESULT hr;
 
     hr = AudioClientInitializeNext(pClient,ShareMode,StreamFlags,hnsBufferDuration,hnsPeriodicity,pFormat,AudioSessionGuid);
+    if(SUCCEEDED(hr) && pFormat)
+    {
+        SetFormat(pFormat);
+    }
     return hr;
 }
 
@@ -651,6 +808,10 @@ HRESULT WINAPI AudioClientStartCallBack(IAudioClient* pClient)
     HRESULT hr;
 
     hr = AudioClientStartNext(pClient);
+    if(SUCCEEDED(hr))
+    {
+        NotifyAudioStart();
+    }
     return hr;
 }
 
@@ -664,6 +825,10 @@ HRESULT WINAPI AudioClientStopCallBack(IAudioClient* pClient)
     HRESULT hr;
 
     hr = AudioClientStopNext(pClient);
+    if(SUCCEEDED(hr))
+    {
+        NotifyAudioStop();
+    }
     return hr;
 }
 
@@ -676,6 +841,11 @@ HRESULT WINAPI AudioClientResetCallBack(IAudioClient* pClient)
     HRESULT hr;
 
     hr = AudioClientResetNext(pClient);
+    if(SUCCEEDED(hr))
+    {
+        NotifyAudioStop();
+        NotifyAudioStart();
+    }
     return hr;
 }
 
@@ -698,12 +868,18 @@ HRESULT WINAPI AudioClientGetServiceCallBack(IAudioClient* pClient,REFIID riid,v
         }
         else if(riid == __uuidof(IAudioStreamVolume))
         {
+            IAudioStreamVolume* pStream= (IAudioStreamVolume*)*ppv;
+            DetourStreamAudioVolumeVirtFunctions(pStream);
         }
         else if(riid == __uuidof(IChannelAudioVolume))
         {
+            IChannelAudioVolume* pChannel = (IChannelAudioVolume*)*ppv;
+            DetourChannelAudioVolumeVirtFunctions(pChannel);
         }
         else if(riid == __uuidof(ISimpleAudioVolume))
         {
+            ISimpleAudioVolume* pSimple = (ISimpleAudioVolume*)*ppv;
+            DetourSimpleAudioVolumeVirtFunctions(pSimple);
         }
     }
     return hr;
@@ -962,6 +1138,7 @@ int PcmCapInjectInit(void)
     int ret;
     InitializeCriticalSection(&st_StateCS);
     InitializeCriticalSection(&st_DetourCS);
+    InitializeCriticalSection(&st_ListCS);
 
     ret = DetourPCMCapFunctions();
     if(ret < 0)
