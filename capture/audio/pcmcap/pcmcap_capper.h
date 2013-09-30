@@ -10,11 +10,6 @@ public:
     CPcmCapper();
     ~CPcmCapper();
 
-    enum PCMCAPPER_STATE
-    {
-        PCMCAPPER_STATE_OPEN = 0,	    // 指定进程声音为打开状态
-        PCMCAPPER_STATE_CLOSE, 	        // 指定进程声音为关闭状态
-    };
 
     enum PCMCAPPER_OPERATION
     {
@@ -24,11 +19,9 @@ public:
         PCMCAPPER_OPERATION_BOTH, 		// 对上述两者同时进行
     };
 
-    BOOL Start(HANDLE hProc, int iOperation, int iBufNum, int iMaxDelay, IPcmCapperCallback * pPcc, LPVOID lpParam);
+    BOOL Start(HANDLE hProc, int iOperation, int iBufNum, IPcmCapperCallback * pPcc, LPVOID lpParam);
     BOOL Stop();
 
-    BOOL SetAudioState(int iState);
-    int GetAudioState() const;
     BOOL SetAudioOperation(int iOperation);
     int GetAudioOperation() const;
 
