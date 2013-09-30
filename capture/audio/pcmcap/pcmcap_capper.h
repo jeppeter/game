@@ -19,7 +19,7 @@ public:
         PCMCAPPER_OPERATION_BOTH, 		// 对上述两者同时进行
     };
 
-    BOOL Start(HANDLE hProc, int iOperation, int iBufNum, IPcmCapperCallback * pPcc, LPVOID lpParam);
+    BOOL Start(HANDLE hProc, int iOperation, int iBufNum,int iBlockSize, IPcmCapperCallback * pPcc, LPVOID lpParam);
     BOOL Stop();
 
     BOOL SetAudioOperation(int iOperation);
@@ -33,13 +33,15 @@ private:
 private:
     HANDLE m_hProc;     // 进程句柄
     DWORD m_ProcessId;  // processid of the m_hProc
-    int m_iState;		// 进程声音状态
     int m_iOperation;	// 对进程进行的操作
     
     IPcmCapperCallback * m_pPcmCapperCb;
     LPVOID m_lpParam;
 
 	unsigned int m_BufNum;
+	unsigned int m_BufBlockSize;
+	HANDLE m_hMapFile;
+	unsigned char *m_pMapBuffer;
 	unsigned char m_FreeEvtBaseName[128];
 	unsigned char m_FillEvtBaseName[128];
 	HANDLE m_pFreeEvt;

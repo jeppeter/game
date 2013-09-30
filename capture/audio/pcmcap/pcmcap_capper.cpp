@@ -15,6 +15,17 @@ CPcmCapper::CPcmCapper()
     m_pFreeEvt = NULL;
 }
 
+BOOL CPcmCapper::__SetOperationNone()
+{
+    if(this->m_hProc == NULL)
+    {
+        /*it is not set*/
+        return TRUE;
+    }
+
+	/*now to call the */
+}
+
 
 BOOL CPcmCapper::Stop()
 {
@@ -32,6 +43,7 @@ BOOL CPcmCapper::Stop()
             lasterr = lasterr ? lasterr : (LAST_ERROR_CODE());
         }
     }
+    this->m_iOperation = PCMCAPPER_OPERATION_NONE;
 
     for(i=0; i<this->m_BufNum; i++)
     {
@@ -55,6 +67,9 @@ BOOL CPcmCapper::Stop()
         }
     }
 
+	memset(&(this->m_FillEvtBaseName),0,sizeof(this->m_FillEvtBaseName));
+	memset(&(this->m_FreeEvtBaseName),0,sizeof(this->m_FreeEvtBaseName));
+
     if(this->m_pFillEvt)
     {
         free(this->m_pFillEvt);
@@ -67,7 +82,15 @@ BOOL CPcmCapper::Stop()
     }
     this->m_pFreeEvt = NULL;
 
-
+    if(lasterr)
+    {
+        SetLastError(lasterr);
+    }
+    else
+    {
+        SetLastError(0);
+    }
+    return totalbret;
 }
 
 CPcmCapper::~CPcmCapper()
