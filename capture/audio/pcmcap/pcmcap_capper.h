@@ -28,12 +28,13 @@ public:
 protected:
 
 private:
+	BOOL __SetOperationNone();
+
+private:
     HANDLE m_hProc;     // 进程句柄
     DWORD m_ProcessId;  // processid of the m_hProc
     int m_iState;		// 进程声音状态
     int m_iOperation;	// 对进程进行的操作
-    int m_iMaxdelay;    // 最大消息回报时间间隔
-    int m_iTimestamp;   // 最后一次回报消息的时间戳
     
     IPcmCapperCallback * m_pPcmCapperCb;
     LPVOID m_lpParam;
