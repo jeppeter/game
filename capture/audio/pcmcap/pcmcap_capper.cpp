@@ -236,7 +236,7 @@ BOOL CPcmCapper::Stop()
         bret = this->__SetOperationNone();
         if(!bret)
         {
-            totalbret = False;
+            totalbret = FALSE;
             lasterr = lasterr ? lasterr : (LAST_ERROR_CODE());
         }
     }
@@ -279,18 +279,31 @@ BOOL CPcmCapper::Stop()
     }
     this->m_pFreeEvt = NULL;
 
-    if(lasterr)
-    {
-        SetLastError(lasterr);
-    }
-    else
-    {
-        SetLastError(0);
-    }
+    SetLastError(lasterr);
+	this->m_pPcmCapperCb = NULL;
+	this->m_lpParam = NULL;
+
+    UnMapFileBuffer(&(this->m_pMapBuffer));
+    CloseMapFileHandle(&(this->m_hMapFile));
+
+    this->m_hProc = NULL;
     return totalbret;
 }
 
 CPcmCapper::~CPcmCapper()
 {
     this->Stop();
+}
+
+BOOL CPcmCapper::Start(HANDLE hProc,int iOperation,int iBufNum,int iBlockSize,IPcmCapperCallback * pPcc,LPVOID lpParam)
+{
+	BOOL bret;
+
+	this->Stop();
+
+	this->m_hProc = hProc;
+	this->m_BufNum = iBufNum;
+	this->m_BufBlockSize = iBlockSize;
+
+	/*now we should */
 }
