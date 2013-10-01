@@ -12,6 +12,11 @@
 CPcmCapper::CPcmCapper()
 {
     m_hProc = NULL;
+	m_ProcessId = 0;
+	m_ThreadControl.m_hThread = NULL;
+	m_ThreadControl.m_ThreadId = 0;
+	m_ThreadControl.m_ThreadRunning = 0;
+	m_ThreadControl.m_ThreadExited = 1;
     m_iOperation = PCMCAPPER_OPERATION_NONE;
     m_pPcmCapperCb = NULL;
     m_lpParam = NULL;

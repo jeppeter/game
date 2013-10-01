@@ -4,6 +4,15 @@
 
 #include <pcmcap_callback.h>
 
+
+typedef struct
+{
+	HANDLE m_hThread;
+	unsigned int m_ThreadId;
+	int m_ThreadRunning;
+	int m_ThreadExited;	
+} THREAD_CONTROL_t;
+
 class CPcmCapper
 {
 public:
@@ -38,6 +47,7 @@ private:
 private:
     HANDLE m_hProc;     // 进程句柄
     DWORD m_ProcessId;  // processid of the m_hProc
+    THREAD_CONTROL_t m_ThreadControl;
     int m_iOperation;	// 对进程进行的操作
     
     IPcmCapperCallback * m_pPcmCapperCb;
