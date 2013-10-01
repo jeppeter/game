@@ -9,6 +9,7 @@ typedef struct
 {
 	HANDLE m_hThread;
 	unsigned int m_ThreadId;
+	HANDLE m_hExitEvt;
 	int m_ThreadRunning;
 	int m_ThreadExited;	
 } THREAD_CONTROL_t;
@@ -43,6 +44,11 @@ private:
 	void __DestroyMap();
 	int __CreateEvent();
 	void __DestroyEvent();
+
+	int __StartThread();
+	void __StopThread();
+	static void* ThreadFunc(void* arg);
+	void* __ThreadImpl();
 
 private:
     HANDLE m_hProc;     // ½ø³Ì¾ä±ú

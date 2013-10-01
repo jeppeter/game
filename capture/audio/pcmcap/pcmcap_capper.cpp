@@ -12,11 +12,12 @@
 CPcmCapper::CPcmCapper()
 {
     m_hProc = NULL;
-	m_ProcessId = 0;
-	m_ThreadControl.m_hThread = NULL;
-	m_ThreadControl.m_ThreadId = 0;
-	m_ThreadControl.m_ThreadRunning = 0;
-	m_ThreadControl.m_ThreadExited = 1;
+    m_ProcessId = 0;
+    m_ThreadControl.m_hThread = NULL;
+    m_ThreadControl.m_ThreadId = 0;
+    m_ThreadControl.m_hExitEvt = NULL;
+    m_ThreadControl.m_ThreadRunning = 0;
+    m_ThreadControl.m_ThreadExited = 1;
     m_iOperation = PCMCAPPER_OPERATION_NONE;
     m_pPcmCapperCb = NULL;
     m_lpParam = NULL;
@@ -402,7 +403,7 @@ int CPcmCapper::__CreateEvent()
         }
     }
 
-	return 0;
+    return 0;
 }
 
 BOOL CPcmCapper::Start(HANDLE hProc,int iOperation,int iBufNum,int iBlockSize,IPcmCapperCallback * pPcc,LPVOID lpParam)
@@ -429,3 +430,143 @@ BOOL CPcmCapper::Start(HANDLE hProc,int iOperation,int iBufNum,int iBlockSize,IP
 
 
 }
+
+void CPcmCapper::__StopThread()
+{
+    BOOL bret;
+    int ret;
+    if(this->m_ThreadControl.m_hThread)
+    {
+        assert(this->m_ThreadControl.m_hExitEvt);
+        this->m_ThreadControl.m_ThreadRunning = 0;
+        while(this->m_ThreadControl.m_ThreadExited == 0)
+        {
+            bret = SetEvent(this->m_ThreadControl.m_hExitEvt);
+            if(!bret)
+            {
+                ret = LAST_ERROR_CODE();
+                ERROR_INFO("could not set exitevt error(%d)\n",ret);
+            }
+            SchedOut();
+        }
+
+        /*now we should thread control*/
+        CloseHandle(this->m_ThreadControl.m_hThread);
+    }
+
+    this->m_ThreadControl.m_hThread = NULL;
+    this->m_ThreadControl.m_ThreadExited = 1;
+    if(this->m_ThreadControl.m_hExitEvt)
+    {
+        CloseHandle(this->m_ThreadControl.m_hExitEvt);
+    }
+    this->m_ThreadControl.m_hExitEvt = NULL;
+    this->m_ThreadControl.m_ThreadRunning = 0;
+    this->m_ThreadControl.m_ThreadId = 0;
+    return ;
+}
+
+int CPcmCapper::__StartThread()
+{
+    BOOL bret;
+    int ret;
+
+    assert(this->m_ThreadControl.m_hThread == NULL);
+    assert(this->m_ThreadControl.m_hExitEvt == NULL);
+    assert(this->m_ThreadControl.m_ThreadExited == 1);
+    assert(this->m_ThreadControl.m_ThreadRunning == 0);
+    assert(this->m_ThreadControl.m_ThreadId == 0);
+
+    this->m_ThreadControl.m_hExitEvt = GetEvent(NULL,1);
+    if(this->m_ThreadControl.m_hExitEvt == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not create exit event error(%d)\n",ret);
+        goto fail;
+    }
+
+    /*now for the thread running state*/
+    this->m_ThreadControl.m_ThreadExited = 0;
+    this->m_ThreadControl.m_ThreadRunning = 1;
+
+    this->m_ThreadControl.m_hThread = CreateThread(NULL,0,CPcmCapper::ThreadFunc,this,0,&(this->m_ThreadControl.m_ThreadId));
+    if(this->m_ThreadControl.m_hThread == NULL)
+    {
+        this->m_ThreadControl.m_hThread = NULL;
+        this->m_ThreadControl.m_ThreadExited = 1;
+        this->m_ThreadControl.m_ThreadRunning = 0;
+        this->m_ThreadControl.m_ThreadId = 0;
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not create thread func error(%d)\n",ret);
+        goto fail;
+    }
+
+    /*ok we should start thread*/
+
+    return 0;
+fail:
+    this->__StopThread();
+    return -ret;
+}
+
+void* CPcmCapper::ThreadFunc(void * arg)
+{
+    CPcmCapper* pThis = (CPcmCapper*)arg;
+    return pThis->__ThreadImpl();
+}
+
+void CPcmCapper::__ThreadImpl()
+{
+    BOOL bret;
+    int ret;
+    DWORD dret;
+    HANDLE *pWaitHandle=NULL;
+    unsigned int i;
+    int bufnum;
+
+    /*to include the exit num*/
+    bufnum = this->m_BufNum;
+    pWaitHandle = calloc(sizeof(*pWaitHandle),bufnum+1);
+    if(pWaitHandle == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not allocate %d handles error(%d)\n",(bufnum+1)*sizeof(*pWaitHandle),ret);
+        goto out;
+    }
+
+    for(i=0; i<bufnum; i++)
+    {
+        assert(this->m_pFillEvt);
+        assert(this->m_pFreeEvt);
+        assert(this->m_pFillEvt[i]);
+        assert(this->m_pFreeEvt[i]);
+        pWaitHandle[i] = this->m_pFillEvt[i];
+    }
+
+    pWaitHandle[bufnum] = this->m_ThreadControl.m_hExitEvt;
+
+
+    while(this->m_ThreadControl.m_ThreadRunning)
+    {
+        dret = WaitForMultipleObjects(bufnum + 1,pWaitHandle,FALSE,1000);
+        if(dret <= (WAIT_OBJECT_0+bufnum-1) && dret >= WAIT_OBJECT_0)
+        {
+        }
+        else if(dret == (WAIT_OBJECT_0 + bufnum))
+        {
+        }
+        else if(dret == WAIT_FAIL)
+        {
+        }
+    }
+out:
+    if(pWaitHandle)
+    {
+        free(pWaitHandle);
+    }
+    pWaitHandle = NULL;
+    this->m_ThreadControl.m_ThreadExited = 1;
+    return ret;
+}
+
+
