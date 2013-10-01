@@ -30,6 +30,10 @@ protected:
 private:
 	BOOL __SetOperationNone();
 	BOOL __SetOperationInner(PCMCAP_CONTROL_t* pControl,DWORD* pRetCode);
+	int __CreateMap();
+	void __DestroyMap();
+	int __CreateEvent();
+	void __DestroyEvent();
 
 private:
     HANDLE m_hProc;     // ½ø³Ì¾ä±ú
@@ -45,6 +49,7 @@ private:
 	unsigned char *m_pMapBuffer;
 	unsigned char m_FreeEvtBaseName[128];
 	unsigned char m_FillEvtBaseName[128];
+	unsigned char m_MapBaseName[128];
 	HANDLE m_pFreeEvt;
 	HANDLE m_pFillEvt;
 };

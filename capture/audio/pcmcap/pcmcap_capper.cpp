@@ -5,6 +5,10 @@
 #define  PCMCAP_DLL_NAME                 "pcmcapinject.dll"
 #define  PCMCAP_SET_OPERATION_FUNC_NAME  "PcmCapInject_SetAudioOperation"
 
+#define  MAP_FILE_OBJNAME_BASE           "Global\\PCMCAP_CAPPER_MAPFILE"
+#define  FREE_EVENT_OBJNAME_BASE         "Global\\PCMCAP_CAPPER_FREEEVT"
+#define  FILL_EVENT_OBJNAME_BASE         "Global\\PCMCAP_CAPPER_FILLEVT"
+
 CPcmCapper::CPcmCapper()
 {
     m_hProc = NULL;
@@ -242,6 +246,63 @@ BOOL CPcmCapper::Stop()
     }
     this->m_iOperation = PCMCAPPER_OPERATION_NONE;
 
+    this->__DestroyEvent();
+
+    SetLastError(lasterr);
+    this->m_pPcmCapperCb = NULL;
+    this->m_lpParam = NULL;
+
+    this->__DestroyMap();
+
+    this->m_ProcessId = 0;
+    this->m_hProc = NULL;
+    return totalbret;
+}
+
+CPcmCapper::~CPcmCapper()
+{
+    this->Stop();
+}
+
+void CPcmCapper::__DestroyMap()
+{
+    UnMapFileBuffer(&(this->m_pMapBuffer));
+    CloseMapFileHandle(&(this->m_hMapFile));
+    memset(&(this->m_MapBaseName),0,sizeof(this->m_MapBaseName));
+    return ;
+}
+
+int CPcmCapper::__CreateMap()
+{
+    int ret;
+    unsigned int mapsize;
+    snprintf(this->m_MapBaseName,sizeof(this->m_MapBaseName),"%s%d",MAP_FILE_OBJNAME_BASE,this->m_ProcessId);
+    mapsize = this->m_BufBlockSize * this->m_BufNum;
+    this->m_hMapFile = CreateMapFile(this->m_MapBaseName,mapsize ,1);
+    if(this->m_hMapFile == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not create (%s) (%d:0x%x) error (%d)\n",this->m_MapBaseName,mapsize,mapsize,ret);
+        this->__DestroyMap();
+        return -ret;
+    }
+
+    this->m_pMapBuffer = MapFileBuffer(this->m_hMapFile,mapsize);
+    if(this->m_pMapBuffer == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not mapfilebuffer %s (%d:0x%x) error(%d)\n",this->m_MapBaseName,mapsize,mapsize,ret);
+        this->__DestroyMap();
+        return -ret;
+    }
+
+    return 0;
+}
+
+
+void CPcmCapper::__DestroyEvent()
+{
+    unsigned int i;
     for(i=0; i<this->m_BufNum; i++)
     {
         /*now to close handle*/
@@ -278,32 +339,88 @@ BOOL CPcmCapper::Stop()
         free(this->m_pFreeEvt);
     }
     this->m_pFreeEvt = NULL;
-
-    SetLastError(lasterr);
-	this->m_pPcmCapperCb = NULL;
-	this->m_lpParam = NULL;
-
-    UnMapFileBuffer(&(this->m_pMapBuffer));
-    CloseMapFileHandle(&(this->m_hMapFile));
-
-    this->m_hProc = NULL;
-    return totalbret;
+    return ;
 }
 
-CPcmCapper::~CPcmCapper()
+int CPcmCapper::__CreateEvent()
 {
-    this->Stop();
+    int ret;
+    unsigned int i;
+    unsigned char evname[128];
+    snprintf(this->m_FreeEvtBaseName,sizeof(this->m_FreeEvtBaseName),"%s%d",FREE_EVENT_OBJNAME_BASE,this->m_ProcessId);
+    snprintf(this->m_FillEvtBaseName,sizeof(this->m_FillEvtBaseName),"%s%d",FILL_EVENT_OBJNAME_BASE,this->m_ProcessId);
+
+    assert(this->m_pFreeEvt == NULL);
+    assert(this->m_pFillEvt == NULL);
+
+    this->m_pFreeEvt = calloc(sizeof(this->m_pFreeEvt[0]),this->m_BufNum);
+    if(this->m_pFreeEvt == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not allocate size %d error (%d)\n",sizeof(this->m_pFreeEvt[0])*this->m_BufNum,ret);
+        this->__DestroyEvent();
+        return -ret;
+    }
+
+    for(i=0; i<this->m_BufNum; i++)
+    {
+        snprintf(evname,sizeof(evname),"%s_%d",this->m_FreeEvtBaseName,i);
+        this->m_pFreeEvt[i] = GetEvent(evname,1);
+        if(this->m_pFreeEvt[i] == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            ERROR_INFO("could not create %s event error(%d)\n",evname,ret);
+            this->__DestroyEvent();
+            return -ret;
+        }
+    }
+
+    this->m_pFillEvt = calloc(sizeof(this->m_pFillEvt[0]),this->m_BufNum);
+    if(this->m_pFillEvt == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not allocate size %d error (%d)\n",sizeof(this->m_pFillEvt[0])*this->m_BufNum,ret);
+        this->__DestroyEvent();
+        return -ret;
+    }
+
+    for(i=0; i<this->m_BufNum; i++)
+    {
+        snprintf(evname,sizeof(evname),"%s_%d",this->m_FillEvtBaseName,i);
+        this->m_pFillEvt[i] = GetEvent(evname,1);
+        if(this->m_pFillEvt[i] == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            ERROR_INFO("could not create %s event error(%d)\n",evname,ret);
+            this->__DestroyEvent();
+            return -ret;
+        }
+    }
+
+	return 0;
 }
 
 BOOL CPcmCapper::Start(HANDLE hProc,int iOperation,int iBufNum,int iBlockSize,IPcmCapperCallback * pPcc,LPVOID lpParam)
 {
-	BOOL bret;
+    BOOL bret;
+    int ret;
 
-	this->Stop();
+    this->Stop();
 
-	this->m_hProc = hProc;
-	this->m_BufNum = iBufNum;
-	this->m_BufBlockSize = iBlockSize;
+    this->m_hProc = hProc;
+    this->m_BufNum = iBufNum;
+    this->m_BufBlockSize = iBlockSize;
+    this->m_ProcessId = GetProcessId(hProc);
 
-	/*now we should */
+
+    /*now we should allocate the buffer and the event*/
+    ret = this->__CreateMap();
+    if(ret < 0)
+    {
+        this->Stop();
+        SetLastError(-ret);
+        return FALSE;
+    }
+
+
 }

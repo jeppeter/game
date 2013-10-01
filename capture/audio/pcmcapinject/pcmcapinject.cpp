@@ -250,7 +250,7 @@ static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,cha
 
     for(i=0; i<num; i++)
     {
-        snprintf(evtname,sizeof(evtname),"%s%d",pNotifyEvtNameBase,i);
+        snprintf(evtname,sizeof(evtname),"%s_%d",pNotifyEvtNameBase,i);
         pEventList[i].m_hNotifyEvent = GetEvent(evtname,0);
         if(pEventList[i].m_hNotifyEvent)
         {
@@ -740,7 +740,7 @@ int __HandleAudioRecordStart(PCMCAP_CONTROL_t *pControl)
     /*now for the name*/
     for(i=0; i<pControl->m_NumPacks; i++)
     {
-        snprintf(eventname,sizeof(eventname),"%s%d",pControl->m_FreeListSemNameBase,i);
+        snprintf(eventname,sizeof(eventname),"%s_%d",pControl->m_FreeListSemNameBase,i);
         st_pThreadInfo->m_FreeEvt[i] = GetEvent(eventname,0);
         if(st_pThreadInfo->m_FreeEvt[i] == NULL)
         {
