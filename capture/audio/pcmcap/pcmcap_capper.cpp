@@ -18,7 +18,7 @@ CPcmCapper::CPcmCapper()
     m_pFreeEvt = NULL;
 }
 
-BOOL CPcmCapper::__SetOperationInner(PCMCAP_CONTROL_t * pControl)
+BOOL CPcmCapper::__SetOperationInner(PCMCAP_CONTROL_t * pControl,DWORD *pRetCode)
 {
     int ret,res;
     LPVOID pRemoteFunc=NULL,pRemoteAlloc=NULL;
@@ -26,8 +26,11 @@ BOOL CPcmCapper::__SetOperationInner(PCMCAP_CONTROL_t * pControl)
     unsigned int processid=0;
     BOOL bres,bret;
     SIZE_T retsize;
-	DWORD threadid=0;
-	DWORD dret;
+    DWORD threadid=0;
+    DWORD dret;
+    unsigned int stick,ctick,etick,lefttick;
+    int timeout=4;
+    DWORD retcode;
     processid = GetProcessId(this->m_hProc);
 
 
@@ -64,19 +67,110 @@ BOOL CPcmCapper::__SetOperationInner(PCMCAP_CONTROL_t * pControl)
         goto fail;
     }
 
-	/*now to call remote address*/
-	hThread = CreateRemoteThread(this->m_hProc,NULL,0,pRemoteFunc,pRemoteAlloc,0,&threadid);
-	if (hThread == NULL)
+    /*now to call remote address*/
+    hThread = CreateRemoteThread(this->m_hProc,NULL,0,pRemoteFunc,pRemoteAlloc,0,&threadid);
+    if(hThread == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
 
+    timeout = 4;
+    bret = InitializeTicks(&stick,&ctick,&etick,timeout);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
+
+    /*now to do the job handle*/
+    while(1)
+    {
+        lefttick = LeftTicks(&stick,&ctick,&etick,timeout);
+        if(lefttick == 0)
+        {
+            ERROR_INFO("thread 0x%x timeout %d\n",hThread,timeout);
+            ret = WAIT_TIMEOUT;
+            goto fail;
+        }
+
+        dret = WaitForSingleObject(hThread,lefttick);
+        if(dret == WAIT_OBJECT_0)
+        {
+            bret = GetExitCodeThread(hThread,&retcode);
+            if(bret)
+            {
+                break;
+            }
+        }
+        else if(dret == WAIT_FAIL)
+        {
+            ret = LAST_ERROR_CODE();
+            goto fail;
+        }
+
+        GetCurrentTicks(&ctick);
+    }
+
+    *pRetCode = retcode;
+
+    assert(hThread);
+    CloseHandle(hThread);
+    hThread = NULL;
+
+    assert(pRemoteAlloc);
+    bres = VirtualFreeEx(this->m_hProc,pRemoteAlloc,sizeof(*pControl),MEM_DECOMMIT);
+    if(!bres)
+    {
+        res = LAST_ERROR_CODE();
+        ERROR_INFO("could not free (0x%x) handle remoteaddr 0x%p size %d error(%d)\n",
+                   this->m_hProc,pRemoteAlloc,sizeof(*pControl),ret);
+    }
+
+    pRemoteAlloc = NULL;
 
 
     return TRUE;
 fail:
-	if (hThread )
-		{
-			/*now to wait for a while and at last to kill it*/
-			dret = WaitForSingleObject(hThread,);
-		}
+    if(hThread)
+    {
+        /*now to wait for a while and at last to kill it*/
+        timeout = 2;
+        bres = InitializeTicks(&stick,&ctick,&etick,timeout);
+        if(bres)
+        {
+            while(1)
+            {
+                lefttick = LeftTicks(&stick,&ctick,&etick,timeout);
+                if(lefttick == 0)
+                {
+                    ERROR_INFO("could not wait for thread handle 0x%x timeout\n",hThread);
+                    break;
+                }
+                dret = WaitForSingleObject(hThread,lefttick);
+                if(dret == WAIT_OBJECT_0)
+                {
+                    bres = GetExitCodeThread(hThread,&retcode);
+                    if(bres)
+                    {
+                        break;
+                    }
+                }
+                else if(dret == WAIT_FAILED)
+                {
+                    break;
+                }
+
+                bres = GetCurrentTicks(&ctick);
+            }
+        }
+        else
+        {
+            ERROR_INFO("could not get ticks\n");
+        }
+        CloseHandle(hThread);
+    }
+    hThread = NULL;
     if(pRemoteAlloc)
     {
         bres = VirtualFreeEx(this->m_hProc,pRemoteAlloc,sizeof(*pControl),MEM_DECOMMIT);
@@ -96,12 +190,36 @@ fail:
 BOOL CPcmCapper::__SetOperationNone()
 {
     PCMCAP_CONTROL_t* pControl=NULL;
+    BOOL bret;
+    PCMCAP_CONTROL_t *pControl=NULL;
+    DWORD retcode=0;
 
     if(this->m_hProc == NULL)
     {
         /*it is not set*/
         return TRUE;
     }
+
+    pControl = malloc(sizeof(*pControl));
+    if(pControl == NULL)
+    {
+        return FALSE;
+    }
+
+    memset(pControl,0,sizeof(*pControl));
+    pControl->m_Operation = PCMCAPPER_OPERATION_NONE;
+
+    bret = this->__SetOperationInner(pControl,&retcode);
+
+    free(pControl);
+    pControl = NULL;
+    if(retcode != 0)
+    {
+        SetLastError(ERROR_FATAL_APP_EXIT);
+        return FALSE;
+    }
+
+    return TRUE;
 
 }
 
