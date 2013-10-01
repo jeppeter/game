@@ -29,6 +29,7 @@ protected:
 
 private:
 	BOOL __SetOperationNone();
+	BOOL __SetOperationInner(PCMCAP_CONTROL_t* pControl);
 
 private:
     HANDLE m_hProc;     // ½ø³Ì¾ä±ú

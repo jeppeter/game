@@ -2,6 +2,9 @@
 
 #include "pcmcap_capper.h"
 
+#define  PCMCAP_DLL_NAME                 "pcmcapinject.dll"
+#define  PCMCAP_SET_OPERATION_FUNC_NAME  "PcmCapInject_SetAudioOperation"
+
 CPcmCapper::CPcmCapper()
 {
     m_hProc = NULL;
@@ -15,15 +18,91 @@ CPcmCapper::CPcmCapper()
     m_pFreeEvt = NULL;
 }
 
+BOOL CPcmCapper::__SetOperationInner(PCMCAP_CONTROL_t * pControl)
+{
+    int ret,res;
+    LPVOID pRemoteFunc=NULL,pRemoteAlloc=NULL;
+    HANDLE hThread=NULL;
+    unsigned int processid=0;
+    BOOL bres,bret;
+    SIZE_T retsize;
+	DWORD threadid=0;
+	DWORD dret;
+    processid = GetProcessId(this->m_hProc);
+
+
+    /*now to call the */
+    ret = __GetRemoteProcAddress(processid,PCMCAP_DLL_NAME,PCMCAP_SET_OPERATION_FUNC_NAME,&pRemoteFunc);
+    if(ret < 0)
+    {
+        ret = -ret;
+        goto fail;
+    }
+
+    /*now to allocate memory and we will put the memory*/
+    pRemoteAlloc = VirtualAllocEx(this->m_hProc,NULL,sizeof(*pControl),MEM_COMMIT,PAGE_EXECUTE_READWRITE);
+    if(pRemoteAlloc == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not allocate 0x%x size %d error(%d)\n",this->m_hProc,sizeof(*pControl),ret);
+        goto fail;
+    }
+
+    bret = WriteProcessMemory(this->m_hProc,pRemoteAlloc,pControl,sizeof(*pControl),&retsize);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not write 0x%x addr 0x%p size %d error(%d)\n",
+                   this->m_hProc,pRemoteAlloc,sizeof(*pControl),ret);
+        goto fail;
+    }
+
+    if(retsize != sizeof(*pControl))
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not write return %d != %d\n",retsize ,sizeof(*pControl));
+        goto fail;
+    }
+
+	/*now to call remote address*/
+	hThread = CreateRemoteThread(this->m_hProc,NULL,0,pRemoteFunc,pRemoteAlloc,0,&threadid);
+	if (hThread == NULL)
+
+
+
+    return TRUE;
+fail:
+	if (hThread )
+		{
+			/*now to wait for a while and at last to kill it*/
+			dret = WaitForSingleObject(hThread,);
+		}
+    if(pRemoteAlloc)
+    {
+        bres = VirtualFreeEx(this->m_hProc,pRemoteAlloc,sizeof(*pControl),MEM_DECOMMIT);
+        if(!bres)
+        {
+            res = LAST_ERROR_CODE();
+            ERROR_INFO("could not free (0x%x) handle remoteaddr 0x%p size %d error(%d)\n",
+                       this->m_hProc,pRemoteAlloc,sizeof(*pControl),ret);
+        }
+    }
+    pRemoteAlloc = NULL;
+    pRemoteFunc = NULL;
+    SetLastError(ret);
+    return FALSE;
+}
+
 BOOL CPcmCapper::__SetOperationNone()
 {
+    PCMCAP_CONTROL_t* pControl=NULL;
+
     if(this->m_hProc == NULL)
     {
         /*it is not set*/
         return TRUE;
     }
 
-	/*now to call the */
 }
 
 
@@ -67,8 +146,8 @@ BOOL CPcmCapper::Stop()
         }
     }
 
-	memset(&(this->m_FillEvtBaseName),0,sizeof(this->m_FillEvtBaseName));
-	memset(&(this->m_FreeEvtBaseName),0,sizeof(this->m_FreeEvtBaseName));
+    memset(&(this->m_FillEvtBaseName),0,sizeof(this->m_FillEvtBaseName));
+    memset(&(this->m_FreeEvtBaseName),0,sizeof(this->m_FreeEvtBaseName));
 
     if(this->m_pFillEvt)
     {
