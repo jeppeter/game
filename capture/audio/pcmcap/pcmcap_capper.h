@@ -47,6 +47,8 @@ private:
 	static void* ThreadFunc(void* arg);
 	void* __ThreadImpl();
 	void __AudioRenderBuffer(int idx);
+	void __AudioStartCall();
+	void __AudioStopCall();
 
 private:
     HANDLE m_hProc;     // ½ø³Ì¾ä±ú
@@ -65,8 +67,12 @@ private:
 	
 	unsigned char m_FreeEvtBaseName[128];
 	unsigned char m_FillEvtBaseName[128];
-	HANDLE m_pFreeEvt;
-	HANDLE m_pFillEvt;
+	unsigned char m_StartEvtBaseName[128];
+	unsigned char m_StopEvtBaseName[128];
+	HANDLE m_hStartEvt;
+	HANDLE m_hStopEvt;
+	HANDLE *m_pFreeEvt;
+	HANDLE *m_pFillEvt;
 };
 
 

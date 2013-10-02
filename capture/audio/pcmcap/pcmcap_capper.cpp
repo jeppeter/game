@@ -8,6 +8,8 @@
 #define  MAP_FILE_OBJNAME_BASE           "Global\\PCMCAP_CAPPER_MAPFILE"
 #define  FREE_EVENT_OBJNAME_BASE         "Global\\PCMCAP_CAPPER_FREEEVT"
 #define  FILL_EVENT_OBJNAME_BASE         "Global\\PCMCAP_CAPPER_FILLEVT"
+#define  START_EVENT_OBJNAME_BASE        "Global\\PCMCAP_CAPPER_START"
+#define  STOP_EVENT_OBJNAME_BASE         "Global\\PCMCAP_CAPPER_STOP"
 
 CPcmCapper::CPcmCapper()
 {
@@ -31,6 +33,10 @@ CPcmCapper::CPcmCapper()
 
     memset(&(m_FreeEvtBaseName),0,sizeof(m_FreeEvtBaseName));
     memset(&(m_FillEvtBaseName),0,sizeof(m_FillEvtBaseName));
+    memset(&(m_StartEvtBaseName),0,sizeof(m_StartEvtBaseName));
+    memset(&(m_StopEvtBaseName),0,sizeof(m_StopEvtBaseName));
+    m_hStartEvt = NULL;
+    m_hStopEvt = NULL;
     m_pFreeEvt = NULL;
     m_pFillEvt = NULL;
 }
@@ -364,6 +370,20 @@ void CPcmCapper::__DestroyEvent()
 
     memset(&(this->m_FillEvtBaseName),0,sizeof(this->m_FillEvtBaseName));
     memset(&(this->m_FreeEvtBaseName),0,sizeof(this->m_FreeEvtBaseName));
+    memset(&(this->m_StartEvtBaseName),0,sizeof(this->m_StartEvtBaseName));
+    memset(&(this->m_StopEvtBaseName),0,sizeof(this->m_StopEvtBaseName));
+
+    if(this->m_hStartEvt)
+    {
+        CloseHandle(this->m_hStartEvt);
+    }
+    this->m_hStartEvt = NULL;
+
+    if(this->m_hStopEvt)
+    {
+        CloseHandle(this->m_hStopEvt);
+    }
+    this->m_hStopEvt = NULL;
 
     if(this->m_pFillEvt)
     {
@@ -386,9 +406,14 @@ int CPcmCapper::__CreateEvent()
     unsigned char evname[128];
     snprintf(this->m_FreeEvtBaseName,sizeof(this->m_FreeEvtBaseName),"%s%d",FREE_EVENT_OBJNAME_BASE,this->m_ProcessId);
     snprintf(this->m_FillEvtBaseName,sizeof(this->m_FillEvtBaseName),"%s%d",FILL_EVENT_OBJNAME_BASE,this->m_ProcessId);
+    snprintf(this->m_StartEvtBaseName,sizeof(this->m_StartEvtBaseName),"%s_%d",START_EVENT_OBJNAME_BASE,this->m_ProcessId);
+    snprintf(this->m_StopEvtBaseName,sizeof(this->m_StopEvtBaseName),"%s_%d",STOP_EVENT_OBJNAME_BASE,this->m_ProcessId);
+
 
     assert(this->m_pFreeEvt == NULL);
     assert(this->m_pFillEvt == NULL);
+    assert(this->m_hStartEvt == NULL);
+    assert(this->m_hStopEvt == NULL);
     assert(this->m_BufNum > 0);
     assert(this->m_BufBlockSize >= 0x1000);
 
@@ -398,6 +423,7 @@ int CPcmCapper::__CreateEvent()
         ret = LAST_ERROR_CODE();
         ERROR_INFO("could not allocate size %d error (%d)\n",sizeof(this->m_pFreeEvt[0])*this->m_BufNum,ret);
         this->__DestroyEvent();
+        SetLastError(ret);
         return -ret;
     }
 
@@ -410,6 +436,7 @@ int CPcmCapper::__CreateEvent()
             ret = LAST_ERROR_CODE();
             ERROR_INFO("could not create %s event error(%d)\n",evname,ret);
             this->__DestroyEvent();
+            SetLastError(ret);
             return -ret;
         }
     }
@@ -420,6 +447,7 @@ int CPcmCapper::__CreateEvent()
         ret = LAST_ERROR_CODE();
         ERROR_INFO("could not allocate size %d error (%d)\n",sizeof(this->m_pFillEvt[0])*this->m_BufNum,ret);
         this->__DestroyEvent();
+        SetLastError(ret);
         return -ret;
     }
 
@@ -432,8 +460,29 @@ int CPcmCapper::__CreateEvent()
             ret = LAST_ERROR_CODE();
             ERROR_INFO("could not create %s event error(%d)\n",evname,ret);
             this->__DestroyEvent();
+            SetLastError(ret);
             return -ret;
         }
+    }
+
+    this->m_hStartEvt = GetEvent(this->m_StartEvtBaseName,1);
+    if(this->m_hStartEvt == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not create startevent (%s) error(%d)\n",this->m_StartEvtBaseName,ret);
+        this->__DestroyEvent();
+        SetLastError(ret);
+        return -ret;
+    }
+
+    this->m_hStopEvt = GetEvent(this->m_StopEvtBaseName,1);
+    if(this->m_hStopEvt == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not create stopevent (%s) error(%d)\n",this->m_StopEvtBaseName,ret);
+        this->__DestroyEvent();
+        SetLastError(ret);
+        return -ret;
     }
 
     return 0;
@@ -595,11 +644,11 @@ void CPcmCapper::__ThreadImpl()
     assert(this->m_BufNum > 0);
     assert(this->m_ThreadControl.m_hExitEvt);
     bufnum = this->m_BufNum;
-    pWaitHandle = calloc(sizeof(*pWaitHandle),bufnum+1);
+    pWaitHandle = calloc(sizeof(*pWaitHandle),bufnum+3);
     if(pWaitHandle == NULL)
     {
         ret = LAST_ERROR_CODE();
-        ERROR_INFO("could not allocate %d handles error(%d)\n",(bufnum+1)*sizeof(*pWaitHandle),ret);
+        ERROR_INFO("could not allocate %d handles error(%d)\n",(bufnum+3)*sizeof(*pWaitHandle),ret);
         goto out;
     }
 
@@ -613,11 +662,13 @@ void CPcmCapper::__ThreadImpl()
     }
 
     pWaitHandle[bufnum] = this->m_ThreadControl.m_hExitEvt;
+    pWaitHandle[bufnum+1] = this->m_hStartEvt;
+    pWaitHandle[bufnum+2] = this->m_hStopEvt;
 
 
     while(this->m_ThreadControl.m_ThreadRunning)
     {
-        dret = WaitForMultipleObjects(bufnum + 1,pWaitHandle,FALSE,INFINITE);
+        dret = WaitForMultipleObjects(bufnum + 3,pWaitHandle,FALSE,INFINITE);
         if(dret <= (WAIT_OBJECT_0+bufnum-1) && dret >= WAIT_OBJECT_0)
         {
             this->__AudioRenderBuffer(dret - WAIT_OBJECT_0);
@@ -626,6 +677,16 @@ void CPcmCapper::__ThreadImpl()
         {
             /*nothing to handle*/
             ;
+        }
+        else if(dret == (WAIT_OBJECT_0 + bufnum + 1))
+        {
+            /*this is start calling*/
+            this->__AudioStartCall();
+        }
+        else if(dret == (WAIT_OBJECT_0+bufnum + 2))
+        {
+            /*this is stop calling*/
+            this->__AudioStopCall();
         }
         else if(dret == WAIT_FAIL)
         {
@@ -942,5 +1003,23 @@ BOOL CPcmCapper::__StartOperation(int iOperation)
     }
 
     return TRUE;
+}
+
+void CPcmCapper::__AudioStartCall()
+{
+    if(this->m_pPcmCapperCb)
+    {
+        this->m_pPcmCapperCb->WaveOpenCb(this->m_lpParam);
+    }
+    return ;
+}
+
+void CPcmCapper::__AudioStopCall()
+{
+    if(this->m_pPcmCapperCb)
+    {
+        this->m_pPcmCapperCb->WaveCloseCb(this->m_lpParam);
+    }
+    return ;
 }
 
