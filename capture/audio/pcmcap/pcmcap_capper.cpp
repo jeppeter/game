@@ -252,6 +252,7 @@ BOOL CPcmCapper::Stop()
     }
     this->m_iOperation = PCMCAPPER_OPERATION_NONE;
 
+    this->__StopThread();
     this->__DestroyEvent();
 
     SetLastError(lasterr);
@@ -428,6 +429,24 @@ BOOL CPcmCapper::Start(HANDLE hProc,int iOperation,int iBufNum,int iBlockSize,IP
         return FALSE;
     }
 
+    ret = this->__CreateEvent();
+    if(ret < 0)
+    {
+        this->Stop();
+        SetLastError(-ret);
+        return FALSE;
+    }
+
+    ret = this->__StartThread();
+    if(ret < 0)
+    {
+        this->Stop();
+        SetLastError(-ret);
+        return FALSE;
+    }
+
+    return 0;
+
 
 }
 
@@ -551,14 +570,22 @@ void CPcmCapper::__ThreadImpl()
         dret = WaitForMultipleObjects(bufnum + 1,pWaitHandle,FALSE,1000);
         if(dret <= (WAIT_OBJECT_0+bufnum-1) && dret >= WAIT_OBJECT_0)
         {
+            this->__AudioRenderBuffer(dret - WAIT_OBJECT_0);
         }
         else if(dret == (WAIT_OBJECT_0 + bufnum))
         {
+            /*nothing to handle*/
+            ;
         }
         else if(dret == WAIT_FAIL)
         {
+            ret = -LAST_ERROR_CODE();
+            ERROR_INFO("wait for num %d error(%d)\n",bufnum,ret);
+            goto out;
         }
     }
+
+    ret = 0;
 out:
     if(pWaitHandle)
     {
@@ -569,4 +596,47 @@ out:
     return ret;
 }
 
+
+void CPcmCapper::__AudioRenderBuffer(int idx)
+{
+    PCMITEM* pItem;
+    BOOL bret;
+    int ret;
+    assert(this->m_pMapBuffer);
+    assert(idx >= 0 && idx < this->m_BufNum);
+
+    pItem = (PCMITEM*)((ptr_type_t)this->m_pMapBuffer + (idx)*this->m_BufBlockSize);
+
+    if(this->m_pPcmCapperCb)
+    {
+        this->m_pPcmCapperCb->WaveInCb(pItem);
+    }
+
+    /*now to set the event*/
+    assert(this->m_pFreeEvt);
+    assert(this->m_pFreeEvt[idx]);
+    bret = SetEvent(this->m_pFreeEvt[idx]);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("setevent %d error(%d)\n",
+                   idx,ret);
+
+    }
+
+    return ;
+
+}
+
+BOOL CPcmCapper::__SetOperationBoth()
+{
+}
+
+BOOL CPcmCapper::__SetOperationCapture()
+{
+}
+
+BOOL CPcmCapper::__SetOperationRender()
+{
+}
 

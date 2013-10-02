@@ -39,6 +39,9 @@ protected:
 
 private:
 	BOOL __SetOperationNone();
+	BOOL __SetOperationCapture();
+	BOOL __SetOperationRender();
+	BOOL __SetOperationBoth();
 	BOOL __SetOperationInner(PCMCAP_CONTROL_t* pControl,DWORD* pRetCode);
 	int __CreateMap();
 	void __DestroyMap();
@@ -49,6 +52,7 @@ private:
 	void __StopThread();
 	static void* ThreadFunc(void* arg);
 	void* __ThreadImpl();
+	void __AudioRenderBuffer(int idx);
 
 private:
     HANDLE m_hProc;     // ½ø³Ì¾ä±ú
