@@ -691,7 +691,7 @@ BOOL CPcmCapper::__SetOperationCapture()
         ret = LAST_ERROR_CODE();
         goto fail;
     }
-    pControl->m_Operation = PCMCAPPER_OPERATION_BOTH;
+    pControl->m_Operation = PCMCAPPER_OPERATION_CAPTURE;
     strncpy(pControl->m_MemShareName,this->m_MapBaseName,sizeof(pControl->m_MemShareName));
     pControl->m_MemShareSize = this->m_BufNum * this->m_BufBlockSize;
     pControl->m_PackSize = this->m_BufBlockSize;
@@ -704,6 +704,12 @@ BOOL CPcmCapper::__SetOperationCapture()
     {
         ret = LAST_ERROR_CODE();
         ERROR_INFO("could not set operation BOTH error (%d)\n",ret);
+        goto fail;
+    }
+    if(retcode != 0)
+    {
+        ret = ERROR_FATAL_APP_EXIT;
+        ERROR_INFO("set both error code %d\n",retcode);
         goto fail;
     }
 
@@ -724,5 +730,51 @@ fail:
 
 BOOL CPcmCapper::__SetOperationRender()
 {
+    PCMCAP_CONTROL_t* pControl=NULL;
+    int ret;
+    BOOL bret;
+    DWORD retcode;
+    /**/
+    pControl = calloc(sizeof(*pControl),1);
+    if(pControl == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
+    pControl->m_Operation = PCMCAPPER_OPERATION_RENDER;
+    strncpy(pControl->m_MemShareName,this->m_MapBaseName,sizeof(pControl->m_MemShareName));
+    pControl->m_MemShareSize = this->m_BufNum * this->m_BufBlockSize;
+    pControl->m_PackSize = this->m_BufBlockSize;
+    pControl->m_NumPacks = this->m_BufNum;
+    strncpy(pControl->m_FillListSemNameBase,this->m_FillEvtBaseName,sizeof(pControl->m_FillListSemNameBase));
+    strncpy(pControl->m_FreeListSemNameBase,this->m_FreeEvtBaseName,sizeof(pControl->m_FreeListSemNameBase));
+
+    bret = this->__SetOperationInner(pControl,&retcode);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not set operation BOTH error (%d)\n",ret);
+        goto fail;
+    }
+    if(retcode != 0)
+    {
+        ret = ERROR_FATAL_APP_EXIT;
+        ERROR_INFO("set both error code %d\n",retcode);
+        goto fail;
+    }
+
+    free(pControl);
+    pControl = NULL;
+
+    SetLastError(0);
+    return TRUE;
+fail:
+    if(pControl)
+    {
+        free(pControl);
+    }
+    pControl = NULL;
+    SetLastError(ret);
+    return FALSE;
 }
 
