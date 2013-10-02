@@ -282,11 +282,11 @@ BOOL CPcmCapper::__StopOperation(int iOperation)
 CPcmCapper::~CPcmCapper()
 {
     this->Stop();
-	this->m_hProc = NULL;
-	this->m_BufNum = 0;
-	this->m_BufBlockSize = 0;
-	this->m_pPcmCapperCb = NULL;
-	this->m_lpParam = NULL;
+    this->m_hProc = NULL;
+    this->m_BufNum = 0;
+    this->m_BufBlockSize = 0;
+    this->m_pPcmCapperCb = NULL;
+    this->m_lpParam = NULL;
 }
 
 void CPcmCapper::__DestroyMap()
@@ -471,10 +471,10 @@ BOOL CPcmCapper::Start(HANDLE hProc,int iOperation,int iBufNum,int iBlockSize,IP
     this->m_BufNum = iBufNum;
     this->m_BufBlockSize = iBlockSize;
     this->m_ProcessId = GetProcessId(hProc);
-	this->m_pPcmCapperCb = pPcc;
-	this->m_lpParam = lpParam;
+    this->m_pPcmCapperCb = pPcc;
+    this->m_lpParam = lpParam;
 
-	return this->__StartOperation(iOperation);	
+    return this->__StartOperation(iOperation);
 }
 
 void CPcmCapper::__StopThread()
@@ -807,30 +807,41 @@ fail:
 
 BOOL CPcmCapper::SetAudioOperation(int iOperation)
 {
-    BOOL bret;
+    BOOL bret=TRUE;
     int ret;
-	HANDLE hProc;
-	unsigned int iBufNum;
-	unsigned int iBlockSize;
-	unsigned int processid;
-	IPcmCapperCallback *pCallBack;
-	void* lpParam;
+    HANDLE hProc;
+    unsigned int iBufNum;
+    unsigned int iBlockSize;
+    unsigned int processid;
+    IPcmCapperCallback *pCallBack;
+    void* lpParam;
 
-	
+
 
     switch(iOperation)
     {
     case PCMCAPPER_OPERATION_NONE:
     case PCMCAPPER_OPERATION_RENDER:
-        bret = this->__StopOperation(iOperation);
+        this->__StopOperation(iOperation);
         break;
 
     case PCMCAPPER_OPERATION_BOTH:
         this->__StopOperation(PCMCAPPER_OPERATION_NONE);
+        bret = this->__StartOperation(PCMCAPPER_OPERATION_BOTH);
         break;
     case PCMCAPPER_OPERATION_CAPTURE:
         this->__StopOperation(PCMCAPPER_OPERATION_NONE);
+        bret = this->__StartOperation(PCMCAPPER_OPERATION_CAPTURE);
         break;
+    default:
+        bret = FALSE;
+        SetLastError(ERROR_NOT_SUPPORTED);
+        break;
+    }
+
+    if(!bret)
+    {
+        return FALSE;
     }
 
     return TRUE;
