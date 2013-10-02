@@ -43,7 +43,10 @@ private:
 	BOOL __SetOperationRender();
 	BOOL __SetOperationBoth();
 	BOOL __SetOperationInner(PCMCAP_CONTROL_t* pControl,DWORD* pRetCode);
+	BOOL __StopOperation(int iOperation);
+	BOOL __StartOperation(int iOperation);
 	int __CreateMap();
+	int __FreeAllEvent();
 	void __DestroyMap();
 	int __CreateEvent();
 	void __DestroyEvent();

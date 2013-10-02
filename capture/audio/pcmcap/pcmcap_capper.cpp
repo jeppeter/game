@@ -237,13 +237,30 @@ BOOL CPcmCapper::__SetOperationNone()
 BOOL CPcmCapper::Stop()
 {
     int lasterr=0;
-    BOOL bret,totalbret=True;
-    int i;
+    BOOL bret,totalbret=TRUE;
+
+    return this->__StopOperation(PCMCAPPER_OPERATION_NONE);
+}
+
+BOOL CPcmCapper::__StopOperation(int iOperation)
+{
+    int lasterr = 0;
+    BOOL bret,totalbret=TRUE;
 
     if(this->m_hProc)
     {
         /*now to set the */
-        bret = this->__SetOperationNone();
+        assert(iOperation == PCMCAPPER_OPERATION_NONE || iOperation == PCMCAPPER_OPERATION_RENDER);
+        switch(iOperation)
+        {
+        case PCMCAPPER_OPERATION_NONE:
+            bret = this->__SetOperationNone();
+            break;
+        case PCMCAPPER_OPERATION_RENDER:
+            bret = this->__SetOperationRender();
+            break;
+
+        }
         if(!bret)
         {
             totalbret = FALSE;
@@ -255,20 +272,21 @@ BOOL CPcmCapper::Stop()
     this->__StopThread();
     this->__DestroyEvent();
 
-    SetLastError(lasterr);
-    this->m_pPcmCapperCb = NULL;
-    this->m_lpParam = NULL;
 
     this->__DestroyMap();
-
-    this->m_ProcessId = 0;
-    this->m_hProc = NULL;
+    SetLastError(lasterr);
     return totalbret;
+
 }
 
 CPcmCapper::~CPcmCapper()
 {
     this->Stop();
+	this->m_hProc = NULL;
+	this->m_BufNum = 0;
+	this->m_BufBlockSize = 0;
+	this->m_pPcmCapperCb = NULL;
+	this->m_lpParam = NULL;
 }
 
 void CPcmCapper::__DestroyMap()
@@ -407,47 +425,56 @@ int CPcmCapper::__CreateEvent()
     return 0;
 }
 
+int CPcmCapper::__FreeAllEvent()
+{
+    unsigned int i;
+    int ret;
+    BOOL bret;
+
+    assert(this->m_pFreeEvt);
+
+    for(i=0; i<this->m_BufNum; i++)
+    {
+        assert(this->m_pFreeEvt[i]);
+        bret = SetEvent(this->m_pFreeEvt[i]);
+        if(!bret)
+        {
+            ret = LAST_ERROR_CODE();
+            ERROR_INFO("[%d] setevent error(%d)\n",i,ret);
+            goto fail;
+        }
+    }
+
+    SetLastError(0);
+    return 0;
+
+fail:
+    SetLastError(ret);
+    return -ret;
+}
+
 BOOL CPcmCapper::Start(HANDLE hProc,int iOperation,int iBufNum,int iBlockSize,IPcmCapperCallback * pPcc,LPVOID lpParam)
 {
     BOOL bret;
     int ret;
 
-    this->Stop();
+    if(iOperation != PCMCAPPER_OPERATION_CAPTURE &&
+            iOperation != PCMCAPPER_OPERATION_BOTH)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    this->__StopOperation(PCMCAPPER_OPERATION_NONE);
 
     this->m_hProc = hProc;
     this->m_BufNum = iBufNum;
     this->m_BufBlockSize = iBlockSize;
     this->m_ProcessId = GetProcessId(hProc);
+	this->m_pPcmCapperCb = pPcc;
+	this->m_lpParam = lpParam;
 
-
-    /*now we should allocate the buffer and the event*/
-    ret = this->__CreateMap();
-    if(ret < 0)
-    {
-        this->Stop();
-        SetLastError(-ret);
-        return FALSE;
-    }
-
-    ret = this->__CreateEvent();
-    if(ret < 0)
-    {
-        this->Stop();
-        SetLastError(-ret);
-        return FALSE;
-    }
-
-    ret = this->__StartThread();
-    if(ret < 0)
-    {
-        this->Stop();
-        SetLastError(-ret);
-        return FALSE;
-    }
-
-    return 0;
-
-
+	return this->__StartOperation(iOperation);	
 }
 
 void CPcmCapper::__StopThread()
@@ -776,5 +803,96 @@ fail:
     pControl = NULL;
     SetLastError(ret);
     return FALSE;
+}
+
+BOOL CPcmCapper::SetAudioOperation(int iOperation)
+{
+    BOOL bret;
+    int ret;
+	HANDLE hProc;
+	unsigned int iBufNum;
+	unsigned int iBlockSize;
+	unsigned int processid;
+	IPcmCapperCallback *pCallBack;
+	void* lpParam;
+
+	
+
+    switch(iOperation)
+    {
+    case PCMCAPPER_OPERATION_NONE:
+    case PCMCAPPER_OPERATION_RENDER:
+        bret = this->__StopOperation(iOperation);
+        break;
+
+    case PCMCAPPER_OPERATION_BOTH:
+        this->__StopOperation(PCMCAPPER_OPERATION_NONE);
+        break;
+    case PCMCAPPER_OPERATION_CAPTURE:
+        this->__StopOperation(PCMCAPPER_OPERATION_NONE);
+        break;
+    }
+
+    return TRUE;
+}
+
+
+BOOL CPcmCapper::__StartOperation(int iOperation)
+{
+    int ret;
+    BOOL bret;
+    /*now we should allocate the buffer and the event*/
+    ret = this->__CreateMap();
+    if(ret < 0)
+    {
+        this->Stop();
+        SetLastError(-ret);
+        return FALSE;
+    }
+
+    ret = this->__CreateEvent();
+    if(ret < 0)
+    {
+        this->Stop();
+        SetLastError(-ret);
+        return FALSE;
+    }
+
+
+    ret = this->__FreeAllEvent();
+    if(ret < 0)
+    {
+        this->Stop();
+        SetLastError(-ret);
+        return FALSE;
+    }
+
+    ret = this->__StartThread();
+    if(ret < 0)
+    {
+        this->Stop();
+        SetLastError(-ret);
+        return FALSE;
+    }
+
+    switch(iOperation)
+    {
+    case PCMCAPPER_OPERATION_BOTH:
+        bret= this->__SetOperationBoth();
+        break;
+    case PCMCAPPER_OPERATION_CAPTURE:
+        bret = this->__SetOperationCapture();
+        break;
+    }
+
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        this->Stop();
+        SetLastError(ret);
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
