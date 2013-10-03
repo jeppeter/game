@@ -127,7 +127,8 @@ typedef struct
 
 typedef struct
 {
-    int m_WholeListNum;
+    unsigned int m_WholeListNum;
+    unsigned int m_PackSize;
     int m_GetWholeListNum;
     THREAD_CONTROL_t m_ThreadControl;
     HANDLE *m_pFreeEvt;
@@ -396,10 +397,19 @@ void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
     return ;
 }
 
-PCM_EVTS_t* __AllocatePCMEvts(int num,int packsize,char* pFreeEvtNameBase,char* pFillEvtNameBase,char* pStartEvtName,char* pStopEvtName)
+PCM_EVTS_t* __AllocatePCMEvts(int num,int packsize,char* pMapFileName,char* pFreeEvtNameBase,char* pFillEvtNameBase,char* pStartEvtName,char* pStopEvtName)
 {
     PCM_EVTS_t* pPCMEvt=NULL;
     int ret;
+    unsigned int mapsize;
+
+    if(num < 1  || packsize < 0x1000 || pMapFileName == NULL
+            || pFreeEvtNameBase == NULL || pFillEvtNameBase == NULL ||
+            pStartEvtName == NULL || pStopEvtName == NULL)
+    {
+        ret = ERROR_INVALID_PARAMETER;
+        goto fail;
+    }
 
     pPCMEvt = calloc(sizeof(*pPCMEvt),1);
     if(pPCMEvt == NULL)
@@ -409,9 +419,29 @@ PCM_EVTS_t* __AllocatePCMEvts(int num,int packsize,char* pFreeEvtNameBase,char* 
         goto fail;
     }
 
-	__InitThreadControl(&(pPCMEvt->m_ThreadControl));
+    __InitThreadControl(&(pPCMEvt->m_ThreadControl));
 
-	/*now we should */
+    mapsize = num * packsize;
+    pPCMEvt->m_MemMapSize = mapsize;
+    pPCMEvt->m_WholeListNum = num;
+    pPCMEvt->m_PackSize = packsize;
+    /*now we should start map file*/
+    pPCMEvt->m_hMemMap = CreateMapFile(pMapFileName,mapsize,0);
+    if(pPCMEvt->m_hMemMap == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not map %s size(%d:0x%x) error(%d)\n",pMapFileName,mapsize,mapsize,ret);
+        goto fail;
+    }
+
+    pPCMEvt->m_pMemBase = MapFileBuffer(pPCMEvt->m_hMemMap,mapsize);
+    if(pPCMEvt->m_pMemBase == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not map buffer (%s) size(%d:0x%x) error(%d)\n",pMapFileName,mapsize,mapsize,ret);
+        goto fail;
+    }
+
 
     return pPCMEvt;
 fail:
