@@ -7,14 +7,15 @@
 
 #ifndef __PCMCAP_INJECT_H__
 #define __PCMCAP_INJECT_H__
+
+#include <pcmcap_common.h>
 #ifdef PCMCAPINJECT_EXPORTS
 #define PCMCAPINJECT_API __declspec(dllexport)
 #else
 #define PCMCAPINJECT_API __declspec(dllimport)
 #endif
 
-extern "C" PCMCAPINJECT_API int PcmCapInject_SetAudioOperation(int iOperation);
-extern "C" PCMCAPINJECT_API int PcmCapInject_SetAudioState(int iState);
+extern "C" PCMCAPINJECT_API int HandleAudioOperation(PCMCAP_CONTROL_t* pControl);
 extern "C" int PcmCapInjectInit(void);
 extern "C" void PcmCapInjectFini(void);
 

@@ -8,6 +8,8 @@
 #define    PCMCAPPER_OPERATION_RENDER    2 	// 对进程声音进行播放的动作（播放交给系统去完成，不予干预）
 #define    PCMCAPPER_OPERATION_BOTH   	 3  // 对上述两者同时进行
 
+typedef unsigned long ptr_type_t;
+
 
 typedef struct
 {
@@ -36,6 +38,24 @@ typedef struct
 #define  PCMCAP_AUDIO_RENDER           2
 #define  PCMCAP_AUDIO_BOTH             3
 
+enum AVSampleFormat {
+    AV_SAMPLE_FMT_NONE = -1,
+    AV_SAMPLE_FMT_U8,          ///< unsigned 8 bits
+    AV_SAMPLE_FMT_S16,         ///< signed 16 bits
+    AV_SAMPLE_FMT_S32,         ///< signed 32 bits
+    AV_SAMPLE_FMT_FLT,         ///< float
+    AV_SAMPLE_FMT_DBL,         ///< double
+
+    AV_SAMPLE_FMT_U8P,         ///< unsigned 8 bits, planar
+    AV_SAMPLE_FMT_S16P,        ///< signed 16 bits, planar
+    AV_SAMPLE_FMT_S32P,        ///< signed 32 bits, planar
+    AV_SAMPLE_FMT_FLTP,        ///< float, planar
+    AV_SAMPLE_FMT_DBLP,        ///< double, planar
+
+    AV_SAMPLE_FMT_NB           ///< Number of sample formats. DO NOT USE if linking dynamically
+};
+
+
 
 typedef struct
 {
@@ -55,7 +75,7 @@ typedef struct
 typedef struct
 {
 	HANDLE m_hThread;
-	unsigned int m_ThreadId;
+	unsigned long m_ThreadId;
 	HANDLE m_hExitEvt;
 	int m_ThreadRunning;
 	int m_ThreadExited;	
