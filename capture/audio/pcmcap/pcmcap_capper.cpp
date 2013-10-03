@@ -760,6 +760,8 @@ BOOL CPcmCapper::__SetOperationBoth()
     pControl->m_NumPacks = this->m_BufNum;
     strncpy(pControl->m_FreeListSemNameBase,this->m_FreeEvtBaseName,sizeof(pControl->m_FreeListSemNameBase));
     strncpy(pControl->m_FillListSemNameBase,this->m_FillEvtBaseName,sizeof(pControl->m_FillListSemNameBase));
+	strncpy(pControl->m_StartEvtName,this->m_StartEvtBaseName,sizeof(pControl->m_StartEvtName));
+	strncpy(pControl->m_StopEvtName,this->m_StopEvtBaseName,sizeof(pControl->m_StopEvtName));
 
     bret = this->__SetOperationInner(pControl,&retcode);
     if(!bret)

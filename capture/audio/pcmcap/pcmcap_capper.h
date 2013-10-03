@@ -5,14 +5,6 @@
 #include <pcmcap_callback.h>
 
 
-typedef struct
-{
-	HANDLE m_hThread;
-	unsigned int m_ThreadId;
-	HANDLE m_hExitEvt;
-	int m_ThreadRunning;
-	int m_ThreadExited;	
-} THREAD_CONTROL_t;
 
 class CPcmCapper
 {

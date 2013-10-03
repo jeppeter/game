@@ -21,7 +21,17 @@
 static CRITICAL_SECTION st_DetourCS;
 static CRITICAL_SECTION st_StateCS;
 
-static float st_Volume = 0.0;
+static PCM_AUDIO_FORMAT_t st_AudioFormat =
+{
+    .m_Format         :  0,
+    .m_Channels       :  2,
+    .m_SampleRate     : 48000,
+    .m_BitsPerSample  : 32,
+    .m_Volume         : 0.0,
+};
+static int st_PcmCapInited=0;
+static int st_Operation=PCMCAPPER_OPERATION_NONE;
+
 
 /*****************************************************
 *  to handle for the volume
@@ -30,7 +40,7 @@ static int SetVolume(float volume)
 {
     int ret =0;
     EnterCriticalSection(&st_StateCS);
-    st_Volume = volume;
+    st_AudioFormat.m_Volume = volume;
     LeaveCriticalSection(&st_StateCS);
     return ret;
 }
@@ -38,66 +48,52 @@ static int SetVolume(float volume)
 /*****************************************************
 *  format set and get handler
 *****************************************************/
-static WAVEFORMATEX *st_pFormatEx=NULL;
-static IAudioClient *st_pHandleAudioClient=NULL;
-static IAudioRenderClient *st_pAudioRenderClient=NULL;
-static int st_PcmCapInited=0;
 
 static int SetFormat(WAVEFORMATEX* pFormatEx)
 {
-    int ret=0;
-    int formatsize=0;
-    WAVEFORMATEX *pCopied=NULL,*pFreed=NULL;
+    int format;
 
-    if(pFormatEx)
+    switch(pFormatEx->wBlockAlign)
     {
-        formatsize = sizeof(*pFormatEx);
-        formatsize += pFormatEx->cbSize;
-
-        pCopied = (WAVEFORMATEX*)malloc(formatsize);
-        if(pCopied==NULL)
-        {
-            ret = LAST_ERROR_CODE();
-            goto out;
-        }
-
-        memcpy(pCopied,pFormatEx,formatsize);
+    case 8:
+        format = AV_SAMPLE_FMT_U8;
+        break;
+    case 16:
+        format = AV_SAMPLE_FMT_S16;
+        break;
+    case 32:
+        format = AV_SAMPLE_FMT_FLT;
+        break;
+    default:
+        format = AV_SAMPLE_FMT_FLT;
+        break;
     }
+
     EnterCriticalSection(&st_StateCS);
-    pFreed = st_pFormatEx;
-    st_pFormatEx = NULL;
-    st_pFormatEx = pCopied;
+    st_AudioFormat.m_Channels = pFormatEx->nChannels;
+    st_AudioFormat.m_SampleRate = pFormatEx->nSamplePerSec;
+    st_AudioFormat.m_BitsPerSample = pFormatEx->nBlockAlign;
+    st_AudioFormat.m_Format = format;
     LeaveCriticalSection(&st_StateCS);
-    if(pFreed)
-    {
-        free(pFreed);
-    }
-    pFreed = NULL;
 out:
-    return ret > 0 ? -ret : 0;
+    return 0;
 }
 
 
 static int GetFormat(int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample,float* pVolume)
 {
-    int ret = 0;
     EnterCriticalSection(&st_StateCS);
 
-    if(st_pFormatEx)
-    {
-        *pFormat = st_pFormatEx->wFormatTag;
-        *pChannels = st_pFormatEx->nChannels;
-        *pSampleRate = st_pFormatEx->nSamplesPerSec;
-        *pBitsPerSample = st_pFormatEx->wBitsPerSample;
-        *pVolume = st_Volume;
-        ret = 1;
-    }
+    *pFormat = st_AudioFormat.m_Format;
+    *pChannels = st_AudioFormat.m_Channels;
+    *pSampleRate = st_AudioFormat.m_SampleRate;
+    *pBitsPerSample = st_AudioFormat.m_BitsPerSample;
+    *pVolume = st_AudioFormat.m_Volume;
     LeaveCriticalSection(&st_StateCS);
-    return ret;
+    return 1;
 }
 
 
-static int st_Operation=PCMCAPPER_OPERATION_RENDER;
 
 static int SetOperation(int operation)
 {
@@ -120,7 +116,7 @@ static int GetOperation()
 
 typedef struct
 {
-    HANDLE m_hNotifyEvent;
+    HANDLE m_hFillEvt;
     int m_Error;
     int m_Idx;
     ptr_type_t m_BaseAddr;
@@ -128,46 +124,50 @@ typedef struct
     int m_Size;
 } EVENT_LIST_t;
 
-static std::vector<EVENT_LIST_t*> st_FreeList;
-static std::vector<EVENT_LIST_t*> st_ReleaseList;
-static EVENT_LIST_t *st_pWholeList=NULL;
-static int st_WholeListNum=0;
-static int st_GetWholeListNum=0;
 
-static HANDLE st_hStartNotifyEvent=NULL;
-static HANDLE st_hStopNotifyEvent=NULL;
-static unsigned char* st_pMemBase=NULL;
-static HANDLE st_hMemMap=NULL;
-static int st_MemMapSize=0;
-
+typedef struct
+{
+    int m_WholeListNum;
+    int m_GetWholeListNum;
+    THREAD_CONTROL_t m_ThreadControl;
+    HANDLE *m_pFreeEvt;
+    EVENT_LIST_t m_pWholeList;
+    std::vector<EVENT_LIST_t*> m_FreeList;
+    std::vector<EVENT_LIST_t*> m_FillList;
+    HANDLE m_hStartEvt;
+    HANDLE m_hStopEvt;
+    HANDLE m_hMemMap;
+    unsigned char *m_pMemBase;
+    int m_MemMapSize;
+} PCM_EVTS_t;
 
 static CRITICAL_SECTION st_ListCS;
-
+static PCM_EVTS_t* st_pPCMEvt;
 
 static EVENT_LIST_t* GetFreeList()
 {
     EVENT_LIST_t* pEventList=NULL;
 
     EnterCriticalSection(&st_ListCS);
-    if(st_FreeList.size() > 0)
+    if(st_pPCMEvt && st_pPCMEvt->m_FreeList.size() > 0)
     {
-        pEventList = st_FreeList[0];
-        st_FreeList.erase(st_FreeList.begin());
-        st_GetWholeListNum ++;
+        pEventList = st_pPCMEvt->m_FreeList[0];
+        st_pPCMEvt->m_FreeList.erase(st_pPCMEvt->m_FreeList.begin());
+        st_pPCMEvt->m_GetWholeListNum ++;
     }
     LeaveCriticalSection(&st_ListCS);
     return pEventList;
 }
 
-static int PutReleaseList(EVENT_LIST_t* pEventList)
+static int PutFillList(EVENT_LIST_t* pEventList)
 {
     int ret=0;
     EnterCriticalSection(&st_ListCS);
-    if(st_pWholeList)
+    if(st_pPCMEvt && st_pPCMEvt->m_pWholeList)
     {
-        st_ReleaseList.push_back(pEventList);
-        assert(st_GetWholeListNum > 0);
-        st_GetWholeListNum -- ;
+        st_pPCMEvt->m_FillList.push_back(pEventList);
+        assert(st_pPCMEvt->m_GetWholeListNum > 0);
+        st_pPCMEvt->m_GetWholeListNum -- ;
         ret = 1;
     }
     LeaveCriticalSection(&st_ListCS);
@@ -179,11 +179,11 @@ static int PutFreeList(EVENT_LIST_t* pEventList)
 {
     int ret=0;
     EnterCriticalSection(&st_ListCS);
-    if(st_pWholeList)
+    if(st_pPCMEvt)
     {
-        st_FreeList.push_back(pEventList);
-        assert(st_GetWholeListNum > 0);
-        st_GetWholeListNum -- ;
+        st_pPCMEvt->m_FreeList.push_back(pEventList);
+        assert(st_pPCMEvt->m_GetWholeListNum > 0);
+        st_pPCMEvt->m_GetWholeListNum -- ;
         ret = 1;
     }
     LeaveCriticalSection(&st_ListCS);
@@ -199,22 +199,22 @@ static int ChangeToFreeList(int idx)
 
 
     EnterCriticalSection(&st_ListCS);
-    if(st_pWholeList)
+    if(st_pPCMEvt)
     {
-        for(i=0; i<st_ReleaseList.size(); i++)
+        for(i=0; i<st_pPCMEvt->m_FillList.size(); i++)
         {
-            if(st_ReleaseList[i]->m_Idx == idx)
+            if(st_pPCMEvt->m_FillList[i]->m_Idx == idx)
             {
                 findidx = i;
-                pEventList = st_ReleaseList[i];
+                pEventList = st_pPCMEvt->m_FillList[i];
                 break;
             }
         }
 
         if(findidx >=0)
         {
-            st_ReleaseList.erase(st_ReleaseList.begin() + findidx);
-            st_FreeList.push_back(pEventList);
+            st_pPCMEvt->m_FillList.erase(st_pPCMEvt->m_FillList.begin() + findidx);
+            st_pPCMEvt->m_FreeList.push_back(pEventList);
             ret = 1;
         }
     }
@@ -223,13 +223,143 @@ static int ChangeToFreeList(int idx)
 }
 
 
-static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,char* pNotifyEvtNameBase)
+typedef void*(WINAPI *ThreadFunc_t)(void* param);
+
+void __InitThreadControl(THREAD_CONTROL_t* pThreadControl)
+{
+	pThreadControl->m_hThread = NULL;
+	pThreadControl->m_ThreadId = 0;
+	pThreadControl->m_hExitEvt = NULL;
+	pThreadControl->m_ThreadRunning = 0;
+	pThreadControl->m_ThreadExited = 1;
+}
+
+void __StopThread(THREAD_CONTROL_t* pThreadControl)
+{
+    int ret;
+    BOOL bret;
+    if(pThreadControl)
+    {
+        if(pThreadControl->m_hThread)
+        {
+            pThreadControl->m_ThreadRunning = 0;
+            assert(pThreadControl->m_hExitEvt);
+            while(pThreadControl->m_ThreadExited == 0)
+            {
+                bret = SetEvent(pThreadControl->m_hExitEvt);
+                if(!bret)
+                {
+                    ret = LAST_ERROR_CODE();
+                    ERROR_INFO("could not setevent 0x%x error(%d)\n",pThreadControl->m_hExitEvt,
+                               ret);
+                }
+                SchedOut();
+            }
+        }
+
+        if(pThreadControl->m_hThread)
+        {
+            CloseHandle(pThreadControl->m_hThread);
+        }
+        pThreadControl->m_hThread = NULL;
+        if(pThreadControl->m_hExitEvt)
+        {
+            CloseHandle(pThreadControl->m_hExitEvt);
+        }
+        pThreadControl->m_hExitEvt = NULL;
+
+        pThreadControl->m_ThreadRunning = 0;
+        pThreadControl->m_ThreadExited = 1;
+        pThreadControl->m_ThreadId = 0;
+    }
+
+    return ;
+}
+
+
+int __StartThread(THREAD_CONTROL_t* pThreadControl,ThreadFunc_t pStartFunc,void* pParam)
+{
+    int ret;
+    BOOL bret;
+
+    if(pThreadControl == NULL || pStartFunc == NULL || pThreadControl->m_ThreadRunning != 0 ||
+		pThreadControl->m_hThread != NULL || pThreadControl->m_ThreadId != 0
+		|| pThreadControl->m_hExitEvt != NULL || pThreadControl->m_ThreadExited != 1)
+    {
+        ret = ERROR_INVALID_PARAMETER;
+        SetLastError(ret);
+        return -ret;
+    }
+
+	/*now we should give the start running*/
+	pThreadControl->m_hThread = CreateThread(NULL,0,);
+
+
+
+    return 0;
+fail:
+    __StopThread(pThreadControl);
+    SetLastError(ret);
+    return -ret;
+}
+
+
+void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
+{
+    PCM_EVTS_t* pPCMEvt = *ppPCMEvt;
+    unsigned int i;
+    if(pPCMEvt)
+    {
+        while(pPCMEvt->m_FreeList.size() > 0)
+        {
+            pPCMEvt->m_FreeList.erase(pPCMEvt->m_FreeList.begin());
+        }
+
+        while(pPCMEvt->m_FillList.size() > 0)
+        {
+            pPCMEvt->m_FillList.erase(pPCMEvt->m_FillList.begin());
+        }
+
+        /*now for free the whole list*/
+        for(i=0; i<pPCMEvt->m_WholeListNum; i++)
+        {
+            if(pPCMEvt->m_pWholeList)
+            {
+                if(pPCMEvt->m_pWholeList[i].m_hNotifyEvent)
+                {
+                    CloseHandle(pPCMEvt->m_pWholeList[i].m_hNotifyEvent);
+                }
+                pPCMEvt->m_pWholeList[i].m_hNotifyEvent = NULL;
+            }
+        }
+
+        if(pPCMEvt->m_pWholeList)
+        {
+            free(pPCMEvt->m_pWholeList);
+        }
+        pPCMEvt->m_pWholeList = NULL;
+
+    }
+
+}
+
+
+
+
+static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,char* pNotifyEvtNameBase,char*pStartEvtName,char* pStopEvtName)
 {
     int ret = -ERROR_ALREADY_EXISTS;
-    EVENT_LIST_t* pEventList=NULL;
+    PCM_EVTS_t* pPCMEvt=NULL;
     int i;
     unsigned char evtname[128];
     int pushbacked=0;
+
+    pPCMEvt = calloc(sizeof(*pPCMEvt),1);
+    if(pPCMEvt == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
 
     pEventList= calloc(sizeof(*pEventList),num);
     if(pEventList == NULL)
@@ -318,7 +448,8 @@ fail:
         free(pEventList);
     }
     pEventList = NULL;
-    return ret;
+    SetLastError(ret);
+    return -ret;
 }
 
 
@@ -791,9 +922,9 @@ int __HandleAudioRecordStart(PCMCAP_CONTROL_t *pControl)
         goto fail;
     }
 
-	/*now we should do things ok for it will let the thread running back and it will make the first */
-	SetOperation(pControl->m_Operation);
-	
+    /*now we should do things ok for it will let the thread running back and it will make the first */
+    SetOperation(pControl->m_Operation);
+
 
     return 0;
 fail:
@@ -812,8 +943,8 @@ int __HandleAudioRecordStop(PCMCAP_CONTROL_t *pControl)
     FreeThreadInfo(&st_pThreadInfo);
     UnMapFileBuffer(&st_pMemBase);
     CloseMapFileHandle(&st_hMemMap);
-	SetOperation(pControl->m_Operation);
-	return 0;
+    SetOperation(pControl->m_Operation);
+    return 0;
 }
 
 
@@ -1489,11 +1620,11 @@ void PcmCapInjectFini(void)
 {
     if(st_PcmCapInited)
     {
-    	memset(&st_DummyControl,0,sizeof(st_DummyControl));
-		st_DummyControl.m_Operation = PCMCAP_AUDIO_NONE;
-		HandleAudioOperation(&st_DummyControl);
-		CloseHandle(st_hThreadSema);
-		st_hThreadSema = NULL;
+        memset(&st_DummyControl,0,sizeof(st_DummyControl));
+        st_DummyControl.m_Operation = PCMCAP_AUDIO_NONE;
+        HandleAudioOperation(&st_DummyControl);
+        CloseHandle(st_hThreadSema);
+        st_hThreadSema = NULL;
     }
     return;
 }
@@ -1510,12 +1641,12 @@ int PcmCapInjectInit(void)
     InitializeCriticalSection(&st_StateCS);
     InitializeCriticalSection(&st_DetourCS);
     InitializeCriticalSection(&st_ListCS);
-	st_hThreadSema = CreateSemaphore(NULL,1,10,NULL);
-	if (st_hThreadSema == NULL)
-	{
-		/*we do not success*/
-		return 0;
-	}
+    st_hThreadSema = CreateSemaphore(NULL,1,10,NULL);
+    if(st_hThreadSema == NULL)
+    {
+        /*we do not success*/
+        return 0;
+    }
 
     ret = DetourPCMCapFunctions();
     if(ret < 0)
