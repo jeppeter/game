@@ -2,6 +2,7 @@
 #ifndef  __MEM_SHARE_H__
 #define  __MEM_SHARE_H__
 
+#include <Windows.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,5 +1,8 @@
 
 #include <memshare.h>
+#include <uniansi.h>
+
+#define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
 
 int ReadShareMem(unsigned char* pBasePtr,int offset,unsigned char* pBuffer,int bufsize)

@@ -45,6 +45,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -60,6 +61,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -74,16 +76,24 @@
   <ItemGroup>
     <ClInclude Include="detoured.h" />
     <ClInclude Include="detours.h" />
+    <ClInclude Include="evt.h" />
+    <ClInclude Include="memshare.h" />
     <ClInclude Include="output_debug.h" />
+    <ClInclude Include="sched.h" />
+    <ClInclude Include="timeticks.h" />
     <ClInclude Include="uniansi.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="creatwth.cpp" />
     <ClCompile Include="detours.cpp" />
     <ClCompile Include="disasm.cpp" />
+    <ClCompile Include="evt.cpp" />
     <ClCompile Include="image.cpp" />
+    <ClCompile Include="memshare.cpp" />
     <ClCompile Include="modules.cpp" />
     <ClCompile Include="output_debug.cpp" />
+    <ClCompile Include="sched.cpp" />
+    <ClCompile Include="timeticks.cpp" />
     <ClCompile Include="uniansi.cpp" />
   </ItemGroup>
   <ItemGroup>

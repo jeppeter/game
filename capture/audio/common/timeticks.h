@@ -2,6 +2,8 @@
 #ifndef __TIME_TICKS_H__
 #define __TIME_TICKS_H__
 
+#include <Windows.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

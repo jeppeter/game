@@ -36,8 +36,8 @@ private:
 
 	int __StartThread();
 	void __StopThread();
-	static void* ThreadFunc(void* arg);
-	void* __ThreadImpl();
+	static DWORD WINAPI ThreadFunc(void* arg);
+	DWORD __ThreadImpl();
 	void __AudioRenderBuffer(int idx);
 	void __AudioStartCall();
 	void __AudioStopCall();

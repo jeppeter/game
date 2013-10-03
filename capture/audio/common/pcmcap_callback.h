@@ -2,18 +2,11 @@
 #ifndef __PCMCAP_CALLBACK_H__
 #define __PCMCAP_CALLBACK_H__
 
+#include <Windows.h>
+#include <pcmcap_common.h>
+
 #define PCMITEM_MAX_SIZE 10240
 
-typedef struct 
-{
-    int format;				        // 声音格式
-    int channel;			        // 声道数
-    int bitspersample;			    // 每个采样的的比特数
-    int samplerate;			        // 采样率
-    int volume;				        // 当前的声音大小
-    int len;				        // 实际声音数据的长度
-    uint8_t data[PCMITEM_MAX_SIZE];	// 实际声音数据
-} PCMITEM;
 
 class CPcmCapper;
 

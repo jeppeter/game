@@ -1,6 +1,8 @@
 
-#include "evt.h"
-#include "uniansi.h"
+#include <evt.h>
+#include <uniansi.h>
+
+#define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
 HANDLE GetEvent(const char* pName,int create)
 {

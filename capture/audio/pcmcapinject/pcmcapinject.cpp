@@ -955,7 +955,7 @@ int HandleAudioOperation(PCMCAP_CONTROL_t *pControl)
         break;
     }
 
-    ReleaseSemaphore(st_hThreadSema);
+    ReleaseSemaphore(st_hThreadSema,1,NULL);
     return ret;
 }
 
@@ -1264,7 +1264,7 @@ HRESULT WINAPI AudioClientInitializeCallBack(IAudioClient* pClient,AUDCLNT_SHARE
     hr = AudioClientInitializeNext(pClient,ShareMode,StreamFlags,hnsBufferDuration,hnsPeriodicity,pFormat,AudioSessionGuid);
     if(SUCCEEDED(hr) && pFormat)
     {
-        SetFormat(pFormat);
+        SetFormat((WAVEFORMATEX*)pFormat);
     }
     return hr;
 }
@@ -1600,7 +1600,7 @@ static int DetourPCMCapFunctions(void)
 {
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourAttach(&CoCreateInstanceNext,CoCreateInstanceCallBack);
+    DetourAttach((PVOID*)&CoCreateInstanceNext,CoCreateInstanceCallBack);
     DetourTransactionCommit();
 
     return 0;

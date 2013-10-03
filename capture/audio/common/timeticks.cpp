@@ -76,7 +76,7 @@ unsigned int LeftTicks(unsigned int * pStartTick,unsigned int * pCurTick,unsigne
     if(ctick > stick)
     {
         leftticks = etick ;
-        leftticks += (MAX_TICKS - ctick + 1)
+        leftticks += (MAX_TICKS - ctick + 1);
     }
     else
     {

@@ -1,6 +1,13 @@
 
 
 #include "pcmcap_capper.h"
+#include <dllinsert.h>
+#include <output_debug.h>
+#include <timeticks.h>
+#include <assert.h>
+#include <memshare.h>
+#include <evt.h>
+#include <sched.h>
 
 #define  PCMCAP_DLL_NAME                 "pcmcapinject.dll"
 #define  PCMCAP_SET_OPERATION_FUNC_NAME  "HandleAudioOperation"
@@ -10,6 +17,8 @@
 #define  FILL_EVENT_OBJNAME_BASE         "Global\\PCMCAP_CAPPER_FILLEVT"
 #define  START_EVENT_OBJNAME_BASE        "Global\\PCMCAP_CAPPER_START"
 #define  STOP_EVENT_OBJNAME_BASE         "Global\\PCMCAP_CAPPER_STOP"
+
+#define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
 CPcmCapper::CPcmCapper()
 {
@@ -90,7 +99,7 @@ BOOL CPcmCapper::__SetOperationInner(PCMCAP_CONTROL_t * pControl,DWORD *pRetCode
     }
 
     /*now to call remote address*/
-    hThread = CreateRemoteThread(this->m_hProc,NULL,0,pRemoteFunc,pRemoteAlloc,0,&threadid);
+    hThread = CreateRemoteThread(this->m_hProc,NULL,0,(LPTHREAD_START_ROUTINE)pRemoteFunc,pRemoteAlloc,0,&threadid);
     if(hThread == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -126,7 +135,7 @@ BOOL CPcmCapper::__SetOperationInner(PCMCAP_CONTROL_t * pControl,DWORD *pRetCode
                 break;
             }
         }
-        else if(dret == WAIT_FAIL)
+        else if(dret == WAIT_FAILED)
         {
             ret = LAST_ERROR_CODE();
             goto fail;
@@ -214,7 +223,6 @@ BOOL CPcmCapper::__SetOperationNone()
 {
     PCMCAP_CONTROL_t* pControl=NULL;
     BOOL bret;
-    PCMCAP_CONTROL_t *pControl=NULL;
     DWORD retcode=0;
 
     if(this->m_hProc == NULL)
@@ -319,9 +327,9 @@ int CPcmCapper::__CreateMap()
 {
     int ret;
     unsigned int mapsize;
-    snprintf(this->m_MapBaseName,sizeof(this->m_MapBaseName),"%s%d",MAP_FILE_OBJNAME_BASE,this->m_ProcessId);
+    _snprintf_s((char*)this->m_MapBaseName,sizeof(this->m_MapBaseName),_TRUNCATE,"%s%d",MAP_FILE_OBJNAME_BASE,this->m_ProcessId);
     mapsize = this->m_BufBlockSize * this->m_BufNum;
-    this->m_hMapFile = CreateMapFile(this->m_MapBaseName,mapsize ,1);
+    this->m_hMapFile = CreateMapFile((char*)this->m_MapBaseName,mapsize ,1);
     if(this->m_hMapFile == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -404,10 +412,10 @@ int CPcmCapper::__CreateEvent()
     int ret;
     unsigned int i;
     unsigned char evname[128];
-    snprintf(this->m_FreeEvtBaseName,sizeof(this->m_FreeEvtBaseName),"%s%d",FREE_EVENT_OBJNAME_BASE,this->m_ProcessId);
-    snprintf(this->m_FillEvtBaseName,sizeof(this->m_FillEvtBaseName),"%s%d",FILL_EVENT_OBJNAME_BASE,this->m_ProcessId);
-    snprintf(this->m_StartEvtBaseName,sizeof(this->m_StartEvtBaseName),"%s_%d",START_EVENT_OBJNAME_BASE,this->m_ProcessId);
-    snprintf(this->m_StopEvtBaseName,sizeof(this->m_StopEvtBaseName),"%s_%d",STOP_EVENT_OBJNAME_BASE,this->m_ProcessId);
+    _snprintf_s((char*)this->m_FreeEvtBaseName,sizeof(this->m_FreeEvtBaseName),_TRUNCATE,"%s%d",FREE_EVENT_OBJNAME_BASE,this->m_ProcessId);
+    _snprintf_s((char*)this->m_FillEvtBaseName,sizeof(this->m_FillEvtBaseName),_TRUNCATE,"%s%d",FILL_EVENT_OBJNAME_BASE,this->m_ProcessId);
+    _snprintf_s((char*)this->m_StartEvtBaseName,sizeof(this->m_StartEvtBaseName),_TRUNCATE,"%s_%d",START_EVENT_OBJNAME_BASE,this->m_ProcessId);
+    _snprintf_s((char*)this->m_StopEvtBaseName,sizeof(this->m_StopEvtBaseName),_TRUNCATE,"%s_%d",STOP_EVENT_OBJNAME_BASE,this->m_ProcessId);
 
 
     assert(this->m_pFreeEvt == NULL);
@@ -417,7 +425,7 @@ int CPcmCapper::__CreateEvent()
     assert(this->m_BufNum > 0);
     assert(this->m_BufBlockSize >= 0x1000);
 
-    this->m_pFreeEvt = calloc(sizeof(this->m_pFreeEvt[0]),this->m_BufNum);
+    this->m_pFreeEvt =(HANDLE*) calloc(sizeof(this->m_pFreeEvt[0]),this->m_BufNum);
     if(this->m_pFreeEvt == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -429,8 +437,8 @@ int CPcmCapper::__CreateEvent()
 
     for(i=0; i<this->m_BufNum; i++)
     {
-        snprintf(evname,sizeof(evname),"%s_%d",this->m_FreeEvtBaseName,i);
-        this->m_pFreeEvt[i] = GetEvent(evname,1);
+        _snprintf_s((char*)evname,sizeof(evname),_TRUNCATE,"%s_%d",this->m_FreeEvtBaseName,i);
+        this->m_pFreeEvt[i] = GetEvent((const char*)evname,1);
         if(this->m_pFreeEvt[i] == NULL)
         {
             ret = LAST_ERROR_CODE();
@@ -441,7 +449,7 @@ int CPcmCapper::__CreateEvent()
         }
     }
 
-    this->m_pFillEvt = calloc(sizeof(this->m_pFillEvt[0]),this->m_BufNum);
+    this->m_pFillEvt =(HANDLE*) calloc(sizeof(this->m_pFillEvt[0]),this->m_BufNum);
     if(this->m_pFillEvt == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -453,8 +461,8 @@ int CPcmCapper::__CreateEvent()
 
     for(i=0; i<this->m_BufNum; i++)
     {
-        snprintf(evname,sizeof(evname),"%s_%d",this->m_FillEvtBaseName,i);
-        this->m_pFillEvt[i] = GetEvent(evname,1);
+        _snprintf_s((char*)evname,sizeof(evname),_TRUNCATE,"%s_%d",this->m_FillEvtBaseName,i);
+        this->m_pFillEvt[i] = GetEvent((const char*)evname,1);
         if(this->m_pFillEvt[i] == NULL)
         {
             ret = LAST_ERROR_CODE();
@@ -465,7 +473,7 @@ int CPcmCapper::__CreateEvent()
         }
     }
 
-    this->m_hStartEvt = GetEvent(this->m_StartEvtBaseName,1);
+    this->m_hStartEvt = GetEvent((const char*)this->m_StartEvtBaseName,1);
     if(this->m_hStartEvt == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -475,7 +483,7 @@ int CPcmCapper::__CreateEvent()
         return -ret;
     }
 
-    this->m_hStopEvt = GetEvent(this->m_StopEvtBaseName,1);
+    this->m_hStopEvt = GetEvent((const char*)this->m_StopEvtBaseName,1);
     if(this->m_hStopEvt == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -519,8 +527,6 @@ fail:
 
 BOOL CPcmCapper::Start(HANDLE hProc,int iOperation,int iBufNum,int iBlockSize,IPcmCapperCallback * pPcc,LPVOID lpParam)
 {
-    BOOL bret;
-    int ret;
 
     if(iOperation != PCMCAPPER_OPERATION_CAPTURE &&
             iOperation != PCMCAPPER_OPERATION_BOTH)
@@ -584,7 +590,6 @@ void CPcmCapper::__StopThread()
 
 int CPcmCapper::__StartThread()
 {
-    BOOL bret;
     int ret;
 
     assert(this->m_ThreadControl.m_hThread == NULL);
@@ -625,26 +630,25 @@ fail:
     return -ret;
 }
 
-void* CPcmCapper::ThreadFunc(void * arg)
+DWORD WINAPI CPcmCapper::ThreadFunc(void * arg)
 {
     CPcmCapper* pThis = (CPcmCapper*)arg;
     return pThis->__ThreadImpl();
 }
 
-void CPcmCapper::__ThreadImpl()
+DWORD CPcmCapper::__ThreadImpl()
 {
-    BOOL bret;
     int ret;
     DWORD dret;
     HANDLE *pWaitHandle=NULL;
     unsigned int i;
-    int bufnum;
+    unsigned int bufnum;
 
     /*to include the exit num*/
     assert(this->m_BufNum > 0);
     assert(this->m_ThreadControl.m_hExitEvt);
     bufnum = this->m_BufNum;
-    pWaitHandle = calloc(sizeof(*pWaitHandle),bufnum+3);
+    pWaitHandle = (HANDLE*)calloc(sizeof(*pWaitHandle),bufnum+3);
     if(pWaitHandle == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -688,7 +692,7 @@ void CPcmCapper::__ThreadImpl()
             /*this is stop calling*/
             this->__AudioStopCall();
         }
-        else if(dret == WAIT_FAIL)
+        else if(dret == WAIT_FAILED)
         {
             ret = -LAST_ERROR_CODE();
             ERROR_INFO("wait for num %d error(%d)\n",bufnum,ret);
@@ -714,13 +718,13 @@ void CPcmCapper::__AudioRenderBuffer(int idx)
     BOOL bret;
     int ret;
     assert(this->m_pMapBuffer);
-    assert(idx >= 0 && idx < this->m_BufNum);
+    assert(idx >= 0 && idx < (int)this->m_BufNum);
 
     pItem = (PCMCAP_AUDIO_BUFFER_t*)((ptr_type_t)this->m_pMapBuffer + (idx)*this->m_BufBlockSize);
 
     if(this->m_pPcmCapperCb)
     {
-        this->m_pPcmCapperCb->WaveInCb(pItem);
+        this->m_pPcmCapperCb->WaveInCb(pItem,this->m_lpParam);
     }
 
     /*now to set the event*/
@@ -747,21 +751,21 @@ BOOL CPcmCapper::__SetOperationBoth()
     DWORD retcode;
     assert(this->m_hProc);
     assert(this->m_ProcessId);
-    pControl = calloc(sizeof(*pControl),1);
+    pControl = (PCMCAP_CONTROL_t*)calloc(sizeof(*pControl),1);
     if(pControl == NULL)
     {
         ret = LAST_ERROR_CODE();
         goto fail;
     }
     pControl->m_Operation = PCMCAPPER_OPERATION_BOTH;
-    strncpy(pControl->m_MemShareName,this->m_MapBaseName,sizeof(pControl->m_MemShareName));
+    strncpy_s((char*)pControl->m_MemShareName,sizeof(pControl->m_MemShareName),(const char*)this->m_MapBaseName,_TRUNCATE);
     pControl->m_MemShareSize = this->m_BufNum * this->m_BufBlockSize;
     pControl->m_PackSize = this->m_BufBlockSize;
     pControl->m_NumPacks = this->m_BufNum;
-    strncpy(pControl->m_FreeListSemNameBase,this->m_FreeEvtBaseName,sizeof(pControl->m_FreeListSemNameBase));
-    strncpy(pControl->m_FillListSemNameBase,this->m_FillEvtBaseName,sizeof(pControl->m_FillListSemNameBase));
-	strncpy(pControl->m_StartEvtName,this->m_StartEvtBaseName,sizeof(pControl->m_StartEvtName));
-	strncpy(pControl->m_StopEvtName,this->m_StopEvtBaseName,sizeof(pControl->m_StopEvtName));
+    strncpy_s((char*)pControl->m_FreeListSemNameBase,sizeof(pControl->m_FreeListSemNameBase),(const char*)this->m_FreeEvtBaseName,_TRUNCATE);
+    strncpy_s((char*)pControl->m_FillListSemNameBase,sizeof(pControl->m_FillListSemNameBase),(const char*)this->m_FillEvtBaseName,_TRUNCATE);
+	strncpy_s((char*)pControl->m_StartEvtName,sizeof(pControl->m_StartEvtName),(const char*)this->m_StartEvtBaseName,_TRUNCATE);
+	strncpy_s((char*)pControl->m_StopEvtName,sizeof(pControl->m_StopEvtName),(const char*)this->m_StopEvtBaseName,_TRUNCATE);
 
     bret = this->__SetOperationInner(pControl,&retcode);
     if(!bret)
@@ -799,19 +803,19 @@ BOOL CPcmCapper::__SetOperationCapture()
     BOOL bret;
     DWORD retcode;
     /**/
-    pControl = calloc(sizeof(*pControl),1);
+    pControl = (PCMCAP_CONTROL_t*)calloc(sizeof(*pControl),1);
     if(pControl == NULL)
     {
         ret = LAST_ERROR_CODE();
         goto fail;
     }
     pControl->m_Operation = PCMCAPPER_OPERATION_CAPTURE;
-    strncpy(pControl->m_MemShareName,this->m_MapBaseName,sizeof(pControl->m_MemShareName));
+    strncpy_s((char*)pControl->m_MemShareName,sizeof(pControl->m_MemShareName),(const char*)this->m_MapBaseName,_TRUNCATE);
     pControl->m_MemShareSize = this->m_BufNum * this->m_BufBlockSize;
     pControl->m_PackSize = this->m_BufBlockSize;
     pControl->m_NumPacks = this->m_BufNum;
-    strncpy(pControl->m_FreeListSemNameBase,this->m_FreeEvtBaseName,sizeof(pControl->m_FreeListSemNameBase));
-    strncpy(pControl->m_FillListSemNameBase,this->m_FillEvtBaseName,sizeof(pControl->m_FillListSemNameBase));
+    strncpy_s((char*)pControl->m_FreeListSemNameBase,sizeof(pControl->m_FreeListSemNameBase),(const char*)this->m_FreeEvtBaseName,_TRUNCATE);
+    strncpy_s((char*)pControl->m_FillListSemNameBase,sizeof(pControl->m_FillListSemNameBase),(const char*)this->m_FillEvtBaseName,_TRUNCATE);
 
     bret = this->__SetOperationInner(pControl,&retcode);
     if(!bret)
@@ -854,7 +858,7 @@ BOOL CPcmCapper::__SetOperationRender()
         return TRUE;
     }
     /**/
-    pControl = calloc(sizeof(*pControl),1);
+    pControl = (PCMCAP_CONTROL_t*)calloc(sizeof(*pControl),1);
     if(pControl == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -894,15 +898,6 @@ fail:
 BOOL CPcmCapper::SetAudioOperation(int iOperation)
 {
     BOOL bret=TRUE;
-    int ret;
-    HANDLE hProc;
-    unsigned int iBufNum;
-    unsigned int iBlockSize;
-    unsigned int processid;
-    IPcmCapperCallback *pCallBack;
-    void* lpParam;
-
-
 
     switch(iOperation)
     {
