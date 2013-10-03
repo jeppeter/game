@@ -131,7 +131,7 @@ typedef struct
     int m_GetWholeListNum;
     THREAD_CONTROL_t m_ThreadControl;
     HANDLE *m_pFreeEvt;
-    EVENT_LIST_t m_pWholeList;
+    EVENT_LIST_t *m_pWholeList;
     std::vector<EVENT_LIST_t*> m_FreeList;
     std::vector<EVENT_LIST_t*> m_FillList;
     HANDLE m_hStartEvt;
@@ -227,11 +227,11 @@ typedef void*(WINAPI *ThreadFunc_t)(void* param);
 
 void __InitThreadControl(THREAD_CONTROL_t* pThreadControl)
 {
-	pThreadControl->m_hThread = NULL;
-	pThreadControl->m_ThreadId = 0;
-	pThreadControl->m_hExitEvt = NULL;
-	pThreadControl->m_ThreadRunning = 0;
-	pThreadControl->m_ThreadExited = 1;
+    pThreadControl->m_hThread = NULL;
+    pThreadControl->m_ThreadId = 0;
+    pThreadControl->m_hExitEvt = NULL;
+    pThreadControl->m_ThreadRunning = 0;
+    pThreadControl->m_ThreadExited = 1;
 }
 
 void __StopThread(THREAD_CONTROL_t* pThreadControl)
@@ -283,18 +283,34 @@ int __StartThread(THREAD_CONTROL_t* pThreadControl,ThreadFunc_t pStartFunc,void*
     BOOL bret;
 
     if(pThreadControl == NULL || pStartFunc == NULL || pThreadControl->m_ThreadRunning != 0 ||
-		pThreadControl->m_hThread != NULL || pThreadControl->m_ThreadId != 0
-		|| pThreadControl->m_hExitEvt != NULL || pThreadControl->m_ThreadExited != 1)
+            pThreadControl->m_hThread != NULL || pThreadControl->m_ThreadId != 0
+            || pThreadControl->m_hExitEvt != NULL || pThreadControl->m_ThreadExited != 1)
     {
         ret = ERROR_INVALID_PARAMETER;
         SetLastError(ret);
         return -ret;
     }
 
-	/*now we should give the start running*/
-	pThreadControl->m_hThread = CreateThread(NULL,0,);
+    pThreadControl->m_hExitEvt = GetEvent(NULL,1);
+    if(pThreadControl->m_hExitEvt == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not get exit event error(%d)\n",ret);
+        goto fail;
+    }
 
-
+    /*now we should give the start running*/
+    pThreadControl->m_ThreadRunning = 1;
+    pThreadControl->m_ThreadExited = 0;
+    pThreadControl->m_hThread = CreateThread(NULL,0,pStartFunc,pParam,0,&(pThreadControl->m_ThreadId));
+    if(pThreadControl->m_hThread == NULL)
+    {
+        pThreadControl->m_ThreadExited = 1;
+        pThreadControl->m_ThreadRunning = 0;
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not create thread error(%d)\n",ret);
+        goto fail;
+    }
 
     return 0;
 fail:
@@ -310,6 +326,7 @@ void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
     unsigned int i;
     if(pPCMEvt)
     {
+        __StopThread(&(pPCMEvt->m_ThreadControl));
         while(pPCMEvt->m_FreeList.size() > 0)
         {
             pPCMEvt->m_FreeList.erase(pPCMEvt->m_FreeList.begin());
@@ -339,8 +356,68 @@ void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
         }
         pPCMEvt->m_pWholeList = NULL;
 
+        if(pPCMEvt->m_pFreeEvt)
+        {
+            for(i=0; i<pPCMEvt->m_WholeListNum; i++)
+            {
+                if(pPCMEvt->m_pFreeEvt[i])
+                {
+                    CloseHandle(pPCMEvt->m_pFreeEvt[i]);
+                }
+                pPCMEvt->m_pFreeEvt[i]= NULL;
+            }
+
+            free(pPCMEvt->m_pFreeEvt);
+        }
+        pPCMEvt->m_pFreeEvt = NULL;
+
+        if(pPCMEvt->m_hStartEvt)
+        {
+            CloseHandle(pPCMEvt->m_hStartEvt);
+        }
+        pPCMEvt->m_hStartEvt = NULL;
+
+        if(pPCMEvt->m_hStopEvt)
+        {
+            CloseHandle(pPCMEvt->m_hStopEvt);
+        }
+        pPCMEvt->m_hStopEvt = NULL;
+
+        UnMapFileBuffer(&(pPCMEvt->m_pMemBase));
+        CloseMapFileHandle(&(pPCMEvt->m_hMemMap));
+        pPCMEvt->m_MemMapSize = 0;
+        pPCMEvt->m_WholeListNum = 0;
+        assert(pPCMEvt->m_GetWholeListNum == 0);
+
+        free(pPCMEvt);
+
+    }
+    *ppPCMEvt = NULL;
+    return ;
+}
+
+PCM_EVTS_t* __AllocatePCMEvts(int num,int packsize,char* pFreeEvtNameBase,char* pFillEvtNameBase,char* pStartEvtName,char* pStopEvtName)
+{
+    PCM_EVTS_t* pPCMEvt=NULL;
+    int ret;
+
+    pPCMEvt = calloc(sizeof(*pPCMEvt),1);
+    if(pPCMEvt == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("allocate size (%d) error(%d)\n",sizeof(*pPCMEvt),ret);
+        goto fail;
     }
 
+	__InitThreadControl(&(pPCMEvt->m_ThreadControl));
+
+	/*now we should */
+
+    return pPCMEvt;
+fail:
+    __FreePCMEvt(&pPCMEvt);
+    SetLastError(ret);
+    return NULL;
 }
 
 
