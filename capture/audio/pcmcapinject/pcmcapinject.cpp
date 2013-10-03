@@ -191,7 +191,76 @@ static int PutFreeList(EVENT_LIST_t* pEventList)
     return ret;
 }
 
-static int ChangeToFreeList(int idx)
+static HANDLE GetStartEvent()
+{
+    HANDLE hStartEvt=NULL;
+
+    EnterCriticalSection(&(st_ListCS));
+    if(st_pPCMEvt)
+    {
+        if(st_pPCMEvt->m_hStartEvt)
+        {
+            hStartEvt = st_pPCMEvt->m_hStartEvt;
+            st_pPCMEvt->m_GetWholeListNum ++;
+        }
+    }
+    LeaveCriticalSection(&(st_ListCS));
+    return hStartEvt;
+}
+
+static int PutStartEvent(HANDLE hStartEvent)
+{
+    int ret =0;
+    EnterCriticalSection(&(st_ListCS));
+    if(st_pPCMEvt)
+    {
+        if(st_pPCMEvt->m_hStartEvt == hStartEvent)
+        {
+            assert(st_pPCMEvt->m_GetWholeListNum > 0);
+            st_pPCMEvt->m_GetWholeListNum --;
+            ret = 1;
+        }
+    }
+    LeaveCriticalSection(&(st_ListCS));
+    return ret;
+}
+
+static HANDLE GetStopEvent()
+{
+    HANDLE hStopEvt=NULL;
+
+    EnterCriticalSection(&(st_ListCS));
+    if(st_pPCMEvt)
+    {
+        if(st_pPCMEvt->m_hStopEvt)
+        {
+            hStopEvt = st_pPCMEvt->m_hStopEvt;
+            st_pPCMEvt->m_GetWholeListNum ++;
+        }
+    }
+    LeaveCriticalSection(&(st_ListCS));
+    return hStopEvt;
+}
+
+static int PutStopEvent(HANDLE hStopEvent)
+{
+    int ret =0;
+    EnterCriticalSection(&(st_ListCS));
+    if(st_pPCMEvt)
+    {
+        if(st_pPCMEvt->m_hStopEvt == hStopEvent)
+        {
+            assert(st_pPCMEvt->m_GetWholeListNum > 0);
+            st_pPCMEvt->m_GetWholeListNum --;
+            ret = 1;
+        }
+    }
+    LeaveCriticalSection(&(st_ListCS));
+    return ret;
+}
+
+
+static int ChangeToFreeList(PCM_EVTS_t* pPCMEvts,int idx)
 {
     int ret = 0;
     EVENT_LIST_t* pEventList=NULL;
@@ -200,22 +269,22 @@ static int ChangeToFreeList(int idx)
 
 
     EnterCriticalSection(&st_ListCS);
-    if(st_pPCMEvt)
+    if(pPCMEvts)
     {
-        for(i=0; i<st_pPCMEvt->m_FillList.size(); i++)
+        for(i=0; i<pPCMEvts->m_FillList.size(); i++)
         {
-            if(st_pPCMEvt->m_FillList[i]->m_Idx == idx)
+            if(pPCMEvts->m_FillList[i]->m_Idx == idx)
             {
                 findidx = i;
-                pEventList = st_pPCMEvt->m_FillList[i];
+                pEventList = pPCMEvts->m_FillList[i];
                 break;
             }
         }
 
         if(findidx >=0)
         {
-            st_pPCMEvt->m_FillList.erase(st_pPCMEvt->m_FillList.begin() + findidx);
-            st_pPCMEvt->m_FreeList.push_back(pEventList);
+            pPCMEvts->m_FillList.erase(pPCMEvts->m_FillList.begin() + findidx);
+            pPCMEvts->m_FreeList.push_back(pEventList);
             ret = 1;
         }
     }
@@ -397,11 +466,16 @@ void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
     return ;
 }
 
+void* __WaitThreadImpl(void* arg);
+
+
 PCM_EVTS_t* __AllocatePCMEvts(int num,int packsize,char* pMapFileName,char* pFreeEvtNameBase,char* pFillEvtNameBase,char* pStartEvtName,char* pStopEvtName)
 {
     PCM_EVTS_t* pPCMEvt=NULL;
     int ret;
     unsigned int mapsize;
+    unsigned int i;
+    unsigned char evname[128];
 
     if(num < 1  || packsize < 0x1000 || pMapFileName == NULL
             || pFreeEvtNameBase == NULL || pFillEvtNameBase == NULL ||
@@ -442,6 +516,77 @@ PCM_EVTS_t* __AllocatePCMEvts(int num,int packsize,char* pMapFileName,char* pFre
         goto fail;
     }
 
+    /*now for the event list*/
+    pPCMEvt->m_pWholeList = calloc(sizeof(pPCMEvt->m_pWholeList[0]),num);
+    if(pPCMEvt->m_pWholeList== NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO(" could not calloc %d wholelist error(%d)\n",num,ret);
+        goto fail;
+    }
+
+
+    for(i=0; i<num; i++)
+    {
+        snprintf(evname,sizeof(evname),"%s_%d",pFillEvtNameBase,i);
+        pPCMEvt->m_pWholeList[i].m_hFillEvt = GetEvent(evname,0);
+        if(pPCMEvt->m_pWholeList[i] == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            ERROR_INFO("[%d] open %s fill event error(%d)\n",i,evname,ret);
+            goto fail;
+        }
+        pPCMEvt->m_pWholeList[i].m_BaseAddr = pPCMEvt->m_pMemBase;
+        pPCMEvt->m_pWholeList[i].m_Error = 0;
+        pPCMEvt->m_pWholeList[i].m_Idx = i;
+        pPCMEvt->m_pWholeList[i].m_Offset = (packsize)*i;
+        pPCMEvt->m_pWholeList[i].m_Size = packsize;
+        pPCMEvt->m_FreeList.push_back(&(pPCMEvt->m_pWholeList[i]));
+    }
+
+    pPCMEvt->m_pFreeEvt = calloc(sizeof(pPCMEvt->m_pFreeEvt[0]),num);
+    if(pPCMEvt->m_pFreeEvt == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not calloc %d free event error(%d)\n",num,ret);
+        goto fail;
+    }
+
+    for(i=0; i<num; i++)
+    {
+        snprintf(evname,sizeof(evname),"%s_%d",pFreeEvtNameBase,i);
+        pPCMEvt->m_pFreeEvt[i] = GetEvent(evname,0);
+        if(pPCMEvt->m_pFreeEvt[i] == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            ERROR_INFO("[%d] Get %s free event error(%d)\n",i,evname,ret);
+            goto fail;
+        }
+    }
+
+    pPCMEvt->m_hStartEvt = GetEvent(pStartEvtName,0);
+    if(pPCMEvt->m_hStartEvt == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not getevent %s start event error(%d)\n",pStartEvtName,ret);
+        goto fail;
+    }
+
+    pPCMEvt->m_hStopEvt = GetEvent(pStopEvtName,0);
+    if(pPCMEvt->m_hStopEvt == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not getevent %s stop event error(%d)\n",pStopEvtName,ret);
+        goto fail;
+    }
+
+    ret = __StartThread(&(pPCMEvt->m_ThreadControl),__WaitThreadImpl,pPCMEvt);
+    if(ret < 0)
+    {
+        ret = -ret;
+        goto fail;
+    }
+
 
     return pPCMEvt;
 fail:
@@ -453,62 +598,23 @@ fail:
 
 
 
-static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,char* pNotifyEvtNameBase,char*pStartEvtName,char* pStopEvtName)
+static int InitializeWholeList(int num,int packsize,char* pMapFileName,char* pFreeEvtNameBase,char* pFillEvtNameBase,char*pStartEvtName,char* pStopEvtName)
 {
     int ret = -ERROR_ALREADY_EXISTS;
     PCM_EVTS_t* pPCMEvt=NULL;
-    int i;
-    unsigned char evtname[128];
-    int pushbacked=0;
 
-    pPCMEvt = calloc(sizeof(*pPCMEvt),1);
+    pPCMEvt = __AllocatePCMEvts(num,packsize,pMapFileName, pFreeEvtNameBase,pFillEvtNameBase,pStartEvtName,pStopEvtName);
     if(pPCMEvt == NULL)
     {
         ret = LAST_ERROR_CODE();
         goto fail;
     }
 
-    pEventList= calloc(sizeof(*pEventList),num);
-    if(pEventList == NULL)
-    {
-        ret = -(LAST_ERROR_CODE());
-        goto fail;
-    }
-
-    for(i=0; i<num; i++)
-    {
-        pEventList[i].m_hNotifyEvent = NULL;
-        pEventList[i].m_Error =0 ;
-        pEventList[i].m_Idx = i;
-        pEventList[i].m_BaseAddr = (ptr_type_t)pBaseAddr;
-        pEventList[i].m_Offset = i * packsize;
-        pEventList[i].m_Size = packsize;
-    }
-
-    for(i=0; i<num; i++)
-    {
-        snprintf(evtname,sizeof(evtname),"%s_%d",pNotifyEvtNameBase,i);
-        pEventList[i].m_hNotifyEvent = GetEvent(evtname,0);
-        if(pEventList[i].m_hNotifyEvent)
-        {
-            ret = -(LAST_ERROR_CODE());
-            goto fail;
-        }
-    }
-
     ret = 0;
     EnterCriticalSection(&st_ListCS);
-    if(st_pWholeList == NULL)
+    if(st_pPCMEvt == NULL)
     {
-        st_pWholeList = pEventList;
-        st_WholeListNum = num;
-        assert(st_ReleaseList.size() == 0);
-        assert(st_FreeList.size() == 0);
-        for(i=0; i<num; i++)
-        {
-            st_ReleaseList.push_back(&(pEventList[i]));
-            pushbacked= 1;
-        }
+        st_pPCMEvt = pPCMEvt;
     }
     else
     {
@@ -521,40 +627,7 @@ static int InitializeWholeList(int num,unsigned char* pBaseAddr,int packsize,cha
     }
     return 0;
 fail:
-    if(pushbacked)
-    {
-        assert(pEventList);
-        EnterCriticalSection(&st_ListCS);
-        while(st_ReleaseList.size() > 0)
-        {
-            st_ReleaseList.erase(st_ReleaseList.begin());
-        }
-
-        while(st_FreeList.size() > 0)
-        {
-            st_FreeList.erase(st_FreeList.begin());
-        }
-        LeaveCriticalSection(&st_ListCS);
-    }
-    pushbacked = 0;
-    if(pEventList)
-    {
-        for(i=0; i<num; i++)
-        {
-            if(pEventList[i].m_hNotifyEvent)
-            {
-                CloseHandle(pEventList[i].m_hNotifyEvent);
-            }
-            pEventList[i].m_hNotifyEvent = NULL;
-            pEventList[i].m_Error = 0;
-            pEventList[i].m_BaseAddr = 0;
-            pEventList[i].m_Offset = 0;
-            pEventList[i].m_Idx =0;
-        }
-
-        free(pEventList);
-    }
-    pEventList = NULL;
+    __FreePCMEvt(&pPCMEvt);
     SetLastError(ret);
     return -ret;
 }
@@ -565,8 +638,7 @@ fail:
 
 void DeInitializeWholeList(void)
 {
-    EVENT_LIST_t* pEventList=NULL;
-    int num=0;
+    PCM_EVTS_t* pPCMEvt=NULL;
     int i;
     int ret;
 
@@ -574,45 +646,23 @@ void DeInitializeWholeList(void)
     {
         ret =0;
         EnterCriticalSection(&st_ListCS);
-        if(st_GetWholeListNum == 0)
+        if(st_pPCMEvt  && st_pPCMEvt->m_GetWholeListNum > 0)
         {
-            pEventList = st_pWholeList;
-            num = st_WholeListNum;
-            st_pWholeList = NULL;
-            num = 0;
             ret = 1;
         }
+        else if(st_pPCMEvt)
+        {
+            pPCMEvt = st_pPCMEvt;
+            st_pPCMEvt = NULL;
+        }
         LeaveCriticalSection(&st_ListCS);
-        if(ret == 0)
+        if(ret > 0)
         {
             SchedOut();
         }
     }
-    while(ret == 0);
-
-    if(pEventList)
-    {
-        for(i=0; i<num; i++)
-        {
-            if(pEventList[i].m_hNotifyEvent)
-            {
-                CloseHandle(pEventList[i].m_hNotifyEvent);
-            }
-            pEventList[i].m_hNotifyEvent = NULL;
-        }
-
-        free(pEventList);
-    }
-    else
-    {
-        if(num != 0)
-        {
-            ERROR_INFO("set pWholeList num %d\n",num);
-        }
-    }
-
-    pEventList = NULL;
-
+    while(ret > 0);
+    __FreePCMEvt(&pPCMEvt);
     return;
 }
 
@@ -621,11 +671,10 @@ int WriteSendBuffer(unsigned char* pBuffer,int numpacks)
 {
     EVENT_LIST_t* pEventList=NULL;
     int ret;
-    int format,channels,samplerate,bitspersample;
-    float volume;
+    BOOL bret;
     int numbytes;
     PCMCAP_AUDIO_BUFFER_t* pAudioBuffer=NULL;
-    PCMCAP_AUDIO_BUFFER_t audioformat;
+    PCM_AUDIO_FORMAT_t  audioformat;
 
     pEventList = GetFreeList();
     if(pEventList == NULL)
@@ -643,7 +692,7 @@ int WriteSendBuffer(unsigned char* pBuffer,int numpacks)
     /*now to copy the file*/
     numbytes = numpacks * channels *(bitspersample / 8);
     pAudioBuffer = (PCMCAP_AUDIO_BUFFER_t*)((ptr_type_t)pEventList->m_BaseAddr+pEventList->m_Offset);
-    ret = WriteShareMem(pAudioBuffer,0,&audioformat,sizeof(audioformat)-sizeof(audioformat.m_AudioData));
+    ret = WriteShareMem(pAudioBuffer,0,&audioformat,sizeof(audioformat));
     if(ret < 0)
     {
         PutFreeList(pEventList);
@@ -656,8 +705,7 @@ int WriteSendBuffer(unsigned char* pBuffer,int numpacks)
         return 0;
     }
 
-
-    ret = WriteShareMem(&(pAudioBuffer->m_AudioData.m_Data),0,pBuffer,numbytes);
+    ret = WriteShareMem(pAudioBuffer->m_AudioData.m_Data,0,pBuffer,numbytes);
     if(ret < 0)
     {
         PutFreeList(pEventList);
@@ -672,30 +720,37 @@ int WriteSendBuffer(unsigned char* pBuffer,int numpacks)
     }
 
     /*now ok ,so we notify the other of the */
-    SetEvent(pEventList->m_hNotifyEvent);
-    PutReleaseList(pEventList);
+    bret = SetEvent(pEventList->m_hNotifyEvent);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("SetEvent %d error(%d)\n",pEventList->m_Idx,ret);
+    }
+    PutFillList(pEventList);
     return 1;
 }
 
 int NotifyAudioStart(void)
 {
     int ret=0;
+    HANDLE hStartEvt=NULL;
     BOOL bret;
-    EnterCriticalSection(&st_ListCS);
-    if(st_hStartNotifyEvent)
+    hStartEvt = GetStartEvent();
+    if(hStartEvt == NULL)
     {
-        bret = SetEvent(st_hStartNotifyEvent);
-        if(bret)
-        {
-            ret = 1;
-        }
-        else
-        {
-            ret = -LAST_ERROR_CODE();
-        }
+        return 0;
     }
-    LeaveCriticalSection(&st_ListCS);
-    return ret;
+
+    bret = SetEvent(hStartEvt);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("set start event error(%d)\n",ret);
+        PutStartEvent(hStartEvt);
+        return 0;
+    }
+    PutStartEvent(hStartEvt);
+    return 1;
 }
 
 
@@ -703,116 +758,78 @@ int NotifyAudioStop(void)
 {
     int ret=0;
     BOOL bret;
-    EnterCriticalSection(&st_ListCS);
-    if(st_hStopNotifyEvent)
+    HANDLE hStopEvt=NULL;
+    hStopEvt = GetStopEvent();
+    if(hStopEvt == NULL)
     {
-        bret = SetEvent(st_hStopNotifyEvent);
-        if(bret)
-        {
-            ret = 1;
-        }
-        else
-        {
-            ret = -LAST_ERROR_CODE();
-        }
+        return 0;
     }
-    LeaveCriticalSection(&st_ListCS);
-    return ret;
+
+    bret = SetEvent(hStopEvt);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not set stop event error(%d)\n",ret);
+        PutStopEvent(hStopEvt);
+        return 0;
+    }
+    PutStopEvent(hStopEvt);
+    return 1;
 }
 
-int SetStartNotify(HANDLE hStartNotifyEvt)
-{
-    HANDLE origevt=NULL;
 
-    EnterCriticalSection(&st_ListCS);
-    origevt = st_hStartNotifyEvent;
-    st_hStartNotifyEvent = hStartNotifyEvt;
-    LeaveCriticalSection(&st_ListCS);
-
-    if(origevt)
-    {
-        CloseHandle(origevt);
-    }
-    origevt = NULL;
-    return 0;
-}
-
-int SetStopNotify(HANDLE hStopNotifyEvt)
-{
-    HANDLE origevt=NULL;
-
-    EnterCriticalSection(&st_ListCS);
-    origevt = st_hStopNotifyEvent;
-    st_hStopNotifyEvent = hStopNotifyEvt;
-    LeaveCriticalSection(&st_ListCS);
-
-    if(origevt)
-    {
-        CloseHandle(origevt);
-    }
-    origevt = NULL;
-    return 0;
-}
 
 
 /*****************************************************
 * to make the start and stop thread
 *****************************************************/
 
-static HANDLE *st_pFreeEvt=NULL;
-static int st_TotalPacks;
-
-typedef struct
-{
-    HANDLE m_hThread;
-    DWORD m_ThreadId;
-    int m_ThreadRunning;
-    int m_ThreadExited;
-    int m_PackNums;
-    HANDLE m_NotifyHandle;
-    HANDLE m_FreeEvt[1];
-} THREAD_INFO_t;
 
 
 void* __WaitThreadImpl(void* arg)
 {
     int ret;
-    THREAD_INFO_t *pThreadInfo= (THREAD_INFO_t*)arg;
+    PCM_EVTS_t *pPCMEvts= (PCM_EVTS_t*)arg;
     DWORD dret;
     HANDLE *pWaitHandles  = NULL;
-    int i,idx;
+    unsigned int i,idx;
+    unsigned int num;
 
-    pWaitHandles = calloc(sizeof(*pWaitHandles),pThreadInfo->m_PackNums + 1);
+    num = pPCMEvts->m_WholeListNum ;
+    pWaitHandles = calloc(sizeof(*pWaitHandles),num + 1);
     if(pWaitHandles == NULL)
     {
         ret = -LAST_ERROR_CODE();
         goto out;
     }
 
-    for(i=0; i<pThreadInfo->m_PackNums; i++)
+    for(i=0; i<num; i++)
     {
-        pWaitHandles[i] = pThreadInfo->m_FreeEvt[i];
+        pWaitHandles[i] = pPCMEvts->m_pFreeEvt[i];
     }
 
-    pWaitHandles[pThreadInfo->m_PackNums] = pThreadInfo->m_NotifyHandle;
+    pWaitHandles[num] = pPCMEvts->m_ThreadControl.m_hExitEvt;
 
-    while(pThreadInfo->m_ThreadRunning)
+    while(pPCMEvts->m_ThreadControl.m_ThreadRunning)
     {
         /*now we should  wait for 1 second ,this will give enough time */
-        dret = WaitForMultipleObjects(pThreadInfo->m_PackNums+1,pWaitHandles,FALSE,INFINITE);
+        dret = WaitForMultipleObjects(num+1,pWaitHandles,FALSE,INFINITE);
         if(dret == WAIT_TIMEOUT)
         {
             continue;
         }
-        else if(dret >= WAIT_OBJECT_0 && dret <= (WAIT_OBJECT_0 + pThreadInfo->m_PackNums))
+        else if(dret >= WAIT_OBJECT_0 && dret <= (WAIT_OBJECT_0 + num - 1))
         {
             /*this is the free list event */
             idx = dret - WAIT_OBJECT_0;
 
-            ret = ChangeToFreeList(idx);
-            assert(ret > 0);
+            ret = ChangeToFreeList(pPCMEvts,idx);
+            if(ret == 0)
+            {
+                ERROR_INFO("change %d return 0\n",idx);
+            }
         }
-        else if(dret == (WAIT_OBJECT_0 + pThreadInfo->m_PackNums + 1))
+        else if(dret == (WAIT_OBJECT_0 + num))
         {
             /*this is the notify packs*/
             continue;
@@ -820,7 +837,7 @@ void* __WaitThreadImpl(void* arg)
         else if(dret == WAIT_FAILED)
         {
             ret = -LAST_ERROR_CODE();
-            ERROR_INFO("wait %d event error (%d)\n",pThreadInfo->m_PackNums + 1,ret);
+            ERROR_INFO("wait %d event error (%d)\n",num + 1,ret);
             goto out;
         }
 
@@ -834,119 +851,12 @@ out:
         free(pWaitHandles);
     }
     pWaitHandles = NULL;
-    pThreadInfo->m_ThreadExited = 1;
+    pPCMEvts->m_ThreadControl.m_ThreadExited = 1;
     return ret;
 }
 
 
-static THREAD_INFO_t *st_pThreadInfo=NULL;
 static HANDLE st_hThreadSema=NULL;
-
-void FreeThreadInfo(THREAD_INFO_t** ppThreadInfo)
-{
-    /*now first to test whether the thread is running*/
-    BOOL bret;
-    int ret;
-    int i;
-    THREAD_INFO* pThreadInfo= *ppThreadInfo;
-
-    if(pThreadInfo == NULL)
-    {
-        return;
-    }
-
-    pThreadInfo->m_ThreadRunning = 0;
-    while(pThreadInfo->m_ThreadExited == 0)
-    {
-        if(pThreadInfo->m_NotifyHandle)
-        {
-            bret = SetEvent(pThreadInfo->m_NotifyHandle);
-            if(!bret)
-            {
-                ret = LAST_ERROR_CODE();
-                ERROR_INFO("could not set notify handle error %d\n",ret);
-            }
-        }
-        SchedOut();
-    }
-
-    /*now we are ok*/
-    if(pThreadInfo->m_NotifyHandle)
-    {
-        bret = CloseHandle(pThreadInfo->m_NotifyHandle);
-        if(!bret)
-        {
-            ret=  LAST_ERROR_CODE();
-            ERROR_INFO("close notify handle error(%d)\n",ret);
-        }
-    }
-    pThreadInfo->m_NotifyHandle = NULL;
-
-    if(pThreadInfo->m_hThread)
-    {
-        bret = CloseHandle(pThreadInfo->m_hThread);
-        if(!bret)
-        {
-            ret = LAST_ERROR_CODE();
-            ERROR_INFO("close thread handle error(%d)\n",ret);
-        }
-    }
-    pThreadInfo->m_hThread = NULL;
-    pThreadInfo->m_ThreadId = 0;
-
-    for(i=0; i<pThreadInfo->m_PackNums; i++)
-    {
-        if(pThreadInfo->m_FreeEvt[i])
-        {
-            bret = CloseHandle(pThreadInfo->m_FreeEvt[i]);
-            if(!bret)
-            {
-                ret = LAST_ERROR_CODE();
-                ERROR_INFO("close[%d] free event error(%d)\n",i,ret);
-            }
-        }
-        pThreadInfo->m_FreeEvt[i] = NULL;
-    }
-
-    pThreadInfo->m_PackNums = 0;
-    free(pThreadInfo);
-    *ppThreadInfo = NULL;
-    return ;
-}
-
-THREAD_INFO_t* AllocateThreadInfo(unsigned int numpacks)
-{
-    THREAD_INFO_t* pThreadInfo=NULL;
-    int size=sizeof(*pThreadInfo);
-    int i;
-
-    if(numpacks < 1)
-    {
-        SetLastError(ERROR_INVALID_PARAMETER);
-        return NULL;
-    }
-
-    size += (numpacks-1)*sizeof(pThreadInfo->m_FreeEvt[0]);
-    pThreadInfo =(THREAD_INFO_t*) malloc(size);
-    if(pThreadInfo == NULL)
-    {
-        return NULL;
-    }
-
-    memset(pThreadInfo,0,size);
-    pThreadInfo->m_hThread = NULL;
-    pThreadInfo->m_ThreadId = 0;
-    pThreadInfo->m_ThreadRunning = 1;
-    pThreadInfo->m_ThreadExited = 1;
-    pThreadInfo->m_PackNums = numpacks;
-    pThreadInfo->m_NotifyHandle = NULL;
-    for(i=0; i<pThreadInfo->m_PackNums; i++)
-    {
-        pThreadInfo->m_FreeEvt[i] = NULL;
-    }
-    return pThreadInfo;
-}
-
 
 
 int __HandleAudioRecordStart(PCMCAP_CONTROL_t *pControl)
@@ -955,91 +865,29 @@ int __HandleAudioRecordStart(PCMCAP_CONTROL_t *pControl)
     unsigned int i;
     unsigned char eventname[128];
 
-    if(st_pThreadInfo)
+    if(st_pPCMEvt)
     {
         return -ERROR_ALREADY_EXISTS;
     }
 
-    st_pThreadInfo = AllocateThreadInfo(pControl->m_NumPacks);
-    if(st_pThreadInfo == NULL)
-    {
-        ret = LAST_ERROR_CODE();
-        goto fail;
-    }
 
-    /*now we should set for the handle*/
-    st_pThreadInfo->m_NotifyHandle = GetEvent(NULL,1);
-    if(st_pThreadInfo->m_NotifyHandle == NULL)
-    {
-        ret = LAST_ERROR_CODE();
-        goto fail;
-    }
-
-    /*now for the name*/
-    for(i=0; i<pControl->m_NumPacks; i++)
-    {
-        snprintf(eventname,sizeof(eventname),"%s_%d",pControl->m_FreeListSemNameBase,i);
-        st_pThreadInfo->m_FreeEvt[i] = GetEvent(eventname,0);
-        if(st_pThreadInfo->m_FreeEvt[i] == NULL)
-        {
-            ret = LAST_ERROR_CODE();
-            goto fail;
-        }
-    }
-
-    /*now we should to give the memory get */
-    assert(st_hMemMap == NULL && st_pMemBase == NULL);
-    st_hMemMap = CreateMapFile(pControl->m_MemShareName,pControl->m_MemShareSize,0);
-    if(st_hMemMap==NULL)
-    {
-        ret = LAST_ERROR_CODE();
-        ERROR_INFO("could not create mapfile %s with size (%d:0x%x) error(%d)\n",
-                   pControl->m_MemShareName,pControl->m_MemShareSize,pControl->m_MemShareSize,ret);
-        goto fail;
-    }
-
-    st_pMemBase = MapFileBuffer(st_hMemMap,pControl->m_MemShareSize);
-    if(st_pMemBase  == NULL)
-    {
-        ret = LAST_ERROR_CODE();
-        ERROR_INFO("could not mapfile size (%d:0x%x) error(%d)\n",
-                   pControl->m_MemShareSize,pControl->m_MemShareSize,ret);
-        goto fail;
-    }
 
     /*now it is time to give the mem*/
-    ret = InitializeWholeList(pControl->m_NumPacks,st_pMemBase,pControl->m_MemShareSize / pControl->m_NumPacks,pControl->m_FillListSemNameBase);
+    ret = InitializeWholeList(pControl->m_NumPacks,pControl->m_PackSize ,
+                              pControl->m_MemShareName,pControl->m_FreeListSemNameBase,pControl->m_FillListSemNameBase,
+                              pControl->m_StartEvtName,pControl->m_StopEvtName);
     if(ret < 0)
     {
         goto fail;
     }
 
-    /*now to start the kernel to do this */
-    st_pThreadInfo->m_ThreadRunning = 1;
-    st_pThreadInfo->m_ThreadExited = 0;
-
-    /*now to create thread*/
-    st_pThreadInfo->m_hThread = CreateThread(NULL,0,__WaitThreadImpl,st_pThreadInfo,0,&(st_pThreadInfo->m_ThreadId));
-    if(st_pThreadInfo->m_hThread == NULL)
-    {
-        st_pThreadInfo->m_ThreadExited = 1;
-        st_pThreadInfo->m_ThreadRunning = 0;
-        ret = LAST_ERROR_CODE();
-        ERROR_INFO("could not create thread %d\n",ret);
-        goto fail;
-    }
 
     /*now we should do things ok for it will let the thread running back and it will make the first */
     SetOperation(pControl->m_Operation);
-
-
     return 0;
 fail:
     assert(ret > 0);
     DeInitializeWholeList();
-    FreeThreadInfo(&st_pThreadInfo);
-    UnMapFileBuffer(&st_pMemBase);
-    CloseMapFileHandle(&st_hMemMap);
     SetLastError(ret);
     return -ret;
 }
@@ -1047,9 +895,6 @@ fail:
 int __HandleAudioRecordStop(PCMCAP_CONTROL_t *pControl)
 {
     DeInitializeWholeList();
-    FreeThreadInfo(&st_pThreadInfo);
-    UnMapFileBuffer(&st_pMemBase);
-    CloseMapFileHandle(&st_hMemMap);
     SetOperation(pControl->m_Operation);
     return 0;
 }
