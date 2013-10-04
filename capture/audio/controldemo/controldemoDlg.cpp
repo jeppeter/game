@@ -167,30 +167,111 @@ void CcontroldemoDlg::OnCheckBoxClick()
 
 void CcontroldemoDlg::StartCapper()
 {
-	char *pExecAnsi=NULL,*pDllAnsi=NULL,*pParamAnsi=NULL,*pDumpAnsi=NULL;
+    char *pExecAnsi=NULL,*pDllAnsi=NULL,*pParamAnsi=NULL,*pDumpAnsi=NULL;
+    int rendercheck=0,capturecheck=0;
 #ifdef _UNICODE
-	int execansisize=0,dllansisize=0,paramansisize=0,dumpansisize=0;
-	int ret;	
+    int execansisize=0,dllansisize=0,paramansisize=0,dumpansisize=0;
+    int ret;
 #endif
-	CEdit* pEdt=NULL;
+    CEdit* pEdt=NULL;
+    CString errstr;
+    CButton* pCheck=NULL;
+    int iOperation=PCMCAP_AUDIO_NONE;
 
-	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_EXE);
-	pEdt->GetWindowText(this->m_strExec);
-	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_PARAMETER);
-	pEdt->GetWindowText(this->m_strParam);
-	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_DLL);
-	pEdt->GetWindowText(this->m_strDll);
-	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_DUMP);
-	pEdt->GetWindowText(this->m_strDump);
+    pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_EXE);
+    pEdt->GetWindowText(this->m_strExec);
+    pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_PARAMETER);
+    pEdt->GetWindowText(this->m_strParam);
+    pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_DLL);
+    pEdt->GetWindowText(this->m_strDll);
+    pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_DUMP);
+    pEdt->GetWindowText(this->m_strDump);
 
-	
 
-	
-	
+#ifdef _UNICODE
+    ret = UnicodeToAnsi((wchar_t*)((const WCHAR*)this->m_strExec),&pExecAnsi,&execansisize);
+    if(ret < 0)
+    {
+        errstr.Format(TEXT("can not Get exec string"));
+        AfxMessageBox(errstr);
+        goto free_release;
+    }
+
+    ret = UnicodeToAnsi((wchar_t*)((const WCHAR*)this->m_strParam),&pParamAnsi,&paramansisize);
+    if(ret < 0)
+    {
+        errstr.Format(TEXT("can not get param string"));
+        AfxMessageBox(errstr);
+        goto free_release;
+    }
+
+    ret = UnicodeToAnsi((wchar_t*)((const WCHAR*)this->m_strDll),&pDllAnsi,&dllansisize);
+    if(ret < 0)
+    {
+        errstr.Format(TEXT("can not get dll string"));
+        AfxMessageBox(errstr);
+        goto free_release;
+    }
+
+    ret = UnicodeToAnsi((wchar_t*)((const WCHAR*)this->m_strDump),&pDumpAnsi,&dumpansisize);
+    if(ret < 0)
+    {
+        errstr.Format(TEXT("can not get dump string"));
+        AfxMessageBox(errstr);
+        goto free_release;
+    }
+
+#else
+    pExecAnsi = (const char*) this->m_strExec;
+    pDllAnsi = (const char*) this->m_strDll;
+    pParamAnsi = (const char*) this->m_strParam;
+    pDumpAnsi = (const char*) this->m_strDump;
+#endif
+
+
+    pCheck = this->GetDlgItem(IDC_CHK_RENDER);
+    rendercheck = pCheck->GetCheck();
+    pCheck = this->GetDlgItem(IDC_CHK_CAPTURE);
+    capturecheck = pCheck->GetCheck();
+
+
+
+
     this->StopCapper();
 
-    /*now to get the text */
-	
+
+
+    /*now to get the text  */
+    this->m_pCapper = new CPcmCapper();
+    this->m_pDemoCallBack = new CPcmCapDemoCallBack();
+
+    /*now to make the dump file*/
+    ret = this->m_pDemoCallBack->OpenFile(pDumpAnsi);
+    if(ret < 0)
+    {
+        errstr.Format(TEXT("can not open (%s) error(%d)"),pDumpAnsi,ret);
+        goto fail;
+    }
+
+    if(rendercheck == 0 && capturecheck == 0)
+    {
+        iOperation = PCMCAP_AUDIO_NONE;
+    }
+    else if(rendercheck == 0 && capturecheck)
+    {
+        iOperation = PCMCAP_AUDIO_CAPTURE;
+    }
+    else if(rendercheck  && capturecheck == 0)
+    {
+        iOperation = PCMCAP_AUDIO_RENDER;
+    }
+    else
+    {
+        iOperation = PCMCAP_AUDIO_BOTH;
+    }
+
+
+
 
 
     return ;
@@ -198,12 +279,12 @@ fail:
     this->StopCapper();
 free_release:
 #ifdef _UNICODE
-	UnicodeToAnsi(NULL,&pExecAnsi,&execansisize);
-	UnicodeToAnsi(NULL,&pDllAnsi,&dllansisize);
-	UnicodeToAnsi(NULL,&pParamAnsi,&paramansisize);
-	UnicodeToAnsi(NULL,&pDumpAnsi,&dumpansisize);
+    UnicodeToAnsi(NULL,&pExecAnsi,&execansisize);
+    UnicodeToAnsi(NULL,&pDllAnsi,&dllansisize);
+    UnicodeToAnsi(NULL,&pParamAnsi,&paramansisize);
+    UnicodeToAnsi(NULL,&pDumpAnsi,&dumpansisize);
 #endif
-	return;
+    return;
 
 }
 
