@@ -57,6 +57,13 @@ CcontroldemoDlg::CcontroldemoDlg(CWnd* pParent /*=NULL*/)
     m_hProc = NULL;
 }
 
+CcontroldemoDlg::~CcontroldemoDlg()
+{
+	this->StopCapper();
+}
+
+
+
 void CcontroldemoDlg::DoDataExchange(CDataExchange* pDX)
 {
     CDialogEx::DoDataExchange(pDX);
@@ -66,6 +73,10 @@ BEGIN_MESSAGE_MAP(CcontroldemoDlg, CDialogEx)
     ON_WM_SYSCOMMAND()
     ON_WM_PAINT()
     ON_WM_QUERYDRAGICON()
+    ON_BN_CLICKED(IDC_BTN_EXE,OnBtnExe)
+    ON_BN_CLICKED(IDC_BTN_DLL,OnBtnDll)
+    ON_BN_CLICKED(IDC_BTN_DUMP,OnBtnDump)
+    ON_BN_CLICKED(IDC_BTN_START,OnBtnStart)
     ON_BN_CLICKED(IDC_CHK_RENDER, OnCheckBoxClick)
     ON_BN_CLICKED(IDC_CHK_CAPTURE,OnCheckBoxClick)
 END_MESSAGE_MAP()
@@ -104,6 +115,10 @@ BOOL CcontroldemoDlg::OnInitDialog()
     SetIcon(m_hIcon, FALSE);		// 设置小图标
 
     // TODO: 在此添加额外的初始化代码
+    pCheck = this->GetDlgItem(IDC_CHK_RENDER);
+	pCheck->SetCheck(0);
+	pCheck = this->GetDlgItem(IDC_CHK_CAPTURE);
+	pCheck->SetCheck(1);
 
     return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -505,3 +520,51 @@ void CcontroldemoDlg::StopCapper()
     this->m_hProc = NULL;
     return ;
 }
+
+void CcontroldemoDlg::OnBtnExe()
+{
+    CFileDialog fdlg(TRUE,NULL,NULL,OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_READONLY,
+                     TEXT("execute files (*.exe)|*.exe||"),NULL);
+    CString fname;
+    CEdit* pEdt=NULL;
+    if(fdlg.DoModal() == IDOK)
+    {
+        fname = fdlg.GetPathName();
+        pEdt = (CEdit*) this->GetDlgItem(IDC_EDT_EXE);
+        pEdt->SetWindowText(fname);
+    }
+}
+
+void CcontroldemoDlg::OnBtnDll()
+{
+    CFileDialog fdlg(TRUE,NULL,NULL,OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_READONLY,
+                     TEXT("dynamic link library files (*.dll)|*.dll||"),NULL);
+    CString fname;
+    CEdit* pEdt=NULL;
+    if(fdlg.DoModal() == IDOK)
+    {
+        fname = fdlg.GetPathName();
+        pEdt = (CEdit*) this->GetDlgItem(IDC_EDT_DLL);
+        pEdt->SetWindowText(fname);
+    }
+}
+
+void CcontroldemoDlg::OnBtnDump()
+{
+    CFileDialog fdlg(TRUE,NULL,NULL,0,
+                     TEXT("pcm files (*.pcm)|*.pcm||"),NULL);
+    CString fname;
+    CEdit* pEdt=NULL;
+    if(fdlg.DoModal() == IDOK)
+    {
+        fname = fdlg.GetPathName();
+        pEdt = (CEdit*) this->GetDlgItem(IDC_EDT_DUMP);
+        pEdt->SetWindowText(fname);
+    }
+}
+
+void CcontroldemoDlg::OnBtnStart()
+{
+	this->StartCapper();
+}
+

@@ -37,6 +37,10 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnCheckBoxClick();
+	afx_msg void OnBtnExe();
+	afx_msg void OnBtnDll();
+	afx_msg void OnBtnDump();
+	afx_msg void OnBtnStart();
 	void StartCapper();
 	void StopCapper();
 
