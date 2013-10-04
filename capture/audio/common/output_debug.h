@@ -9,6 +9,7 @@
 extern "C" {
 #endif
 
+#define WIN7_VER  1
 
 #ifdef WIN7_VER
 #define  DEBUG_INFO(fmt,...) DebugOutString(__FILE__,__LINE__,fmt,__VA_ARGS__)

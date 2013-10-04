@@ -349,12 +349,14 @@ void CcontroldemoDlg::StartCapper()
     pBlockSizeAnsi = (const char*) this->m_strBlockSize;
 #endif
 
+	DEBUG_INFO("\n");
 
     pCheck = (CButton*)this->GetDlgItem(IDC_CHK_RENDER);
     rendercheck = pCheck->GetCheck();
     pCheck = (CButton*)this->GetDlgItem(IDC_CHK_CAPTURE);
     capturecheck = pCheck->GetCheck();
 
+	DEBUG_INFO("\n");
     if(strlen(pExecAnsi) < 1 || strlen(pDllAnsi) < 1)
     {
         errstr.Format(TEXT("must specify execname and dllname"));
@@ -362,6 +364,7 @@ void CcontroldemoDlg::StartCapper()
         goto free_release;
     }
 
+	DEBUG_INFO("\n");
 
     bufnum = atoi(pBufNumAnsi);
     blocksize = atoi(pBlockSizeAnsi);
@@ -371,6 +374,7 @@ void CcontroldemoDlg::StartCapper()
         AfxMessageBox(errstr);
         goto free_release;
     }
+	DEBUG_INFO("\n");
 
     pPartDllAnsi = strrchr(pDllAnsi,'\\');
     if(pPartDllAnsi == NULL)
@@ -382,6 +386,7 @@ void CcontroldemoDlg::StartCapper()
         pPartDllAnsi ++ ;
     }
 
+	DEBUG_INFO("\n");
     /**/
     fullexecnamesize =strlen(pExecAnsi) + 1;
     if(strlen(pParamAnsi))
@@ -390,6 +395,7 @@ void CcontroldemoDlg::StartCapper()
     }
 
     pFullExecName = new char[fullexecnamesize];
+	DEBUG_INFO("\n");
 
     if(strlen(pParamAnsi))
     {
@@ -399,6 +405,7 @@ void CcontroldemoDlg::StartCapper()
     {
         _snprintf_s(pFullExecName,fullexecnamesize,_TRUNCATE,"%s",pExecAnsi);
     }
+	DEBUG_INFO("\n");
 
 
     ret = LoadInsert(NULL,pFullExecName,pDllAnsi,pPartDllAnsi);

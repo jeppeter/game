@@ -1557,7 +1557,8 @@ HRESULT WINAPI  CoCreateInstanceCallBack(
     {
         if(rclsid == __uuidof(MMDeviceEnumerator))
         {
-            IMMDeviceEnumerator* pEnumerator = (IMMDeviceEnumerator*)(*ppv);
+            IMMDeviceEnumerator* pEnumerator = (IMMDeviceEnumerator*)(*ppv);			
+			DEBUG_INFO("\n");
             /*now we should change function*/
             DetourEnumeratorVirtFunctions(pEnumerator);
         }
@@ -1618,6 +1619,7 @@ int PcmCapInjectInit(void)
 	st_AudioFormat.m_SampleRate = 48000;
 	st_AudioFormat.m_Volume = 0.0;
     st_hThreadSema = CreateSemaphore(NULL,1,10,NULL);
+	DEBUG_INFO("\n");
     if(st_hThreadSema == NULL)
     {
         /*we do not success*/
@@ -1629,6 +1631,7 @@ int PcmCapInjectInit(void)
     {
         return ret;
     }
+	DEBUG_INFO("\n");
 
     st_PcmCapInited = 1;
     DEBUG_INFO("Init PcmCapInject succ\n");
