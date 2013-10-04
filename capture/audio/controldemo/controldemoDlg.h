@@ -11,6 +11,10 @@ class CcontroldemoDlg : public CDialogEx
 // 构造
 public:
 	CcontroldemoDlg(CWnd* pParent = NULL);	// 标准构造函数
+	CString m_strExec;
+	CString m_strParam;
+	CString m_strDll;
+	CString m_strDump;
 
 // 对话框数据
 	enum { IDD = IDD_CONTROLDEMO_DIALOG };

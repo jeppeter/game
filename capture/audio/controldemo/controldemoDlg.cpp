@@ -157,22 +157,54 @@ HCURSOR CcontroldemoDlg::OnQueryDragIcon()
 
 void CcontroldemoDlg::OnCheckBoxClick()
 {
-    AfxMessageBox(TEXT("Clicked"));
+    if(this->m_pCapper == NULL || this->m_pDemoCallBack == NULL)
+    {
+        return ;
+    }
     return ;
 }
 
 
 void CcontroldemoDlg::StartCapper()
 {
-	this->StopCapper();
+	char *pExecAnsi=NULL,*pDllAnsi=NULL,*pParamAnsi=NULL,*pDumpAnsi=NULL;
+#ifdef _UNICODE
+	int execansisize=0,dllansisize=0,paramansisize=0,dumpansisize=0;
+	int ret;	
+#endif
+	CEdit* pEdt=NULL;
 
-	/*now to get the text*/
+	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_EXE);
+	pEdt->GetWindowText(this->m_strExec);
+	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_PARAMETER);
+	pEdt->GetWindowText(this->m_strParam);
+	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_DLL);
+	pEdt->GetWindowText(this->m_strDll);
+	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_DUMP);
+	pEdt->GetWindowText(this->m_strDump);
+
+	
+
+	
+	
+    this->StopCapper();
+
+    /*now to get the text */
+	
 
 
-	return ;
+    return ;
 fail:
-	this->StopCapper();
+    this->StopCapper();
+free_release:
+#ifdef _UNICODE
+	UnicodeToAnsi(NULL,&pExecAnsi,&execansisize);
+	UnicodeToAnsi(NULL,&pDllAnsi,&dllansisize);
+	UnicodeToAnsi(NULL,&pParamAnsi,&paramansisize);
+	UnicodeToAnsi(NULL,&pDumpAnsi,&dumpansisize);
+#endif
 	return;
+
 }
 
 void CcontroldemoDlg::StopCapper()
