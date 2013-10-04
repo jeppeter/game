@@ -82,6 +82,7 @@
     <ClInclude Include="memshare.h" />
     <ClInclude Include="output_debug.h" />
     <ClInclude Include="sched.h" />
+    <ClInclude Include="StackWalker.h" />
     <ClInclude Include="timeticks.h" />
     <ClInclude Include="uniansi.h" />
   </ItemGroup>
@@ -96,6 +97,7 @@
     <ClCompile Include="modules.cpp" />
     <ClCompile Include="output_debug.cpp" />
     <ClCompile Include="sched.cpp" />
+    <ClCompile Include="StackWalker.cpp" />
     <ClCompile Include="timeticks.cpp" />
     <ClCompile Include="uniansi.cpp" />
   </ItemGroup>

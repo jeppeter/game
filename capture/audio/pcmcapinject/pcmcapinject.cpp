@@ -14,6 +14,7 @@
 #include <sched.h>
 #include <evt.h>
 #include <memshare.h>
+#include <StackWalker.h>
 
 #pragma comment(lib,"common.lib")
 
@@ -975,12 +976,13 @@ static int DetourVirtualFuncTable(CRITICAL_SECTION* pCS,int* pChanged,void**ppNe
         ptr_type_t* vptr = *vptrptr;
 
         assert(ppNextFunc && *ppNextFunc == NULL);
+#if 0		
         *ppNextFunc =(void*) vptr[virtfuncnum];
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
         DetourAttach(ppNextFunc,pCallBackFunc);
         DetourTransactionCommit();
-
+#endif
         *pChanged = 1;
         ret = 1;
     }
@@ -1246,9 +1248,9 @@ static int st_AudioClientReleaseDetoured=0;
 ULONG WINAPI AudioClientReleaseCallBack(IAudioClient* pClient)
 {
     ULONG uret;
-
+	DEBUG_INFO("\n");
     uret = AudioClientReleaseNext(pClient);
-
+	DEBUG_INFO("\n");
     return uret;
 }
 
@@ -1260,10 +1262,11 @@ static int st_AudioClientInitializeDetoured=0;
 HRESULT WINAPI AudioClientInitializeCallBack(IAudioClient* pClient,AUDCLNT_SHAREMODE ShareMode,DWORD StreamFlags,REFERENCE_TIME hnsBufferDuration,REFERENCE_TIME hnsPeriodicity,const WAVEFORMATEX *pFormat,LPCGUID AudioSessionGuid)
 {
     HRESULT hr;
-
+	DEBUG_INFO("\n");
     hr = AudioClientInitializeNext(pClient,ShareMode,StreamFlags,hnsBufferDuration,hnsPeriodicity,pFormat,AudioSessionGuid);
     if(SUCCEEDED(hr) && pFormat)
     {
+		DEBUG_INFO("\n");
         SetFormat((WAVEFORMATEX*)pFormat);
     }
     return hr;
@@ -1276,10 +1279,11 @@ static int st_AudioClientStartDetoured=0;
 HRESULT WINAPI AudioClientStartCallBack(IAudioClient* pClient)
 {
     HRESULT hr;
-
+	DEBUG_INFO("\n");
     hr = AudioClientStartNext(pClient);
     if(SUCCEEDED(hr))
     {
+		DEBUG_INFO("\n");
         NotifyAudioStart();
     }
     return hr;
@@ -1293,10 +1297,11 @@ static int st_AudioClientStopDetoured=0;
 HRESULT WINAPI AudioClientStopCallBack(IAudioClient* pClient)
 {
     HRESULT hr;
-
+	DEBUG_INFO("\n");
     hr = AudioClientStopNext(pClient);
     if(SUCCEEDED(hr))
     {
+		DEBUG_INFO("\n");
         NotifyAudioStop();
     }
     return hr;
@@ -1309,10 +1314,11 @@ static int st_AudioClientResetDetoured=0;
 HRESULT WINAPI AudioClientResetCallBack(IAudioClient* pClient)
 {
     HRESULT hr;
-
+	DEBUG_INFO("\n");
     hr = AudioClientResetNext(pClient);
     if(SUCCEEDED(hr))
     {
+		DEBUG_INFO("\n");
         NotifyAudioStop();
         NotifyAudioStart();
     }
@@ -1327,28 +1333,32 @@ static int st_AudioClientGetServiceDetoured=0;
 HRESULT WINAPI AudioClientGetServiceCallBack(IAudioClient* pClient,REFIID riid,void **ppv)
 {
     HRESULT hr;
-
+	DEBUG_INFO("\n");
     hr = AudioClientGetServiceNext(pClient,riid,ppv);
     if(SUCCEEDED(hr))
     {
         if(riid == __uuidof(IAudioRenderClient))
         {
             IAudioRenderClient* pRender = (IAudioRenderClient*)*ppv;
+			DEBUG_INFO("\n");
             DetourAudioRenderClientVirtFunctions(pRender);
         }
         else if(riid == __uuidof(IAudioStreamVolume))
         {
             IAudioStreamVolume* pStream= (IAudioStreamVolume*)*ppv;
+			DEBUG_INFO("\n");
             DetourStreamAudioVolumeVirtFunctions(pStream);
         }
         else if(riid == __uuidof(IChannelAudioVolume))
         {
             IChannelAudioVolume* pChannel = (IChannelAudioVolume*)*ppv;
+			DEBUG_INFO("\n");
             DetourChannelAudioVolumeVirtFunctions(pChannel);
         }
         else if(riid == __uuidof(ISimpleAudioVolume))
         {
             ISimpleAudioVolume* pSimple = (ISimpleAudioVolume*)*ppv;
+			DEBUG_INFO("\n");
             DetourSimpleAudioVolumeVirtFunctions(pSimple);
         }
     }
@@ -1379,8 +1389,9 @@ static int st_DeviceReleaseDetoured=0;
 ULONG WINAPI DeviceReleaseCallBack(IMMDevice *pThis)
 {
     ULONG uret;
-
+	DEBUG_INFO("\n");
     uret = DeviceReleaseNext(pThis);
+	DEBUG_INFO("\n");
     return uret;
 }
 
@@ -1391,13 +1402,14 @@ static int st_DeviceActivateDetoured=0;
 HRESULT WINAPI DeviceActivateCallBack(IMMDevice *pThis,REFIID iid,DWORD dwClsCtx,PROPVARIANT *pActivationParams,void **ppInterface)
 {
     HRESULT hr;
-
+	DEBUG_INFO("\n");
     hr = DeviceActivateNext(pThis,iid,dwClsCtx,pActivationParams,ppInterface);
     if(SUCCEEDED(hr))
     {
         if(iid == __uuidof(IAudioClient))
         {
             IAudioClient* pClient=(IAudioClient*)*ppInterface;
+			DEBUG_INFO("\n");
             DetourDeviceAudioClientVirtFunctions(pClient);
         }
     }
@@ -1427,8 +1439,9 @@ static int st_DeviceCollectionReleaseDetoured=0;
 ULONG WINAPI DeviceCollectionReleaseCallBack(IMMDeviceCollection* pThis)
 {
     ULONG uret;
-
+	DEBUG_INFO("\n");
     uret = DeviceCollectionReleaseNext(pThis);
+	DEBUG_INFO("\n");
     return uret;
 }
 
@@ -1439,9 +1452,11 @@ static int st_DeviceCollectionItemDetoured=0;
 HRESULT WINAPI DeviceCollectionItemCallBack(IMMDeviceCollection* pThis,UINT nDevice,IMMDevice **ppDevice)
 {
     HRESULT hr;
+	DEBUG_INFO("\n");
     hr = DeviceCollectionItemNext(pThis,nDevice,ppDevice);
     if(SUCCEEDED(hr))
     {
+		DEBUG_INFO("\n");
         DetourDeviceVirtFunctions(*ppDevice);
     }
     return hr;
@@ -1470,8 +1485,9 @@ static int DetourDeviceCollectionVirtFunctions(IMMDeviceCollection* pCollection)
 ULONG WINAPI EnumeratorReleaseCallBack(IMMDeviceEnumerator* pThis)
 {
     ULONG uret;
-
+	DEBUG_INFO("\n");
     uret = EnumeratorReleaseNext(pThis);
+	DEBUG_INFO("uret %d\n",uret);
     return uret;
 }
 
@@ -1482,11 +1498,12 @@ static int st_EnumeratorEnumAudioEndpointsDetoured=0;
 HRESULT WINAPI EnumeratorEnumAudioEndpointsCallBack(IMMDeviceEnumerator* pThis,EDataFlow dataFlow,DWORD dwStateMask,IMMDeviceCollection **ppDevices)
 {
     HRESULT hr;
-
+	DEBUG_INFO("\n");
     hr = EnumeratorEnumAudioEndpointsNext(pThis,dataFlow,dwStateMask,ppDevices);
     if(SUCCEEDED(hr))
     {
         /*now success ,so we should to detour for the function of device collection*/
+		DEBUG_INFO("\n");
         DetourDeviceCollectionVirtFunctions(*ppDevices);
     }
     return hr;
@@ -1500,10 +1517,11 @@ static int st_EnumeratorGetDefaultAudioEndpointDetoured=0;
 HRESULT WINAPI EnumeratorGetDefaultAudioEndpointCallBack(IMMDeviceEnumerator* pThis,EDataFlow dataFlow,ERole role,IMMDevice **ppEndpoint)
 {
     HRESULT hr;
-
+	DEBUG_INFO("\n");
     hr = EnumeratorGetDefaultAudioEndpointNext(pThis,dataFlow,role,ppEndpoint);
     if(SUCCEEDED(hr))
     {
+		DEBUG_INFO("\n");
         DetourDeviceVirtFunctions(*ppEndpoint);
     }
     return hr;
@@ -1516,9 +1534,11 @@ static int st_EnumeratorGetDeviceDetoured=0;
 HRESULT EnumeratorGetDeviceCallBack(IMMDeviceEnumerator* pThis,LPCWSTR pwstrId,IMMDevice **ppDevice)
 {
     HRESULT hr;
+	DEBUG_INFO("\n");
     hr = EnumeratorGetDeviceNext(pThis,pwstrId,ppDevice);
     if(SUCCEEDED(hr))
     {
+		DEBUG_INFO("\n");
         DetourDeviceVirtFunctions(*ppDevice);
     }
     return hr;
@@ -1533,6 +1553,15 @@ static int DetourEnumeratorVirtFunctions(IMMDeviceEnumerator* pEnumerator)
     DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorGetDeviceDetoured,(void**)&EnumeratorGetDeviceNext,EnumeratorGetDeviceCallBack,pEnumerator,ENUMERATOR_GET_DEVICE_NUM);
     return 0;
 }
+
+
+LONG WINAPI DetourApplicationCrashHandler(EXCEPTION_POINTERS *pException)
+{
+    StackWalker sw;
+    sw.ShowCallstack(GetCurrentThread(), pException->ContextRecord,NULL,NULL);
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
 
 static  HRESULT(WINAPI *CoCreateInstanceNext)(
     REFCLSID rclsid,
@@ -1551,14 +1580,15 @@ HRESULT WINAPI  CoCreateInstanceCallBack(
 )
 {
     HRESULT hr;
+	SetUnhandledExceptionFilter(DetourApplicationCrashHandler);
     hr = CoCreateInstanceNext(rclsid,
                               pUnkOuter,dwClsContext,riid,ppv);
     if(SUCCEEDED(hr))
     {
         if(rclsid == __uuidof(MMDeviceEnumerator))
         {
-            IMMDeviceEnumerator* pEnumerator = (IMMDeviceEnumerator*)(*ppv);			
-			DEBUG_INFO("\n");
+            IMMDeviceEnumerator* pEnumerator = (IMMDeviceEnumerator*)(*ppv);
+            DEBUG_INFO("\n");
             /*now we should change function*/
             DetourEnumeratorVirtFunctions(pEnumerator);
         }
@@ -1613,13 +1643,13 @@ int PcmCapInjectInit(void)
     InitializeCriticalSection(&st_StateCS);
     InitializeCriticalSection(&st_DetourCS);
     InitializeCriticalSection(&st_ListCS);
-	st_AudioFormat.m_Format = AV_SAMPLE_FMT_FLT;
-	st_AudioFormat.m_BitsPerSample = 32;
-	st_AudioFormat.m_Channels = 2;
-	st_AudioFormat.m_SampleRate = 48000;
-	st_AudioFormat.m_Volume = 0.0;
+    st_AudioFormat.m_Format = AV_SAMPLE_FMT_FLT;
+    st_AudioFormat.m_BitsPerSample = 32;
+    st_AudioFormat.m_Channels = 2;
+    st_AudioFormat.m_SampleRate = 48000;
+    st_AudioFormat.m_Volume = 0.0;
     st_hThreadSema = CreateSemaphore(NULL,1,10,NULL);
-	DEBUG_INFO("\n");
+    DEBUG_INFO("\n");
     if(st_hThreadSema == NULL)
     {
         /*we do not success*/
@@ -1631,7 +1661,7 @@ int PcmCapInjectInit(void)
     {
         return ret;
     }
-	DEBUG_INFO("\n");
+    DEBUG_INFO("\n");
 
     st_PcmCapInited = 1;
     DEBUG_INFO("Init PcmCapInject succ\n");
