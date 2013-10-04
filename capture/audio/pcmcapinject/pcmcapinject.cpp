@@ -1397,7 +1397,7 @@ ULONG WINAPI DeviceReleaseCallBack(IMMDevice *pThis)
 {
     ULONG uret;
     uret = DeviceReleaseNext(pThis);
-    DEBUG_INFO("uret %d\n",uret);
+    //DEBUG_INFO("uret %d\n",uret);
     return uret;
 }
 
@@ -1408,11 +1408,11 @@ static int st_DeviceActivateDetoured=0;
 HRESULT WINAPI DeviceActivateCallBack(IMMDevice *pThis,REFIID iid,DWORD dwClsCtx,PROPVARIANT *pActivationParams,void **ppInterface)
 {
     HRESULT hr;
-    DEBUG_INFO("\n");
+    //DEBUG_INFO("\n");
     hr = DeviceActivateNext(pThis,iid,dwClsCtx,pActivationParams,ppInterface);
     if(SUCCEEDED(hr))
     {
-        DEBUG_INFO("iid %s\n",iid);
+        //DEBUG_INFO("iid %s\n",iid);
         if(iid == __uuidof(IAudioClient))
         {
             IAudioClient* pClient=(IAudioClient*)*ppInterface;
@@ -1451,7 +1451,7 @@ ULONG WINAPI DeviceCollectionReleaseCallBack(IMMDeviceCollection* pThis)
 {
     ULONG uret;
     uret = DeviceCollectionReleaseNext(pThis);
-    DEBUG_INFO("uret %d\n",uret);
+    //DEBUG_INFO("uret %d\n",uret);
     return uret;
 }
 
@@ -1462,11 +1462,11 @@ static int st_DeviceCollectionItemDetoured=0;
 HRESULT WINAPI DeviceCollectionItemCallBack(IMMDeviceCollection* pThis,UINT nDevice,IMMDevice **ppDevice)
 {
     HRESULT hr;
-    DEBUG_INFO("\n");
+    //DEBUG_INFO("\n");
     hr = DeviceCollectionItemNext(pThis,nDevice,ppDevice);
     if(SUCCEEDED(hr))
     {
-        DEBUG_INFO("\n");
+        //DEBUG_INFO("\n");
         DetourDeviceVirtFunctions(*ppDevice);
     }
     return hr;
@@ -1495,9 +1495,9 @@ static int DetourDeviceCollectionVirtFunctions(IMMDeviceCollection* pCollection)
 ULONG WINAPI EnumeratorReleaseCallBack(IMMDeviceEnumerator* pThis)
 {
     ULONG uret;
-    DEBUG_INFO("\n");
+    //DEBUG_INFO("\n");
     uret = EnumeratorReleaseNext(pThis);
-    DEBUG_INFO("uret %d\n",uret);
+    //DEBUG_INFO("uret %d\n",uret);
     return uret;
 }
 
@@ -1508,12 +1508,12 @@ static int st_EnumeratorEnumAudioEndpointsDetoured=0;
 HRESULT WINAPI EnumeratorEnumAudioEndpointsCallBack(IMMDeviceEnumerator* pThis,EDataFlow dataFlow,DWORD dwStateMask,IMMDeviceCollection **ppDevices)
 {
     HRESULT hr;
-    DEBUG_INFO("\n");
+    //DEBUG_INFO("\n");
     hr = EnumeratorEnumAudioEndpointsNext(pThis,dataFlow,dwStateMask,ppDevices);
     if(SUCCEEDED(hr))
     {
         /*now success ,so we should to detour for the function of device collection*/
-        DEBUG_INFO("\n");
+        //DEBUG_INFO("\n");
         DetourDeviceCollectionVirtFunctions(*ppDevices);
     }
     return hr;
@@ -1527,11 +1527,11 @@ static int st_EnumeratorGetDefaultAudioEndpointDetoured=0;
 HRESULT WINAPI EnumeratorGetDefaultAudioEndpointCallBack(IMMDeviceEnumerator* pThis,EDataFlow dataFlow,ERole role,IMMDevice **ppEndpoint)
 {
     HRESULT hr;
-    DEBUG_INFO("\n");
+    //DEBUG_INFO("\n");
     hr = EnumeratorGetDefaultAudioEndpointNext(pThis,dataFlow,role,ppEndpoint);
     if(SUCCEEDED(hr))
     {
-        DEBUG_INFO("\n");
+        //DEBUG_INFO("\n");
         DetourDeviceVirtFunctions(*ppEndpoint);
     }
     return hr;
@@ -1541,15 +1541,15 @@ typedef HRESULT(WINAPI *EnumeratorGetDeviceFunc_t)(IMMDeviceEnumerator* pThis,LP
 static EnumeratorGetDeviceFunc_t EnumeratorGetDeviceNext=NULL;
 static int st_EnumeratorGetDeviceDetoured=0;
 
-HRESULT EnumeratorGetDeviceCallBack(IMMDeviceEnumerator* pThis,LPCWSTR pwstrId,IMMDevice **ppDevice)
+HRESULT WINAPI EnumeratorGetDeviceCallBack(IMMDeviceEnumerator* pThis,LPCWSTR pwstrId,IMMDevice **ppDevice)
 {
     HRESULT hr;
-    DEBUG_INFO("\n");
+    //DEBUG_INFO("\n");
     hr = EnumeratorGetDeviceNext(pThis,pwstrId,ppDevice);
     if(SUCCEEDED(hr))
     {
-        DEBUG_INFO("\n");
-        //DetourDeviceVirtFunctions(*ppDevice);
+        //DEBUG_INFO("\n");
+        DetourDeviceVirtFunctions(*ppDevice);
     }
     return hr;
 }
@@ -1560,7 +1560,7 @@ static int DetourEnumeratorVirtFunctions(IMMDeviceEnumerator* pEnumerator)
     DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorReleaseDetoured,(void**)&EnumeratorReleaseNext,EnumeratorReleaseCallBack,pEnumerator,ENUMERATOR_RELEASE_NUM,"MMDeviceEnumerator");
     DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorEnumAudioEndpointsDetoured,(void**)&EnumeratorEnumAudioEndpointsNext,EnumeratorEnumAudioEndpointsCallBack,pEnumerator,ENUMERATOR_ENUM_AUDIO_ENDPOINTS_NUM,"MMDeviceEnumerator");
     DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorGetDefaultAudioEndpointDetoured,(void**)&EnumeratorGetDefaultAudioEndpointNext,EnumeratorGetDefaultAudioEndpointCallBack,pEnumerator,ENUMERATOR_GET_DEFAULT_AUDIO_ENDPOINT_NUM,"MMDeviceEnumerator");
-    //DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorGetDeviceDetoured,(void**)&EnumeratorGetDeviceNext,EnumeratorGetDeviceCallBack,pEnumerator,ENUMERATOR_GET_DEVICE_NUM,"MMDeviceEnumerator");
+    DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorGetDeviceDetoured,(void**)&EnumeratorGetDeviceNext,EnumeratorGetDeviceCallBack,pEnumerator,ENUMERATOR_GET_DEVICE_NUM,"MMDeviceEnumerator");
     return 0;
 }
 
@@ -1601,7 +1601,7 @@ HRESULT WINAPI  CoCreateInstanceCallBack(
         if(rclsid == __uuidof(MMDeviceEnumerator))
         {
             IMMDeviceEnumerator* pEnumerator = (IMMDeviceEnumerator*)(*ppv);
-            DEBUG_INFO("\n");
+            //DEBUG_INFO("\n");
             /*now we should change function*/
             DetourEnumeratorVirtFunctions(pEnumerator);
         }
