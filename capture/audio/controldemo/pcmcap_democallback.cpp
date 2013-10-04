@@ -1,5 +1,10 @@
 
 #include "pcmcap_democallback.h"
+#include <Windows.h>
+#include <output_debug.h>
+
+
+#define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
 CPcmCapDemoCallBack::CPcmCapDemoCallBack()
 {
@@ -9,12 +14,12 @@ CPcmCapDemoCallBack::CPcmCapDemoCallBack()
 
 void CPcmCapDemoCallBack::CloseFile()
 {
-    if(m_fp)
+    if(this->m_fp)
     {
-        fclose(m_fp);
+        fclose(this->m_fp);
     }
-    m_fp = NULL;
-    m_WriteBlockSize = 0;
+    this->m_fp = NULL;
+    this->m_WriteBlockSize = 0;
     return;
 }
 
@@ -28,7 +33,7 @@ int CPcmCapDemoCallBack::OpenFile(const char * fname)
 {
     int ret;
     this->CloseFile();
-    this->m_fp = fopen(fname,"w");
+    fopen_s(&(this->m_fp),fname,"w");
     if(this->m_fp == NULL)
     {
         ret = LAST_ERROR_CODE();

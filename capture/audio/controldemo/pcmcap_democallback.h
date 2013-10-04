@@ -3,13 +3,15 @@
 #define  __PCMCAP_DEMO_CALLBACK_H__
 
 #include <pcmcap_callback.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 
 class CPcmCapDemoCallBack : public IPcmCapperCallback
 {
 public:
 	CPcmCapDemoCallBack();
-	virtual ~CPcmCapDemoCallBack();
+	~CPcmCapDemoCallBack();
 	virtual VOID WaveOpenCb(LPVOID lpParam);
 	virtual VOID WaveInCb(PCMCAP_AUDIO_BUFFER_t* pPcmItem, LPVOID lpParam);
 	virtual VOID WaveCloseCb(LPVOID lpParam);

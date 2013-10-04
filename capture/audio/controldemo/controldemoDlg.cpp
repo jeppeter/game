@@ -6,10 +6,18 @@
 #include "controldemo.h"
 #include "controldemoDlg.h"
 #include "afxdialogex.h"
+#include <output_debug.h>
+#include <uniansi.h>
+#include <dllinsert.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+
+#pragma comment(lib,"pcmcap.lib")
+#pragma comment(lib,"common.lib")
+
+#define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
@@ -115,9 +123,9 @@ BOOL CcontroldemoDlg::OnInitDialog()
     SetIcon(m_hIcon, FALSE);		// 设置小图标
 
     // TODO: 在此添加额外的初始化代码
-    pCheck = this->GetDlgItem(IDC_CHK_RENDER);
+    pCheck = (CButton*)this->GetDlgItem(IDC_CHK_RENDER);
 	pCheck->SetCheck(0);
-	pCheck = this->GetDlgItem(IDC_CHK_CAPTURE);
+	pCheck = (CButton*)this->GetDlgItem(IDC_CHK_CAPTURE);
 	pCheck->SetCheck(1);
 
     return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -185,9 +193,9 @@ void CcontroldemoDlg::OnCheckBoxClick()
         return ;
     }
 
-    pCheck = this->GetDlgItem(IDC_CHK_RENDER);
+    pCheck = (CButton*)this->GetDlgItem(IDC_CHK_RENDER);
     renderchk = pCheck->GetCheck();
-    pCheck = this->GetDlgItem(IDC_CHK_CAPTURE);
+    pCheck = (CButton*)this->GetDlgItem(IDC_CHK_CAPTURE);
     capturechk = pCheck->GetCheck();
 
     if(renderchk ==0 && capturechk == 0)
@@ -210,9 +218,10 @@ void CcontroldemoDlg::OnCheckBoxClick()
     bret = this->m_pCapper->SetAudioOperation(PCMCAPPER_OPERATION_NONE);
     if(!bret)
     {
-        errstr.Format(TEXT("could not set PCMCAPPER_OPERATION_NONE"));
-        AfxMessageBox(errstr);
+    	ret = LAST_ERROR_CODE();
+        errstr.Format(TEXT("could not set PCMCAPPER_OPERATION_NONE error(%d)"),ret);
         this->StopCapper();
+        AfxMessageBox(errstr);
         return;
     }
 
@@ -238,9 +247,8 @@ void CcontroldemoDlg::OnCheckBoxClick()
             errstr.Format(TEXT("set operation (%d) error(%d)"),iOperation,ret);
             break;
         }
-
-		AfxMessageBox(errstr);
 		this->StopCapper();
+		AfxMessageBox(errstr);
 		return;
     }
 
@@ -342,9 +350,9 @@ void CcontroldemoDlg::StartCapper()
 #endif
 
 
-    pCheck = this->GetDlgItem(IDC_CHK_RENDER);
+    pCheck = (CButton*)this->GetDlgItem(IDC_CHK_RENDER);
     rendercheck = pCheck->GetCheck();
-    pCheck = this->GetDlgItem(IDC_CHK_CAPTURE);
+    pCheck = (CButton*)this->GetDlgItem(IDC_CHK_CAPTURE);
     capturecheck = pCheck->GetCheck();
 
     if(strlen(pExecAnsi) < 1 || strlen(pDllAnsi) < 1)
@@ -414,7 +422,7 @@ void CcontroldemoDlg::StartCapper()
         ret = LAST_ERROR_CODE();
         errstr.Format(TEXT("could not open process(%d) error(%d)"),processid,
                       ret);
-        goto close_handle;
+        goto fail;
     }
 
 

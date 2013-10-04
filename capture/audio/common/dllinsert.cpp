@@ -2,7 +2,7 @@
 
 #include "dllinsert.h"
 #include "uniansi.h"
-#include "..\\detours\\detours.h"
+#include "detours.h"
 #include <windows.h>
 #include <TlHelp32.h>
 #include <assert.h>

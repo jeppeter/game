@@ -74,8 +74,10 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="capture.h" />
     <ClInclude Include="detoured.h" />
     <ClInclude Include="detours.h" />
+    <ClInclude Include="dllinsert.h" />
     <ClInclude Include="evt.h" />
     <ClInclude Include="memshare.h" />
     <ClInclude Include="output_debug.h" />
@@ -87,6 +89,7 @@
     <ClCompile Include="creatwth.cpp" />
     <ClCompile Include="detours.cpp" />
     <ClCompile Include="disasm.cpp" />
+    <ClCompile Include="dllinsert.cpp" />
     <ClCompile Include="evt.cpp" />
     <ClCompile Include="image.cpp" />
     <ClCompile Include="memshare.cpp" />

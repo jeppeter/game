@@ -4,6 +4,8 @@
 
 #pragma once
 #include "afxwin.h"
+#include "pcmcap_democallback.h"
+#include <pcmcap_capper.h>
 
 // CcontroldemoDlg 对话框
 class CcontroldemoDlg : public CDialogEx
@@ -11,6 +13,7 @@ class CcontroldemoDlg : public CDialogEx
 // 构造
 public:
 	CcontroldemoDlg(CWnd* pParent = NULL);	// 标准构造函数
+	~CcontroldemoDlg();
 	CString m_strExec;
 	CString m_strParam;
 	CString m_strDll;
