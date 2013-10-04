@@ -18,6 +18,7 @@ public:
 
 private:
 	FILE* m_fp;
+	int m_WriteBlockSize;
 	
 };
 
