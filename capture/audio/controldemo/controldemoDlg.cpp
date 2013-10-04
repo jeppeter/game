@@ -75,6 +75,7 @@ END_MESSAGE_MAP()
 
 BOOL CcontroldemoDlg::OnInitDialog()
 {
+	CButton* pCheck=NULL;
     CDialogEx::OnInitDialog();
 
     // 将“关于...”菜单项添加到系统菜单中。
@@ -158,10 +159,76 @@ HCURSOR CcontroldemoDlg::OnQueryDragIcon()
 
 void CcontroldemoDlg::OnCheckBoxClick()
 {
-    if(this->m_pCapper == NULL || this->m_pDemoCallBack == NULL)
+    CButton* pCheck=NULL;
+    int renderchk=0,capturechk=0;
+    int iOperation=PCMCAPPER_OPERATION_NONE;
+    BOOL bret;
+    int ret;
+    CString errstr;
+    if(this->m_pCapper == NULL || this->m_pDemoCallBack == NULL || this->m_hProc == NULL)
     {
         return ;
     }
+
+    pCheck = this->GetDlgItem(IDC_CHK_RENDER);
+    renderchk = pCheck->GetCheck();
+    pCheck = this->GetDlgItem(IDC_CHK_CAPTURE);
+    capturechk = pCheck->GetCheck();
+
+    if(renderchk ==0 && capturechk == 0)
+    {
+        iOperation = PCMCAPPER_OPERATION_NONE;
+    }
+    else if(renderchk == 0 && capturechk)
+    {
+        iOperation = PCMCAPPER_OPERATION_CAPTURE;
+    }
+    else if(renderchk  && capturechk == 0)
+    {
+        iOperation = PCMCAPPER_OPERATION_RENDER;
+    }
+    else
+    {
+        iOperation = PCMCAPPER_OPERATION_BOTH;
+    }
+
+    bret = this->m_pCapper->SetAudioOperation(PCMCAPPER_OPERATION_NONE);
+    if(!bret)
+    {
+        errstr.Format(TEXT("could not set PCMCAPPER_OPERATION_NONE"));
+        AfxMessageBox(errstr);
+        this->StopCapper();
+        return;
+    }
+
+    bret = this->m_pCapper->SetAudioOperation(iOperation);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        switch(iOperation)
+        {
+        case PCMCAPPER_OPERATION_NONE:
+            errstr.Format(TEXT("set operation none error(%d)"),ret);
+            break;
+        case PCMCAPPER_OPERATION_CAPTURE:
+            errstr.Format(TEXT("set operation cature error(%d)"),ret);
+            break;
+        case PCMCAPPER_OPERATION_RENDER:
+            errstr.Format(TEXT("set operation render error(%d)"),ret);
+            break;
+        case PCMCAPPER_OPERATION_BOTH:
+            errstr.Format(TEXT("set operation both error(%d)"),ret);
+            break;
+        default:
+            errstr.Format(TEXT("set operation (%d) error(%d)"),iOperation,ret);
+            break;
+        }
+
+		AfxMessageBox(errstr);
+		this->StopCapper();
+		return;
+    }
+
     return ;
 }
 
@@ -169,8 +236,11 @@ void CcontroldemoDlg::OnCheckBoxClick()
 void CcontroldemoDlg::StartCapper()
 {
     char *pExecAnsi=NULL,*pDllAnsi=NULL,*pParamAnsi=NULL,*pDumpAnsi=NULL,*pBufNumAnsi=NULL,*pBlockSizeAnsi=NULL;
-	char *pPartDllAnsi=NULL;
+    char *pPartDllAnsi=NULL;
+    char *pFullExecName=NULL;
+    int fullexecnamesize=0;
     int rendercheck=0,capturecheck=0;
+    DWORD processid=0;
 #ifdef _UNICODE
     int execansisize=0,dllansisize=0,paramansisize=0,dumpansisize=0,bufnumansisize=0,blocksizeansisize=0;
 #endif
@@ -262,6 +332,13 @@ void CcontroldemoDlg::StartCapper()
     pCheck = this->GetDlgItem(IDC_CHK_CAPTURE);
     capturecheck = pCheck->GetCheck();
 
+    if(strlen(pExecAnsi) < 1 || strlen(pDllAnsi) < 1)
+    {
+        errstr.Format(TEXT("must specify execname and dllname"));
+        AfxMessageBox(errstr);
+        goto free_release;
+    }
+
 
     bufnum = atoi(pBufNumAnsi);
     blocksize = atoi(pBlockSizeAnsi);
@@ -272,15 +349,58 @@ void CcontroldemoDlg::StartCapper()
         goto free_release;
     }
 
-	pPartDllAnsi = strrchr(pDllAnsi,'\\');
-	if (pPartDllAnsi == NULL)
-		{
-			
-		}
+    pPartDllAnsi = strrchr(pDllAnsi,'\\');
+    if(pPartDllAnsi == NULL)
+    {
+        pPartDllAnsi = pDllAnsi;
+    }
+    else
+    {
+        pPartDllAnsi ++ ;
+    }
+
+    /**/
+    fullexecnamesize =strlen(pExecAnsi) + 1;
+    if(strlen(pParamAnsi))
+    {
+        fullexecnamesize += strlen(pParamAnsi) + 3;
+    }
+
+    pFullExecName = new char[fullexecnamesize];
+
+    if(strlen(pParamAnsi))
+    {
+        _snprintf_s(pFullExecName,fullexecnamesize,_TRUNCATE,"%s %s",pExecAnsi,pParamAnsi);
+    }
+    else
+    {
+        _snprintf_s(pFullExecName,fullexecnamesize,_TRUNCATE,"%s",pExecAnsi);
+    }
+
+
+    ret = LoadInsert(NULL,pFullExecName,pDllAnsi,pPartDllAnsi);
+    if(ret < 0)
+    {
+        errstr.Format(TEXT("could not run (%s) error(%d) with dll(%s) part(%s)"),pFullExecName,ret,
+                      pDllAnsi,pPartDllAnsi);
+        AfxMessageBox(errstr);
+        goto free_release;
+    }
+
+    processid= ret;
+
 
 
     this->StopCapper();
 
+    this->m_hProc = OpenProcess(PROCESS_VM_OPERATION |PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION | PROCESS_CREATE_THREAD ,FALSE,processid);
+    if(this->m_hProc == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        errstr.Format(TEXT("could not open process(%d) error(%d)"),processid,
+                      ret);
+        goto close_handle;
+    }
 
 
     /*now to get the text  */
@@ -312,7 +432,7 @@ void CcontroldemoDlg::StartCapper()
         iOperation = PCMCAP_AUDIO_BOTH;
     }
 
-	/*now to create the process*/
+    /*now to create the process*/
 
 
 
@@ -320,24 +440,30 @@ void CcontroldemoDlg::StartCapper()
     bret= this->m_pCapper->Start(this->m_hProc,iOperation,bufnum,blocksize,this->m_pDemoCallBack,NULL);
     if(!bret)
     {
-    	ret = LAST_ERROR_CODE();
-    	errstr.Format(TEXT("could not start %d operation error(%d)"),iOperation,ret);
+        ret = LAST_ERROR_CODE();
+        errstr.Format(TEXT("could not start %d operation error(%d)"),iOperation,ret);
         goto fail;
     }
 
-	/*ok all is ok*/
+    /*ok all is ok*/
 
 
+#ifdef _UNICODE
+    UnicodeToAnsi(NULL,&pExecAnsi,&execansisize);
+    UnicodeToAnsi(NULL,&pDllAnsi,&dllansisize);
+    UnicodeToAnsi(NULL,&pParamAnsi,&paramansisize);
+    UnicodeToAnsi(NULL,&pDumpAnsi,&dumpansisize);
+    UnicodeToAnsi(NULL,&pBufNumAnsi,&bufnumansisize);
+    UnicodeToAnsi(NULL,&pBlockSizeAnsi,&blocksizeansisize);
+#endif
+    if(pFullExecName)
+    {
+        delete [] pFullExecName;
+    }
+    pFullExecName = NULL;
 
 
     return ;
-
-close_handle:
-    if(this->m_hProc)
-    {
-        CloseHandle(this->m_hProc);
-    }
-    this->m_hProc = NULL;
 
 fail:
     this->StopCapper();
@@ -350,6 +476,11 @@ free_release:
     UnicodeToAnsi(NULL,&pBufNumAnsi,&bufnumansisize);
     UnicodeToAnsi(NULL,&pBlockSizeAnsi,&blocksizeansisize);
 #endif
+    if(pFullExecName)
+    {
+        delete [] pFullExecName;
+    }
+    pFullExecName = NULL;
     return;
 
 }
@@ -367,6 +498,10 @@ void CcontroldemoDlg::StopCapper()
         delete this->m_pDemoCallBack;
     }
     this->m_pDemoCallBack = NULL;
+    if(this->m_hProc)
+    {
+        CloseHandle(this->m_hProc);
+    }
     this->m_hProc = NULL;
     return ;
 }
