@@ -987,7 +987,7 @@ static int DetourVirtualFuncTable(CRITICAL_SECTION* pCS,int* pChanged,void**ppNe
         DEBUG_INFO("*ppNextFunc 0x%p CallBackFunc 0x%p\n",*ppNextFunc,pCallBackFunc);
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
-        //DetourAttach(ppNextFunc,pCallBackFunc);
+        DetourAttach(ppNextFunc,pCallBackFunc);
         DetourTransactionCommit();
         *pChanged = 1;
         ret = 1;
@@ -1396,9 +1396,8 @@ static int st_DeviceReleaseDetoured=0;
 ULONG WINAPI DeviceReleaseCallBack(IMMDevice *pThis)
 {
     ULONG uret;
-    DEBUG_INFO("\n");
     uret = DeviceReleaseNext(pThis);
-    DEBUG_INFO("\n");
+    DEBUG_INFO("uret %d\n",uret);
     return uret;
 }
 
@@ -1413,12 +1412,17 @@ HRESULT WINAPI DeviceActivateCallBack(IMMDevice *pThis,REFIID iid,DWORD dwClsCtx
     hr = DeviceActivateNext(pThis,iid,dwClsCtx,pActivationParams,ppInterface);
     if(SUCCEEDED(hr))
     {
+        DEBUG_INFO("iid %s\n",iid);
         if(iid == __uuidof(IAudioClient))
         {
             IAudioClient* pClient=(IAudioClient*)*ppInterface;
-            DEBUG_INFO("\n");
+            DEBUG_INFO("active audio client\n");
             DetourDeviceAudioClientVirtFunctions(pClient);
         }
+    }
+    else
+    {
+        ERROR_INFO("error(0x%x)\n",hr);
     }
     return hr;
 }
@@ -1446,9 +1450,8 @@ static int st_DeviceCollectionReleaseDetoured=0;
 ULONG WINAPI DeviceCollectionReleaseCallBack(IMMDeviceCollection* pThis)
 {
     ULONG uret;
-    DEBUG_INFO("\n");
     uret = DeviceCollectionReleaseNext(pThis);
-    DEBUG_INFO("\n");
+    DEBUG_INFO("uret %d\n",uret);
     return uret;
 }
 
@@ -1546,7 +1549,7 @@ HRESULT EnumeratorGetDeviceCallBack(IMMDeviceEnumerator* pThis,LPCWSTR pwstrId,I
     if(SUCCEEDED(hr))
     {
         DEBUG_INFO("\n");
-        DetourDeviceVirtFunctions(*ppDevice);
+        //DetourDeviceVirtFunctions(*ppDevice);
     }
     return hr;
 }
@@ -1557,7 +1560,7 @@ static int DetourEnumeratorVirtFunctions(IMMDeviceEnumerator* pEnumerator)
     DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorReleaseDetoured,(void**)&EnumeratorReleaseNext,EnumeratorReleaseCallBack,pEnumerator,ENUMERATOR_RELEASE_NUM,"MMDeviceEnumerator");
     DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorEnumAudioEndpointsDetoured,(void**)&EnumeratorEnumAudioEndpointsNext,EnumeratorEnumAudioEndpointsCallBack,pEnumerator,ENUMERATOR_ENUM_AUDIO_ENDPOINTS_NUM,"MMDeviceEnumerator");
     DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorGetDefaultAudioEndpointDetoured,(void**)&EnumeratorGetDefaultAudioEndpointNext,EnumeratorGetDefaultAudioEndpointCallBack,pEnumerator,ENUMERATOR_GET_DEFAULT_AUDIO_ENDPOINT_NUM,"MMDeviceEnumerator");
-    DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorGetDeviceDetoured,(void**)&EnumeratorGetDeviceNext,EnumeratorGetDeviceCallBack,pEnumerator,ENUMERATOR_GET_DEVICE_NUM,"MMDeviceEnumerator");
+    //DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorGetDeviceDetoured,(void**)&EnumeratorGetDeviceNext,EnumeratorGetDeviceCallBack,pEnumerator,ENUMERATOR_GET_DEVICE_NUM,"MMDeviceEnumerator");
     return 0;
 }
 

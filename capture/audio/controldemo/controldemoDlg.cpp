@@ -95,6 +95,8 @@ END_MESSAGE_MAP()
 BOOL CcontroldemoDlg::OnInitDialog()
 {
 	CButton* pCheck=NULL;
+	CEdit* pEdt=NULL;
+	CString fstr;
     CDialogEx::OnInitDialog();
 
     // 将“关于...”菜单项添加到系统菜单中。
@@ -127,6 +129,13 @@ BOOL CcontroldemoDlg::OnInitDialog()
 	pCheck->SetCheck(0);
 	pCheck = (CButton*)this->GetDlgItem(IDC_CHK_CAPTURE);
 	pCheck->SetCheck(1);
+
+	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_BUFNUM);
+	fstr.Format(TEXT("%d"),10);
+	pEdt->SetWindowText(fstr);
+	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_BLOCKSIZE);
+	fstr.Format(TEXT("%d"),10240);
+	pEdt->SetWindowText(fstr);
 
     return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
