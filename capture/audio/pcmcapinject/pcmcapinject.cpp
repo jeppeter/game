@@ -965,7 +965,7 @@ int HandleAudioOperation(PCMCAP_CONTROL_t *pControl)
 /*****************************************************
 * detour function call table
 *****************************************************/
-static int DetourVirtualFuncTable(CRITICAL_SECTION* pCS,int* pChanged,void**ppNextFunc,void*pCallBackFunc,void* pObject,int virtfuncnum)
+static int DetourVirtualFuncTable(CRITICAL_SECTION* pCS,int* pChanged,void**ppNextFunc,void*pCallBackFunc,void* pObject,int virtfuncnum,const char* pTypeName)
 {
     int ret =0;
     EnterCriticalSection(pCS);
@@ -975,16 +975,18 @@ static int DetourVirtualFuncTable(CRITICAL_SECTION* pCS,int* pChanged,void**ppNe
         ptr_type_t** vptrptr = (ptr_type_t **)pObject;
         ptr_type_t* vptr = *vptrptr;
 
+		DEBUG_INFO("\n");
         assert(ppNextFunc && *ppNextFunc == NULL);
-#if 0		
+		DEBUG_INFO("[%s]0x%p virtfuncnum[%d]ppNextFunc 0x%p 0x%p\n",pTypeName,pObject,virtfuncnum,ppNextFunc,*ppNextFunc);
         *ppNextFunc =(void*) vptr[virtfuncnum];
+		DEBUG_INFO("*ppNextFunc 0x%p CallBackFunc 0x%p\n",*ppNextFunc,pCallBackFunc);
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
         DetourAttach(ppNextFunc,pCallBackFunc);
         DetourTransactionCommit();
-#endif
         *pChanged = 1;
         ret = 1;
+		DEBUG_INFO("\n");
     }
     LeaveCriticalSection(pCS);
     return ret;
@@ -1043,9 +1045,9 @@ HRESULT WINAPI StreamAudioVolumeSetAllVolumesCallBack(IAudioStreamVolume * This,
 
 int DetourStreamAudioVolumeVirtFunctions(IAudioStreamVolume *pStream)
 {
-    DetourVirtualFuncTable(&st_DetourCS,&st_StreamAudioVolumeReleaseDetoured,(void**)&StreamAudioVolumeReleaseNext,StreamAudioVolumeReleaseCallBack,pStream,STREAM_AUDIO_VOLUME_RELEASE_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_StreamAudioVolumeSetChannelVolumeDetoured,(void**)&StreamAudioVolumeSetChannelVolumeNext,StreamAudioVolumeSetChannelVolumeCallBack,pStream,STREAM_AUDIO_VOLUME_SET_CHANNEL_VOLUME_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_StreamAudioVolumeSetAllVolumesDetoured,(void**)&StreamAudioVolumeSetAllVolumesNext,StreamAudioVolumeSetAllVolumesCallBack,pStream,STREAM_AUDIO_VOLUME_SET_ALL_VOLUMES_NUM);
+    DetourVirtualFuncTable(&st_DetourCS,&st_StreamAudioVolumeReleaseDetoured,(void**)&StreamAudioVolumeReleaseNext,StreamAudioVolumeReleaseCallBack,pStream,STREAM_AUDIO_VOLUME_RELEASE_NUM,"AudioStreamVolume");
+    DetourVirtualFuncTable(&st_DetourCS,&st_StreamAudioVolumeSetChannelVolumeDetoured,(void**)&StreamAudioVolumeSetChannelVolumeNext,StreamAudioVolumeSetChannelVolumeCallBack,pStream,STREAM_AUDIO_VOLUME_SET_CHANNEL_VOLUME_NUM,"AudioStreamVolume");
+    DetourVirtualFuncTable(&st_DetourCS,&st_StreamAudioVolumeSetAllVolumesDetoured,(void**)&StreamAudioVolumeSetAllVolumesNext,StreamAudioVolumeSetAllVolumesCallBack,pStream,STREAM_AUDIO_VOLUME_SET_ALL_VOLUMES_NUM,"AudioStreamVolume");
     return 0;
 }
 
@@ -1105,9 +1107,9 @@ HRESULT WINAPI ChannelAudioVolumeSetAllVolumesCallBack(IChannelAudioVolume * Thi
 
 int DetourChannelAudioVolumeVirtFunctions(IChannelAudioVolume *pChannel)
 {
-    DetourVirtualFuncTable(&st_DetourCS,&st_ChannelAudioVolumeReleaseDetoured,(void**)&ChannelAudioVolumeReleaseNext,ChannelAudioVolumeReleaseCallBack,pChannel,CHANNEL_AUDIO_VOLUME_RELEASE_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_ChannelAudioVolumeSetChannelVolumeDetoured,(void**)&ChannelAudioVolumeSetChannelVolumeNext,ChannelAudioVolumeSetChannelVolumeCallBack,pChannel,CHANNEL_AUDIO_VOLUME_SET_CHANNEL_VOLUME_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_ChannelAudioVolumeSetAllVolumesDetoured,(void**)&ChannelAudioVolumeSetAllVolumesNext,ChannelAudioVolumeSetAllVolumesCallBack,pChannel,CHANNEL_AUDIO_VOLUME_SET_ALL_VOLUMES_NUM);
+    DetourVirtualFuncTable(&st_DetourCS,&st_ChannelAudioVolumeReleaseDetoured,(void**)&ChannelAudioVolumeReleaseNext,ChannelAudioVolumeReleaseCallBack,pChannel,CHANNEL_AUDIO_VOLUME_RELEASE_NUM,"ChannelAudioVolume");
+    DetourVirtualFuncTable(&st_DetourCS,&st_ChannelAudioVolumeSetChannelVolumeDetoured,(void**)&ChannelAudioVolumeSetChannelVolumeNext,ChannelAudioVolumeSetChannelVolumeCallBack,pChannel,CHANNEL_AUDIO_VOLUME_SET_CHANNEL_VOLUME_NUM,"ChannelAudioVolume");
+    DetourVirtualFuncTable(&st_DetourCS,&st_ChannelAudioVolumeSetAllVolumesDetoured,(void**)&ChannelAudioVolumeSetAllVolumesNext,ChannelAudioVolumeSetAllVolumesCallBack,pChannel,CHANNEL_AUDIO_VOLUME_SET_ALL_VOLUMES_NUM,"ChannelAudioVolume");
     return 0;
 }
 
@@ -1148,8 +1150,8 @@ HRESULT WINAPI SimpleAudioVolumeSetMasterVolumeCallBack(ISimpleAudioVolume * pTh
 
 static int DetourSimpleAudioVolumeVirtFunctions(ISimpleAudioVolume *pThis)
 {
-    DetourVirtualFuncTable(&st_DetourCS,&st_SimpleAudioVolumeReleaseDetoured,(void**)&SimpleAudioVolumeReleaseNext,SimpleAudioVolumeReleaseCallBack,pThis,SIMPLE_AUDIO_VOLUME_RELEASE_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_SimpleAudioVolumeSetMasterVolumeDetoured,(void**)&SimpleAudioVolumeSetMasterVolumeNext,SimpleAudioVolumeSetMasterVolumeCallBack,pThis,SIMPLE_AUDIO_VOLUME_SET_MASTER_VOLUME_NUM);
+    DetourVirtualFuncTable(&st_DetourCS,&st_SimpleAudioVolumeReleaseDetoured,(void**)&SimpleAudioVolumeReleaseNext,SimpleAudioVolumeReleaseCallBack,pThis,SIMPLE_AUDIO_VOLUME_RELEASE_NUM,"SimpleAudioVolume");
+    DetourVirtualFuncTable(&st_DetourCS,&st_SimpleAudioVolumeSetMasterVolumeDetoured,(void**)&SimpleAudioVolumeSetMasterVolumeNext,SimpleAudioVolumeSetMasterVolumeCallBack,pThis,SIMPLE_AUDIO_VOLUME_SET_MASTER_VOLUME_NUM,"SimpleAudioVolume");
     return 0;
 }
 
@@ -1225,9 +1227,9 @@ HRESULT WINAPI AudioRenderClientReleaseBufferCallBack(IAudioRenderClient* pRende
 
 static int DetourAudioRenderClientVirtFunctions(IAudioRenderClient *pRender)
 {
-    DetourVirtualFuncTable(&st_DetourCS,&st_AudioRenderClientReleaseDetoured,(void**)&AudioRenderClientReleaseNext,AudioRenderClientReleaseCallBack,pRender,AUDIO_RENDER_RELEASE_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_AudioRenderClientGetBufferDetoured,(void**)&AudioRenderClientGetBufferNext,AudioRenderClientGetBufferCallBack,pRender,AUDIO_RENDER_GET_BUFFER_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_AudioRenderClientReleaseBufferDetoured,(void**)&AudioRenderClientReleaseBufferNext,AudioRenderClientReleaseBufferCallBack,pRender,AUDIO_RENDER_RELEASE_BUFFER_NUM);
+    DetourVirtualFuncTable(&st_DetourCS,&st_AudioRenderClientReleaseDetoured,(void**)&AudioRenderClientReleaseNext,AudioRenderClientReleaseCallBack,pRender,AUDIO_RENDER_RELEASE_NUM,"AudioRenderClient");
+    DetourVirtualFuncTable(&st_DetourCS,&st_AudioRenderClientGetBufferDetoured,(void**)&AudioRenderClientGetBufferNext,AudioRenderClientGetBufferCallBack,pRender,AUDIO_RENDER_GET_BUFFER_NUM,"AudioRenderClient");
+    DetourVirtualFuncTable(&st_DetourCS,&st_AudioRenderClientReleaseBufferDetoured,(void**)&AudioRenderClientReleaseBufferNext,AudioRenderClientReleaseBufferCallBack,pRender,AUDIO_RENDER_RELEASE_BUFFER_NUM,"AudioRenderClient");
     return 0;
 }
 
@@ -1367,12 +1369,12 @@ HRESULT WINAPI AudioClientGetServiceCallBack(IAudioClient* pClient,REFIID riid,v
 
 static int DetourDeviceAudioClientVirtFunctions(IAudioClient* pClient)
 {
-    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientReleaseDetoured,(void**)&AudioClientReleaseNext,AudioClientReleaseCallBack,pClient,AUDIO_CLIENT_RELEASE_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientInitializeDetoured,(void**)&AudioClientInitializeNext,AudioClientInitializeCallBack,pClient,AUDIO_CLIENT_INITIALIZE_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientStartDetoured,(void**)&AudioClientStartNext,AudioClientStartCallBack,pClient,AUDIO_CLIENT_START_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientStopDetoured,(void**)&AudioClientStopNext,AudioClientStopCallBack,pClient,AUDIO_CLIENT_STOP_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientResetDetoured,(void**)&AudioClientResetNext,AudioClientResetCallBack,pClient,AUDIO_CLIENT_RESET_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientGetServiceDetoured,(void**)&AudioClientGetServiceNext,AudioClientGetServiceCallBack,pClient,AUDIO_CLIENT_GET_SERVICE_NUM);
+    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientReleaseDetoured,(void**)&AudioClientReleaseNext,AudioClientReleaseCallBack,pClient,AUDIO_CLIENT_RELEASE_NUM,"AudioClient");
+    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientInitializeDetoured,(void**)&AudioClientInitializeNext,AudioClientInitializeCallBack,pClient,AUDIO_CLIENT_INITIALIZE_NUM,"AudioClient");
+    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientStartDetoured,(void**)&AudioClientStartNext,AudioClientStartCallBack,pClient,AUDIO_CLIENT_START_NUM,"AudioClient");
+    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientStopDetoured,(void**)&AudioClientStopNext,AudioClientStopCallBack,pClient,AUDIO_CLIENT_STOP_NUM,"AudioClient");
+    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientResetDetoured,(void**)&AudioClientResetNext,AudioClientResetCallBack,pClient,AUDIO_CLIENT_RESET_NUM,"AudioClient");
+    DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientGetServiceDetoured,(void**)&AudioClientGetServiceNext,AudioClientGetServiceCallBack,pClient,AUDIO_CLIENT_GET_SERVICE_NUM,"AudioClient");
     return 0;
 }
 
@@ -1420,8 +1422,8 @@ HRESULT WINAPI DeviceActivateCallBack(IMMDevice *pThis,REFIID iid,DWORD dwClsCtx
 
 static int DetourDeviceVirtFunctions(IMMDevice* pDevice)
 {
-    DetourVirtualFuncTable(&st_DetourCS,&st_DeviceReleaseDetoured,(void**)&DeviceReleaseNext,DeviceReleaseCallBack,pDevice,DEVICE_RELEASE_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_DeviceActivateDetoured,(void**)&DeviceActivateNext,DeviceActivateCallBack,pDevice,DEVICE_ACTIVATE_NUM);
+    DetourVirtualFuncTable(&st_DetourCS,&st_DeviceReleaseDetoured,(void**)&DeviceReleaseNext,DeviceReleaseCallBack,pDevice,DEVICE_RELEASE_NUM,"MMDevice");
+    DetourVirtualFuncTable(&st_DetourCS,&st_DeviceActivateDetoured,(void**)&DeviceActivateNext,DeviceActivateCallBack,pDevice,DEVICE_ACTIVATE_NUM,"MMDevice");
     return 0;
 }
 
@@ -1477,8 +1479,8 @@ static int st_EnumeratorReleaseDetoured=0;
 
 static int DetourDeviceCollectionVirtFunctions(IMMDeviceCollection* pCollection)
 {
-    DetourVirtualFuncTable(&st_DetourCS,&st_DeviceCollectionReleaseDetoured,(void**)&DeviceCollectionReleaseNext,DeviceCollectionReleaseCallBack,pCollection,DEVICE_COLLECTION_RELEASE_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_DeviceCollectionItemDetoured,(void**)&DeviceCollectionItemNext,DeviceCollectionItemCallBack,pCollection,DEVICE_COLLECTION_ITEM_NUM);
+    DetourVirtualFuncTable(&st_DetourCS,&st_DeviceCollectionReleaseDetoured,(void**)&DeviceCollectionReleaseNext,DeviceCollectionReleaseCallBack,pCollection,DEVICE_COLLECTION_RELEASE_NUM,"MMDeviceCollection");
+    DetourVirtualFuncTable(&st_DetourCS,&st_DeviceCollectionItemDetoured,(void**)&DeviceCollectionItemNext,DeviceCollectionItemCallBack,pCollection,DEVICE_COLLECTION_ITEM_NUM,"MMDeviceCollection");
     return 0;
 }
 
@@ -1547,10 +1549,10 @@ HRESULT EnumeratorGetDeviceCallBack(IMMDeviceEnumerator* pThis,LPCWSTR pwstrId,I
 
 static int DetourEnumeratorVirtFunctions(IMMDeviceEnumerator* pEnumerator)
 {
-    DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorReleaseDetoured,(void**)&EnumeratorReleaseNext,EnumeratorReleaseCallBack,pEnumerator,ENUMERATOR_RELEASE_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorEnumAudioEndpointsDetoured,(void**)&EnumeratorEnumAudioEndpointsNext,EnumeratorEnumAudioEndpointsCallBack,pEnumerator,ENUMERATOR_ENUM_AUDIO_ENDPOINTS_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorGetDefaultAudioEndpointDetoured,(void**)&EnumeratorGetDefaultAudioEndpointNext,EnumeratorGetDefaultAudioEndpointCallBack,pEnumerator,ENUMERATOR_GET_DEFAULT_AUDIO_ENDPOINT_NUM);
-    DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorGetDeviceDetoured,(void**)&EnumeratorGetDeviceNext,EnumeratorGetDeviceCallBack,pEnumerator,ENUMERATOR_GET_DEVICE_NUM);
+    DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorReleaseDetoured,(void**)&EnumeratorReleaseNext,EnumeratorReleaseCallBack,pEnumerator,ENUMERATOR_RELEASE_NUM,"MMDeviceEnumerator");
+    DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorEnumAudioEndpointsDetoured,(void**)&EnumeratorEnumAudioEndpointsNext,EnumeratorEnumAudioEndpointsCallBack,pEnumerator,ENUMERATOR_ENUM_AUDIO_ENDPOINTS_NUM,"MMDeviceEnumerator");
+    DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorGetDefaultAudioEndpointDetoured,(void**)&EnumeratorGetDefaultAudioEndpointNext,EnumeratorGetDefaultAudioEndpointCallBack,pEnumerator,ENUMERATOR_GET_DEFAULT_AUDIO_ENDPOINT_NUM,"MMDeviceEnumerator");
+    DetourVirtualFuncTable(&st_DetourCS,&st_EnumeratorGetDeviceDetoured,(void**)&EnumeratorGetDeviceNext,EnumeratorGetDeviceCallBack,pEnumerator,ENUMERATOR_GET_DEVICE_NUM,"MMDeviceEnumerator");
     return 0;
 }
 
@@ -1558,7 +1560,10 @@ static int DetourEnumeratorVirtFunctions(IMMDeviceEnumerator* pEnumerator)
 LONG WINAPI DetourApplicationCrashHandler(EXCEPTION_POINTERS *pException)
 {
     StackWalker sw;
-    sw.ShowCallstack(GetCurrentThread(), pException->ContextRecord,NULL,NULL);
+	EXCEPTION_RECORD *xr = pException->ExceptionRecord;
+	CONTEXT *xc = pException->ContextRecord;
+	DEBUG_INFO("Eip 0x%08x\n",xc->Eip);
+	sw.ShowCallstack(GetCurrentThread(), pException->ContextRecord,NULL,NULL);
     return EXCEPTION_EXECUTE_HANDLER;
 }
 

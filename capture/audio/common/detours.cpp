@@ -450,7 +450,7 @@ static PDETOUR_TRAMPOLINE detour_alloc_trampoline(PBYTE pbTarget)
     PDETOUR_TRAMPOLINE pHi = (PDETOUR_TRAMPOLINE)
         ((pbTarget < (PBYTE)0xffffffff80000000)
          ? pbTarget + 0x7ff80000 : (PBYTE)0xfffffffffff80000);
-    DETOUR_TRACE(("[%p..%p..%p]\n", pLo, pbTarget, pHi));
+    //DETOUR_TRACE(("[%p..%p..%p]\n", pLo, pbTarget, pHi));
 
     PDETOUR_TRAMPOLINE pTrampoline = NULL;
 
@@ -797,20 +797,20 @@ LONG WINAPI DetourTransactionCommitEx(PVOID **pppFailedPointer)
 #endif
         }
         else {
-            DETOUR_TRACE(("detours: pbTramp =%p, pbRemain=%p, pbDetour=%p, cbTarget=%d\n",
-                          o->pTrampoline,
-                          o->pTrampoline->pbRemain,
-                          o->pTrampoline->pbDetour,
-                          o->pTrampoline->cbTarget));
+            //DETOUR_TRACE(("detours: pbTramp =%p, pbRemain=%p, pbDetour=%p, cbTarget=%d\n",
+            //              o->pTrampoline,
+            //              o->pTrampoline->pbRemain,
+            //              o->pTrampoline->pbDetour,
+            //              o->pTrampoline->cbTarget));
 
-            DETOUR_TRACE(("detours: pbTarget=%p: "
-                          "%02x %02x %02x %02x "
-                          "%02x %02x %02x %02x "
-                          "%02x %02x %02x %02x [before]\n",
-                          o->pbTarget,
-                          o->pbTarget[0], o->pbTarget[1], o->pbTarget[2], o->pbTarget[3],
-                          o->pbTarget[4], o->pbTarget[5], o->pbTarget[6], o->pbTarget[7],
-                          o->pbTarget[8], o->pbTarget[9], o->pbTarget[10], o->pbTarget[11]));
+            //DETOUR_TRACE(("detours: pbTarget=%p: "
+            //              "%02x %02x %02x %02x "
+            //              "%02x %02x %02x %02x "
+            //              "%02x %02x %02x %02x [before]\n",
+            //              o->pbTarget,
+            //              o->pbTarget[0], o->pbTarget[1], o->pbTarget[2], o->pbTarget[3],
+            //              o->pbTarget[4], o->pbTarget[5], o->pbTarget[6], o->pbTarget[7],
+            //              o->pbTarget[8], o->pbTarget[9], o->pbTarget[10], o->pbTarget[11]));
 
 #ifdef DETOURS_IA64
             ((DETOUR_IA64_BUNDLE*)o->pbTarget)
@@ -831,26 +831,26 @@ LONG WINAPI DetourTransactionCommitEx(PVOID **pppFailedPointer)
             *o->ppbPointer = o->pTrampoline->rbCode;
 #endif // DETOURS_X86
 
-            DETOUR_TRACE(("detours: pbTarget=%p: "
-                          "%02x %02x %02x %02x "
-                          "%02x %02x %02x %02x "
-                          "%02x %02x %02x %02x [after]\n",
-                          o->pbTarget,
-                          o->pbTarget[0], o->pbTarget[1], o->pbTarget[2], o->pbTarget[3],
-                          o->pbTarget[4], o->pbTarget[5], o->pbTarget[6], o->pbTarget[7],
-                          o->pbTarget[8], o->pbTarget[9], o->pbTarget[10], o->pbTarget[11]));
+            //DETOUR_TRACE(("detours: pbTarget=%p: "
+            //              "%02x %02x %02x %02x "
+            //              "%02x %02x %02x %02x "
+            //              "%02x %02x %02x %02x [after]\n",
+            //              o->pbTarget,
+            //              o->pbTarget[0], o->pbTarget[1], o->pbTarget[2], o->pbTarget[3],
+            //              o->pbTarget[4], o->pbTarget[5], o->pbTarget[6], o->pbTarget[7],
+            //              o->pbTarget[8], o->pbTarget[9], o->pbTarget[10], o->pbTarget[11]));
 
-            DETOUR_TRACE(("detours: pbTramp =%p: "
-                          "%02x %02x %02x %02x "
-                          "%02x %02x %02x %02x "
-                          "%02x %02x %02x %02x\n",
-                          o->pTrampoline,
-                          o->pTrampoline->rbCode[0], o->pTrampoline->rbCode[1],
-                          o->pTrampoline->rbCode[2], o->pTrampoline->rbCode[3],
-                          o->pTrampoline->rbCode[4], o->pTrampoline->rbCode[5],
-                          o->pTrampoline->rbCode[6], o->pTrampoline->rbCode[7],
-                          o->pTrampoline->rbCode[8], o->pTrampoline->rbCode[9],
-                          o->pTrampoline->rbCode[10], o->pTrampoline->rbCode[11]));
+            //DETOUR_TRACE(("detours: pbTramp =%p: "
+            //              "%02x %02x %02x %02x "
+            //              "%02x %02x %02x %02x "
+            //              "%02x %02x %02x %02x\n",
+            //              o->pTrampoline,
+            //              o->pTrampoline->rbCode[0], o->pTrampoline->rbCode[1],
+            //              o->pTrampoline->rbCode[2], o->pTrampoline->rbCode[3],
+            //              o->pTrampoline->rbCode[4], o->pTrampoline->rbCode[5],
+            //              o->pTrampoline->rbCode[6], o->pTrampoline->rbCode[7],
+            //              o->pTrampoline->rbCode[8], o->pTrampoline->rbCode[9],
+            //              o->pTrampoline->rbCode[10], o->pTrampoline->rbCode[11]));
 
 #ifdef DETOURS_IA64
             DETOUR_TRACE(("\n"));
@@ -1146,7 +1146,7 @@ LONG WINAPI DetourAttachEx(PVOID *ppPointer,
         *ppRealTrampoline = pTrampoline;
     }
 
-    DETOUR_TRACE(("detours: pbTramp=%p, pDetour=%p\n", pTrampoline, pDetour));
+    //DETOUR_TRACE(("detours: pbTramp=%p, pDetour=%p\n", pTrampoline, pDetour));
 
     // Determine the number of movable target instructions.
     PBYTE pbSrc = pbTarget;
@@ -1155,12 +1155,12 @@ LONG WINAPI DetourAttachEx(PVOID *ppPointer,
         PBYTE pbOp = pbSrc;
         LONG lExtra = 0;
 
-        DETOUR_TRACE((" DetourCopyInstructionEx(%p,%p)\n",
-                      pTrampoline->rbCode + cbTarget, pbSrc));
+        //DETOUR_TRACE((" DetourCopyInstructionEx(%p,%p)\n",
+        //              pTrampoline->rbCode + cbTarget, pbSrc));
         pbSrc = (PBYTE)DetourCopyInstructionEx(pTrampoline->rbCode + cbTarget,
                                                pbSrc, NULL, &lExtra);
-        DETOUR_TRACE((" DetourCopyInstructionEx() = %p (%d bytes)\n",
-                      pbSrc, (int)(pbSrc - pbOp)));
+        //DETOUR_TRACE((" DetourCopyInstructionEx() = %p (%d bytes)\n",
+        //              pbSrc, (int)(pbSrc - pbOp)));
 
         if (lExtra != 0) {
             break;  // Abort if offset doesn't fit.
@@ -1256,25 +1256,25 @@ LONG WINAPI DetourAttachEx(PVOID *ppPointer,
         goto fail;
     }
 
-    DETOUR_TRACE(("detours: pbTarget=%p: "
-                  "%02x %02x %02x %02x "
-                  "%02x %02x %02x %02x "
-                  "%02x %02x %02x %02x\n",
-                  pbTarget,
-                  pbTarget[0], pbTarget[1], pbTarget[2], pbTarget[3],
-                  pbTarget[4], pbTarget[5], pbTarget[6], pbTarget[7],
-                  pbTarget[8], pbTarget[9], pbTarget[10], pbTarget[11]));
-    DETOUR_TRACE(("detours: pbTramp =%p: "
-                  "%02x %02x %02x %02x "
-                  "%02x %02x %02x %02x "
-                  "%02x %02x %02x %02x\n",
-                  pTrampoline,
-                  pTrampoline->rbCode[0], pTrampoline->rbCode[1],
-                  pTrampoline->rbCode[2], pTrampoline->rbCode[3],
-                  pTrampoline->rbCode[4], pTrampoline->rbCode[5],
-                  pTrampoline->rbCode[6], pTrampoline->rbCode[7],
-                  pTrampoline->rbCode[8], pTrampoline->rbCode[9],
-                  pTrampoline->rbCode[10], pTrampoline->rbCode[11]));
+    //DETOUR_TRACE(("detours: pbTarget=%p: "
+    //              "%02x %02x %02x %02x "
+    //              "%02x %02x %02x %02x "
+    //              "%02x %02x %02x %02x\n",
+    //              pbTarget,
+    //              pbTarget[0], pbTarget[1], pbTarget[2], pbTarget[3],
+    //              pbTarget[4], pbTarget[5], pbTarget[6], pbTarget[7],
+    //              pbTarget[8], pbTarget[9], pbTarget[10], pbTarget[11]));
+    //DETOUR_TRACE(("detours: pbTramp =%p: "
+    //              "%02x %02x %02x %02x "
+    //              "%02x %02x %02x %02x "
+    //              "%02x %02x %02x %02x\n",
+    //              pTrampoline,
+    //              pTrampoline->rbCode[0], pTrampoline->rbCode[1],
+    //              pTrampoline->rbCode[2], pTrampoline->rbCode[3],
+    //              pTrampoline->rbCode[4], pTrampoline->rbCode[5],
+    //              pTrampoline->rbCode[6], pTrampoline->rbCode[7],
+    //              pTrampoline->rbCode[8], pTrampoline->rbCode[9],
+    //              pTrampoline->rbCode[10], pTrampoline->rbCode[11]));
 
     /////////////////////////////////////////// Mark binary as being detoured.
     //
