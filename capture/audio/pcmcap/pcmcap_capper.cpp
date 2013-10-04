@@ -528,8 +528,10 @@ fail:
 BOOL CPcmCapper::Start(HANDLE hProc,int iOperation,int iBufNum,int iBlockSize,IPcmCapperCallback * pPcc,LPVOID lpParam)
 {
 
-    if(iOperation != PCMCAPPER_OPERATION_CAPTURE &&
-            iOperation != PCMCAPPER_OPERATION_BOTH)
+    if(iOperation != PCMCAP_AUDIO_BOTH &&
+            iOperation != PCMCAP_AUDIO_NONE &&
+            iOperation != PCMCAP_AUDIO_CAPTURE &&
+            iOperation != PCMCAP_AUDIO_RENDER)
     {
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
@@ -550,7 +552,7 @@ BOOL CPcmCapper::Start(HANDLE hProc,int iOperation,int iBufNum,int iBlockSize,IP
     this->m_pPcmCapperCb = pPcc;
     this->m_lpParam = lpParam;
 
-    return this->__StartOperation(iOperation);
+    return this->SetAudioOperation(iOperation);
 }
 
 void CPcmCapper::__StopThread()
@@ -764,8 +766,8 @@ BOOL CPcmCapper::__SetOperationBoth()
     pControl->m_NumPacks = this->m_BufNum;
     strncpy_s((char*)pControl->m_FreeListSemNameBase,sizeof(pControl->m_FreeListSemNameBase),(const char*)this->m_FreeEvtBaseName,_TRUNCATE);
     strncpy_s((char*)pControl->m_FillListSemNameBase,sizeof(pControl->m_FillListSemNameBase),(const char*)this->m_FillEvtBaseName,_TRUNCATE);
-	strncpy_s((char*)pControl->m_StartEvtName,sizeof(pControl->m_StartEvtName),(const char*)this->m_StartEvtBaseName,_TRUNCATE);
-	strncpy_s((char*)pControl->m_StopEvtName,sizeof(pControl->m_StopEvtName),(const char*)this->m_StopEvtBaseName,_TRUNCATE);
+    strncpy_s((char*)pControl->m_StartEvtName,sizeof(pControl->m_StartEvtName),(const char*)this->m_StartEvtBaseName,_TRUNCATE);
+    strncpy_s((char*)pControl->m_StopEvtName,sizeof(pControl->m_StopEvtName),(const char*)this->m_StopEvtBaseName,_TRUNCATE);
 
     bret = this->__SetOperationInner(pControl,&retcode);
     if(!bret)

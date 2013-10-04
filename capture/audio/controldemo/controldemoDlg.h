@@ -15,6 +15,8 @@ public:
 	CString m_strParam;
 	CString m_strDll;
 	CString m_strDump;
+	CString m_strBufNum;
+	CString m_strBlockSize;
 
 // 对话框数据
 	enum { IDD = IDD_CONTROLDEMO_DIALOG };
@@ -43,4 +45,5 @@ public:
 private:
 	CPcmCapDemoCallBack* m_pDemoCallBack;
 	CPcmCapper *m_pCapper;
+	HANDLE m_hProc;
 };

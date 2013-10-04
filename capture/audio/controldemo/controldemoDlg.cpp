@@ -54,6 +54,7 @@ CcontroldemoDlg::CcontroldemoDlg(CWnd* pParent /*=NULL*/)
     m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
     m_pCapper = NULL;
     m_pDemoCallBack = NULL;
+    m_hProc = NULL;
 }
 
 void CcontroldemoDlg::DoDataExchange(CDataExchange* pDX)
@@ -167,16 +168,21 @@ void CcontroldemoDlg::OnCheckBoxClick()
 
 void CcontroldemoDlg::StartCapper()
 {
-    char *pExecAnsi=NULL,*pDllAnsi=NULL,*pParamAnsi=NULL,*pDumpAnsi=NULL;
+    char *pExecAnsi=NULL,*pDllAnsi=NULL,*pParamAnsi=NULL,*pDumpAnsi=NULL,*pBufNumAnsi=NULL,*pBlockSizeAnsi=NULL;
+	char *pPartDllAnsi=NULL;
     int rendercheck=0,capturecheck=0;
 #ifdef _UNICODE
-    int execansisize=0,dllansisize=0,paramansisize=0,dumpansisize=0;
-    int ret;
+    int execansisize=0,dllansisize=0,paramansisize=0,dumpansisize=0,bufnumansisize=0,blocksizeansisize=0;
 #endif
+    int ret;
     CEdit* pEdt=NULL;
     CString errstr;
     CButton* pCheck=NULL;
     int iOperation=PCMCAP_AUDIO_NONE;
+    BOOL bret;
+    int bufnum,blocksize;
+
+
 
     pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_EXE);
     pEdt->GetWindowText(this->m_strExec);
@@ -186,6 +192,10 @@ void CcontroldemoDlg::StartCapper()
     pEdt->GetWindowText(this->m_strDll);
     pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_DUMP);
     pEdt->GetWindowText(this->m_strDump);
+    pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_BUFNUM);
+    pEdt->GetWindowText(this->m_strBufNum);
+    pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_BLOCKSIZE);
+    pEdt->GetWindowText(this->m_strBlockSize);
 
 
 #ifdef _UNICODE
@@ -221,11 +231,29 @@ void CcontroldemoDlg::StartCapper()
         goto free_release;
     }
 
+    ret = UnicodeToAnsi((wchar_t*)((const WCHAR*)this->m_strBufNum),&pBufNumAnsi,&bufnumansisize);
+    if(ret < 0)
+    {
+        errstr.Format(TEXT("can not get bufnum string"));
+        AfxMessageBox(errstr);
+        goto free_release;
+    }
+
+    ret = UnicodeToAnsi((wchar_t*)((const WCHAR*)this->m_strBlockSize),&pBlockSizeAnsi,&blocksizeansisize);
+    if(ret < 0)
+    {
+        errstr.Format(TEXT("can not get blocksize string"));
+        AfxMessageBox(errstr);
+        goto free_release;
+    }
+
 #else
     pExecAnsi = (const char*) this->m_strExec;
     pDllAnsi = (const char*) this->m_strDll;
     pParamAnsi = (const char*) this->m_strParam;
     pDumpAnsi = (const char*) this->m_strDump;
+    pBufNumAnsi = (const char*)this->m_strBufNum;
+    pBlockSizeAnsi = (const char*) this->m_strBlockSize;
 #endif
 
 
@@ -235,6 +263,20 @@ void CcontroldemoDlg::StartCapper()
     capturecheck = pCheck->GetCheck();
 
 
+    bufnum = atoi(pBufNumAnsi);
+    blocksize = atoi(pBlockSizeAnsi);
+    if(bufnum < 1 || blocksize < 0x1000)
+    {
+        errstr.Format(TEXT("bufnum %d < 1 or blocksize %d < 0x1000"),bufnum,blocksize);
+        AfxMessageBox(errstr);
+        goto free_release;
+    }
+
+	pPartDllAnsi = strrchr(pDllAnsi,'\\');
+	if (pPartDllAnsi == NULL)
+		{
+			
+		}
 
 
     this->StopCapper();
@@ -270,11 +312,33 @@ void CcontroldemoDlg::StartCapper()
         iOperation = PCMCAP_AUDIO_BOTH;
     }
 
+	/*now to create the process*/
+
+
+
+
+    bret= this->m_pCapper->Start(this->m_hProc,iOperation,bufnum,blocksize,this->m_pDemoCallBack,NULL);
+    if(!bret)
+    {
+    	ret = LAST_ERROR_CODE();
+    	errstr.Format(TEXT("could not start %d operation error(%d)"),iOperation,ret);
+        goto fail;
+    }
+
+	/*ok all is ok*/
 
 
 
 
     return ;
+
+close_handle:
+    if(this->m_hProc)
+    {
+        CloseHandle(this->m_hProc);
+    }
+    this->m_hProc = NULL;
+
 fail:
     this->StopCapper();
 free_release:
@@ -283,6 +347,8 @@ free_release:
     UnicodeToAnsi(NULL,&pDllAnsi,&dllansisize);
     UnicodeToAnsi(NULL,&pParamAnsi,&paramansisize);
     UnicodeToAnsi(NULL,&pDumpAnsi,&dumpansisize);
+    UnicodeToAnsi(NULL,&pBufNumAnsi,&bufnumansisize);
+    UnicodeToAnsi(NULL,&pBlockSizeAnsi,&blocksizeansisize);
 #endif
     return;
 
@@ -301,5 +367,6 @@ void CcontroldemoDlg::StopCapper()
         delete this->m_pDemoCallBack;
     }
     this->m_pDemoCallBack = NULL;
+    this->m_hProc = NULL;
     return ;
 }
