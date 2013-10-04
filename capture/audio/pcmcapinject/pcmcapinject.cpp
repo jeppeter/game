@@ -1259,6 +1259,16 @@ static int DetourAudioRenderClientVirtFunctions(IAudioRenderClient *pRender)
 #define  AUDIO_CLIENT_RESET_NUM          12
 #define  AUDIO_CLIENT_GET_SERVICE_NUM    14
 
+
+class CIAudioClientHook  : public IAudioClient
+{
+private:
+	IAudioClient* m_ptr;
+public:
+	CIAudioClientHook(IAudioClient* ptr): m_ptr(ptr) {};
+public:
+};
+
 typedef ULONG(WINAPI *AudioClientReleaseFunc_t)(IAudioClient* pClient);
 static AudioClientReleaseFunc_t AudioClientReleaseNext=NULL;
 static int st_AudioClientReleaseDetoured=0;
