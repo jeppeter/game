@@ -31,7 +31,12 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnCheckBoxClick();
+	void StartCapper();
+	void StopCapper();
+
+
 
 private:
-	;
+	CPcmCapDemoCallBack* m_pDemoCallBack;
+	CPcmCapper *m_pCapper;
 };
