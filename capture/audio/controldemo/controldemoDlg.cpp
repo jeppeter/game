@@ -63,6 +63,8 @@ BEGIN_MESSAGE_MAP(CcontroldemoDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_CHK_RENDER, OnCheckBoxClick)
+	ON_BN_CLICKED(IDC_CHK_CAPTURE,OnCheckBoxClick)
 END_MESSAGE_MAP()
 
 
@@ -151,3 +153,8 @@ HCURSOR CcontroldemoDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+void CcontroldemoDlg::OnCheckBoxClick()
+{
+	AfxMessageBox(TEXT("Clicked"));
+	return ;
+}
