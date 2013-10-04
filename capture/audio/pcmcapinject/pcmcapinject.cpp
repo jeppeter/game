@@ -1413,6 +1413,10 @@ HRESULT WINAPI DeviceActivateCallBack(IMMDevice *pThis,REFIID iid,DWORD dwClsCtx
     if(SUCCEEDED(hr))
     {
         //DEBUG_INFO("iid %s\n",iid);
+        LPOLESTR test=NULL;
+        StringFromCLSID(iid, &test);
+        DEBUG_INFO("%ws\n", test);
+        CoTaskMemFree(test);
         if(iid == __uuidof(IAudioClient))
         {
             IAudioClient* pClient=(IAudioClient*)*ppInterface;
@@ -1422,6 +1426,10 @@ HRESULT WINAPI DeviceActivateCallBack(IMMDevice *pThis,REFIID iid,DWORD dwClsCtx
     }
     else
     {
+        LPOLESTR test=NULL;
+        StringFromCLSID(iid, &test);
+        DEBUG_INFO("%ws\n", test);
+        CoTaskMemFree(test);
         ERROR_INFO("error(0x%x)\n",hr);
     }
     return hr;
