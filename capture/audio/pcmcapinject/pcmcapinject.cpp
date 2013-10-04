@@ -993,6 +993,17 @@ static int DetourVirtualFuncTable(CRITICAL_SECTION* pCS,int* pChanged,void**ppNe
         ret = 1;
         DEBUG_INFO("\n");
     }
+    else
+    {
+        ptr_type_t** vptrptr = (ptr_type_t **)pObject;
+        ptr_type_t* vptr = *vptrptr;
+        unsigned char* pCode;
+        pCode = (unsigned char*)vptr[virtfuncnum];
+        if(*pCode != 0xe9)
+        {
+            ERROR_INFO("%s [%d] virtfunc not detoured\n",pTypeName,virtfuncnum);
+        }
+    }
     LeaveCriticalSection(pCS);
     return ret;
 }
