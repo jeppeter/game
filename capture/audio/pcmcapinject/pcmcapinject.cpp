@@ -932,7 +932,9 @@ int HandleAudioOperation(PCMCAP_CONTROL_t *pControl)
         return -ERROR_BAD_ENVIRONMENT;
     }
 
+	DEBUG_INFO("\n");
     dret = WaitForSingleObject(st_hThreadSema , tmms ? tmms : INFINITE);
+	DEBUG_INFO("tmms %d ret %d\n",tmms,dret);
     if(dret != WAIT_OBJECT_0)
     {
         ret = -(LAST_ERROR_CODE());
