@@ -29,12 +29,12 @@ void FreeWholeList(WHOLE_LIST_t**ppWholeList)
     WHOLE_LIST_t*pWholeList = *ppWholeList;
     if(pWholeList)
     {
-        DEBUG_INFO("\n");
+        //DEBUG_INFO("\n");
         if(pWholeList->m_pFreeList)
         {
             while(pWholeList->m_pFreeList->size() > 0)
             {
-                DEBUG_INFO("\n");
+                //DEBUG_INFO("\n");
                 pWholeList->m_pFreeList->erase(pWholeList->m_pFreeList->begin());
             }
             delete pWholeList->m_pFreeList;
@@ -53,7 +53,7 @@ void FreeWholeList(WHOLE_LIST_t**ppWholeList)
         pWholeList->m_pFillList= NULL;
         if(pWholeList->m_pWholeList)
         {
-            DEBUG_INFO("\n");
+            //DEBUG_INFO("\n");
             free(pWholeList->m_pWholeList);
         }
         pWholeList->m_pWholeList =NULL;
@@ -75,11 +75,8 @@ WHOLE_LIST_t* AllocateWholeList(int num)
         return NULL;
     }
     pWholeList->m_Num = num;
-    DEBUG_INFO("\n");
     pWholeList->m_pFreeList=new std::vector<buffer_t*>();
-    DEBUG_INFO("\n");
     pWholeList->m_pFillList=new std::vector<buffer_t*>();
-    DEBUG_INFO("\n");
     pWholeList->m_pWholeList = (buffer_t*)calloc(sizeof(pWholeList->m_pWholeList[0]),num);
     if(pWholeList->m_pWholeList == NULL)
     {
@@ -101,6 +98,7 @@ int main(int argc, char *argv[])
     int ret = -2;
     int i;
     WHOLE_LIST_t *pWholeList=NULL;
+    buffer_t *pBuffer=NULL;
 
     if(argc > 1)
     {
@@ -111,6 +109,19 @@ int main(int argc, char *argv[])
     if(pWholeList == NULL)
     {
         return -3;
+    }
+
+    for(i=0; i<num; i++)
+    {
+        pBuffer = pWholeList->m_pFreeList->at(i);
+        pBuffer->m_Int = i;
+        pBuffer->m_uInt = i;
+    }
+
+    for(i=0; i<num; i++)
+    {
+        pBuffer = pWholeList->m_pFreeList->at(i);
+        DEBUG_INFO("[%d] %d %d\n",i,pBuffer->m_Int,pBuffer->m_uInt);
     }
 
     FreeWholeList(&pWholeList);

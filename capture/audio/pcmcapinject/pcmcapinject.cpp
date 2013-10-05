@@ -130,8 +130,8 @@ typedef struct
     THREAD_CONTROL_t m_ThreadControl;
     HANDLE *m_pFreeEvt;
     EVENT_LIST_t *m_pWholeList;
-    std::vector<EVENT_LIST_t*> m_FreeList;
-    std::vector<EVENT_LIST_t*> m_FillList;
+    std::vector<EVENT_LIST_t*>* m_pFreeList;
+    std::vector<EVENT_LIST_t*>* m_pFillList;
     HANDLE m_hStartEvt;
     HANDLE m_hStopEvt;
     HANDLE m_hMemMap;
@@ -147,10 +147,10 @@ static EVENT_LIST_t* GetFreeList()
     EVENT_LIST_t* pEventList=NULL;
 
     EnterCriticalSection(&st_ListCS);
-    if(st_pPCMEvt && st_pPCMEvt->m_FreeList.size() > 0)
+    if(st_pPCMEvt && st_pPCMEvt->m_pFreeList && st_pPCMEvt->m_pFreeList->size() > 0)
     {
-        pEventList = st_pPCMEvt->m_FreeList[0];
-        st_pPCMEvt->m_FreeList.erase(st_pPCMEvt->m_FreeList.begin());
+        pEventList = st_pPCMEvt->m_pFreeList->at(0);
+        st_pPCMEvt->m_pFreeList->erase(st_pPCMEvt->m_pFreeList->begin());
         st_pPCMEvt->m_GetWholeListNum ++;
     }
     LeaveCriticalSection(&st_ListCS);
@@ -163,7 +163,7 @@ static int PutFillList(EVENT_LIST_t* pEventList)
     EnterCriticalSection(&st_ListCS);
     if(st_pPCMEvt && st_pPCMEvt->m_pWholeList)
     {
-        st_pPCMEvt->m_FillList.push_back(pEventList);
+        st_pPCMEvt->m_pFillList->push_back(pEventList);
         assert(st_pPCMEvt->m_GetWholeListNum > 0);
         st_pPCMEvt->m_GetWholeListNum -- ;
         ret = 1;
@@ -179,7 +179,7 @@ static int PutFreeList(EVENT_LIST_t* pEventList)
     EnterCriticalSection(&st_ListCS);
     if(st_pPCMEvt)
     {
-        st_pPCMEvt->m_FreeList.push_back(pEventList);
+        st_pPCMEvt->m_pFreeList->push_back(pEventList);
         assert(st_pPCMEvt->m_GetWholeListNum > 0);
         st_pPCMEvt->m_GetWholeListNum -- ;
         ret = 1;
@@ -268,20 +268,20 @@ static int ChangeToFreeList(PCM_EVTS_t* pPCMEvts,int idx)
     EnterCriticalSection(&st_ListCS);
     if(pPCMEvts)
     {
-        for(i=0; i<pPCMEvts->m_FillList.size(); i++)
+        for(i=0; i<pPCMEvts->m_pFillList->size(); i++)
         {
-            if(pPCMEvts->m_FillList[i]->m_Idx == idx)
+            if(pPCMEvts->m_pFillList->at(i)->m_Idx == idx)
             {
                 findidx = i;
-                pEventList = pPCMEvts->m_FillList[i];
+                pEventList = pPCMEvts->m_pFillList->at(i);
                 break;
             }
         }
 
         if(findidx >=0)
         {
-            pPCMEvts->m_FillList.erase(pPCMEvts->m_FillList.begin() + findidx);
-            pPCMEvts->m_FreeList.push_back(pEventList);
+            pPCMEvts->m_pFillList->erase(pPCMEvts->m_pFillList->begin() + findidx);
+            pPCMEvts->m_pFreeList->push_back(pEventList);
             ret = 1;
         }
     }
@@ -396,20 +396,33 @@ void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
     if(pPCMEvt)
     {
         __StopThread(&(pPCMEvt->m_ThreadControl));
-        DEBUG_INFO("freelist %d\n",pPCMEvt->m_FreeList.size());
-
-        while(pPCMEvt->m_FreeList.size() > 0)
+        if(pPCMEvt->m_pFreeList)
         {
-            DEBUG_INFO("free list %d\n",pPCMEvt->m_FreeList.size());
-            pPCMEvt->m_FreeList.erase(pPCMEvt->m_FreeList.begin());
-            DEBUG_INFO("free list %d\n",pPCMEvt->m_FreeList.size());
+            DEBUG_INFO("freelist %d\n",pPCMEvt->m_pFreeList->size());
+
+            while(pPCMEvt->m_pFreeList->size() > 0)
+            {
+                DEBUG_INFO("free list %d\n",pPCMEvt->m_pFreeList->size());
+                pPCMEvt->m_pFreeList->erase(pPCMEvt->m_pFreeList->begin());
+                DEBUG_INFO("free list %d\n",pPCMEvt->m_pFreeList->size());
+            }
+
+            delete pPCMEvt->m_pFreeList;
+        }
+        pPCMEvt->m_pFreeList = NULL;
+
+        if(pPCMEvt->m_pFillList)
+        {
+            DEBUG_INFO("filllist %d\n",pPCMEvt->m_pFillList->size());
+            while(pPCMEvt->m_pFillList->size() > 0)
+            {
+                pPCMEvt->m_pFillList->erase(pPCMEvt->m_pFillList->begin());
+            }
+
+			delete pPCMEvt->m_pFillList;
         }
 
-        DEBUG_INFO("filllist %d\n",pPCMEvt->m_FillList.size());
-        while(pPCMEvt->m_FillList.size() > 0)
-        {
-            pPCMEvt->m_FillList.erase(pPCMEvt->m_FillList.begin());
-        }
+		pPCMEvt->m_pFillList = NULL;
 
         /*now for free the whole list*/
         for(i=0; i<pPCMEvt->m_WholeListNum; i++)
@@ -507,6 +520,9 @@ PCM_EVTS_t* __AllocatePCMEvts(unsigned int num,int packsize,char* pMapFileName,c
 
     __InitThreadControl(&(pPCMEvt->m_ThreadControl));
 
+	pPCMEvt->m_pFreeList = new std::vector<EVENT_LIST_t*>();
+	pPCMEvt->m_pFillList = new std::vector<EVENT_LIST_t*>();
+
     mapsize = num * packsize;
     pPCMEvt->m_MemMapSize = mapsize;
     pPCMEvt->m_WholeListNum = num;
@@ -553,8 +569,8 @@ PCM_EVTS_t* __AllocatePCMEvts(unsigned int num,int packsize,char* pMapFileName,c
         pPCMEvt->m_pWholeList[i].m_Idx = i;
         pPCMEvt->m_pWholeList[i].m_Offset = (packsize)*i;
         pPCMEvt->m_pWholeList[i].m_Size = packsize;
-        pPCMEvt->m_FreeList.push_back(&(pPCMEvt->m_pWholeList[i]));
-        DEBUG_INFO("freelist %d\n",pPCMEvt->m_FreeList.size());
+        pPCMEvt->m_pFreeList->push_back(&(pPCMEvt->m_pWholeList[i]));
+        DEBUG_INFO("freelist %d\n",pPCMEvt->m_pFreeList->size());
     }
 
     pPCMEvt->m_pFreeEvt =(HANDLE*) calloc(sizeof(pPCMEvt->m_pFreeEvt[0]),num);
