@@ -20,8 +20,7 @@
 
 #define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
-
-
+#define COM_METHOD(TYPE, METHOD) TYPE STDMETHODCALLTYPE METHOD
 
 static CRITICAL_SECTION st_DetourCS;
 static CRITICAL_SECTION st_StateCS;
@@ -1203,6 +1202,7 @@ HRESULT WINAPI AudioRenderClientGetBufferCallBack(IAudioRenderClient* pRender,UI
     if(SUCCEEDED(hr))
     {
         st_pRenderBuffer = *ppData;
+		DEBUG_INFO("render get buffer 0x%p numframe requested %d\n",*ppData,NumFramesRequested);
     }
     return hr;
 }
@@ -1225,6 +1225,7 @@ HRESULT WINAPI AudioRenderClientReleaseBufferCallBack(IAudioRenderClient* pRende
         newdwflag |= AUDCLNT_BUFFERFLAGS_SILENT;
     }
 
+	DEBUG_INFO("NumFramesWritten %d operation %d\n",NumFramesWritten,operation);
     hr = AudioRenderClientReleaseBufferNext(pRender,NumFramesWritten,newdwflag);
     if(SUCCEEDED(hr))
     {
@@ -1250,8 +1251,306 @@ static int DetourAudioRenderClientVirtFunctions(IAudioRenderClient *pRender)
 }
 
 /*****************************************************
-* audio client
+* audio client Interface replace
 *****************************************************/
+#if 0
+#define  AUDIO_CLIENT_IN() do{DEBUG_INFO("AUDIO CLIENT IN\n");}while(0)
+#define  AUDIO_CLIENT_OUT()
+
+
+static CIAudioClientHook* RegisterAudioClient(IAudioClient* pAudio);
+static ULONG UnRegisterAudioClient(IAudioClient* pAudio);
+
+
+class CIAudioClientHook  : public IAudioClient
+{
+private:
+    IAudioClient* m_ptr;
+public:
+    CIAudioClientHook(IAudioClient* ptr): m_ptr(ptr) {};
+public:
+    COM_METHOD(HRESULT,QueryInterface)(THIS_ REFIID riid,void **ppvObject)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->QueryInterface(riid,ppvObject);
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(ULONG,AddRef)(THIS)
+    {
+        ULONG uret;
+        AUDIO_CLIENT_IN();
+        uret = m_ptr->AddRef();
+        AUDIO_CLIENT_OUT();
+        return uret;
+    }
+
+    COM_METHOD(ULONG,Release)(THIS)
+    {
+        ULONG uret;
+        AUDIO_CLIENT_IN();
+        uret = m_ptr->Release();
+        if(uret == 1)
+        {
+            uret = UnRegisterAudioClient(m_ptr);
+            if(uret == 0)
+            {
+                this->m_ptr = NULL;
+            }
+        }
+        AUDIO_CLIENT_OUT();
+        if(uret == 0)
+        {
+            delete this;
+        }
+        return uret;
+    }
+
+
+    COM_METHOD(HRESULT,Initialize)(THIS_  AUDCLNT_SHAREMODE ShareMode,DWORD StreamFlags,REFERENCE_TIME hnsBufferDuration,
+                                   REFERENCE_TIME hnsPeriodicity,const WAVEFORMATEX *pFormat,LPCGUID AudioSessionGuid)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->Initialize(ShareMode,StreamFlags,hnsBufferDuration,hnsPeriodicity,pFormat,AudioSessionGuid);
+        if(SUCCEEDED(hr))
+        {
+            SetFormat((WAVEFORMATEX*)pFormat);
+        }
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,GetBufferSize)(THIS_ UINT32 *pNumBufferFrames)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->GetBufferSize(pNumBufferFrames);
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,GetStreamLatency)(THIS_	REFERENCE_TIME *phnsLatency)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->GetStreamLatency(phnsLatency);
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,GetCurrentPadding)(THIS_  UINT32 *pNumPaddingFrames)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->GetCurrentPadding(pNumPaddingFrames);
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,IsFormatSupported)(THIS_  AUDCLNT_SHAREMODE ShareMode,const WAVEFORMATEX *pFormat,WAVEFORMATEX **ppClosestMatch)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->IsFormatSupported(ShareMode,pFormat,ppClosestMatch);
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,GetMixFormat)(THIS_	WAVEFORMATEX **ppDeviceFormat)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->GetMixFormat(ppDeviceFormat);
+        if(SUCCEEDED(hr))
+        {
+            WAVEFORMATEX* pFormat= (*ppDeviceFormat);
+            SetFormat((WAVEFORMATEX*)pFormat);
+        }
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,GetDevicePeriod)(THIS_  REFERENCE_TIME *phnsDefaultDevicePeriod,REFERENCE_TIME *phnsMinimumDevicePeriod)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->GetDevicePeriod(phnsDefaultDevicePeriod,phnsMinimumDevicePeriod);
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,Start)(THIS)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->Start();
+        if(SUCCEEDED(hr))
+        {
+            NotifyAudioStart();
+        }
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,Stop)(THIS)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->Stop();
+        if(SUCCEEDED(hr))
+        {
+            NotifyAudioStop();
+        }
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,Reset)(THIS)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->Reset();
+        if(SUCCEEDED(hr))
+        {
+            NotifyAudioStop();
+            NotifyAudioStart();
+        }
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,SetEventHandle)(THIS_ HANDLE eventHandle)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->SetEventHandle(eventHandle);
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,GetService)(THIS_  REFIID riid,void **ppv)
+    {
+        HRESULT hr;
+        AUDIO_CLIENT_IN();
+        hr = m_ptr->GetService(riid,ppv);
+        if(SUCCEEDED(hr))
+        {
+            if(riid == __uuidof(IAudioRenderClient))
+            {
+                IAudioRenderClient* pRender = (IAudioRenderClient*)*ppv;
+                DEBUG_INFO("\n");
+                DetourAudioRenderClientVirtFunctions(pRender);
+            }
+            else if(riid == __uuidof(IAudioStreamVolume))
+            {
+                IAudioStreamVolume* pStream= (IAudioStreamVolume*)*ppv;
+                DEBUG_INFO("\n");
+                DetourStreamAudioVolumeVirtFunctions(pStream);
+            }
+            else if(riid == __uuidof(IChannelAudioVolume))
+            {
+                IChannelAudioVolume* pChannel = (IChannelAudioVolume*)*ppv;
+                DEBUG_INFO("\n");
+                DetourChannelAudioVolumeVirtFunctions(pChannel);
+            }
+            else if(riid == __uuidof(ISimpleAudioVolume))
+            {
+                ISimpleAudioVolume* pSimple = (ISimpleAudioVolume*)*ppv;
+                DEBUG_INFO("\n");
+                DetourSimpleAudioVolumeVirtFunctions(pSimple);
+            }
+        }
+        AUDIO_CLIENT_OUT();
+        return hr;
+    }
+};
+
+static std::vector<IAudioClient*> st_AudioClientVecs;
+static std::vector<CIAudioClientHook*> st_AudioClientHookVecs;
+static CRITICAL_SECTION st_AudioClientCS;
+
+static CIAudioClientHook* RegisterAudioClient(IAudioClient * pAudio)
+{
+    CIAudioClientHook* pAudioHook=NULL;
+    int findidx = -1;
+    unsigned int i;
+    static int st_DetouredAudioClient=0;
+
+    EnterCriticalSection(&st_AudioClientCS);
+    if(st_DetouredAudioClient == 0)
+    {
+        SetDetourAudioClient(pAudio);
+        st_DetouredAudioClient = 1;
+    }
+
+    assert(st_AudioClientHookVecs.size() ==  st_AudioClientVecs.size());
+    for(i=0; i<st_AudioClientVecs.size() ; i++)
+    {
+        if(st_AudioClientVecs[i] == pAudio)
+        {
+            findidx = i;
+            break;
+        }
+    }
+
+    if(findidx >= 0)
+    {
+        pAudioHook = st_AudioClientHookVecs[findidx];
+    }
+    else
+    {
+        pAudioHook = new CIAudioClientHook(pAudio);
+        st_AudioClientHookVecs.push_back(pAudioHook);
+        st_AudioClientVecs.push_back(pAudio);
+        pAudio->AddRef();
+    }
+
+    LeaveCriticalSection(&st_AudioClientCS);
+    return pAudioHook;
+}
+
+static ULONG UnRegisterAudioClient(IAudioClient * pAudio)
+{
+    int findidx = -1;
+    unsigned int i;
+    ULONG uret;
+
+    EnterCriticalSection(&st_AudioClientCS);
+
+    assert(st_AudioClientHookVecs.size() ==  st_AudioClientVecs.size());
+    for(i=0; i<st_AudioClientVecs.size() ; i++)
+    {
+        if(st_AudioClientVecs[i] == pAudio)
+        {
+            findidx = i;
+            break;
+        }
+    }
+
+    if(findidx >= 0)
+    {
+        st_AudioClientHookVecs.erase(st_AudioClientHookVecs.begin() + findidx);
+        st_AudioClientVecs.erase(st_AudioClientVecs.begin() + findidx);
+    }
+
+    LeaveCriticalSection(&st_AudioClientCS);
+
+    uret = 1;
+    if(findidx >= 0)
+    {
+        uret = pAudio->Release();
+    }
+    return uret;
+}
+#endif
+
+/*****************************************************
+* audio client detour functions
+*****************************************************/
+
 #define  AUDIO_CLIENT_RELEASE_NUM        2
 #define  AUDIO_CLIENT_INITIALIZE_NUM     3
 #define  AUDIO_CLIENT_START_NUM          10
@@ -1259,15 +1558,6 @@ static int DetourAudioRenderClientVirtFunctions(IAudioRenderClient *pRender)
 #define  AUDIO_CLIENT_RESET_NUM          12
 #define  AUDIO_CLIENT_GET_SERVICE_NUM    14
 
-
-class CIAudioClientHook  : public IAudioClient
-{
-private:
-	IAudioClient* m_ptr;
-public:
-	CIAudioClientHook(IAudioClient* ptr): m_ptr(ptr) {};
-public:
-};
 
 typedef ULONG(WINAPI *AudioClientReleaseFunc_t)(IAudioClient* pClient);
 static AudioClientReleaseFunc_t AudioClientReleaseNext=NULL;
@@ -1331,6 +1621,10 @@ HRESULT WINAPI AudioClientStopCallBack(IAudioClient* pClient)
     {
         DEBUG_INFO("\n");
         NotifyAudioStop();
+    }
+    else
+    {
+        DEBUG_INFO("Stop hr(0x%08x)\n",hr);
     }
     return hr;
 }
@@ -1403,6 +1697,202 @@ static int DetourDeviceAudioClientVirtFunctions(IAudioClient* pClient)
     DetourVirtualFuncTable(&st_DetourCS,&st_AudioClientGetServiceDetoured,(void**)&AudioClientGetServiceNext,AudioClientGetServiceCallBack,pClient,AUDIO_CLIENT_GET_SERVICE_NUM,"AudioClient");
     return 0;
 }
+
+
+
+/*****************************************************
+* device interface replace
+*****************************************************/
+
+#define MMDEVICE_IN()
+#define MMDEVICE_OUT()
+
+static ULONG UnRegisterMMDevice(IMMDevice* pDevice);
+
+class CIMMDeviceHook : public IMMDevice
+{
+private:
+    IMMDevice *m_ptr;
+public:
+    CIMMDeviceHook(IMMDevice* ptr) : m_ptr(ptr) {};
+public:
+    COM_METHOD(HRESULT,QueryInterface)(THIS_  REFIID riid,void **ppvObject)
+    {
+        HRESULT hr;
+        MMDEVICE_IN();
+        hr = m_ptr->QueryInterface(riid,ppvObject);
+        MMDEVICE_OUT();
+        return hr;
+    }
+
+    COM_METHOD(ULONG,AddRef)(THIS)
+    {
+        ULONG uret;
+        MMDEVICE_IN();
+        uret = m_ptr->AddRef();
+        MMDEVICE_OUT();
+        return uret;
+    }
+
+    COM_METHOD(ULONG,Release)(THIS)
+    {
+        ULONG uret;
+        MMDEVICE_IN();
+        uret = m_ptr->Release();
+        if(uret == 1)
+        {
+            uret = UnRegisterMMDevice(m_ptr);
+            if(uret == 0)
+            {
+                this->m_ptr=NULL;
+            }
+        }
+        MMDEVICE_OUT();
+        if(uret == 0)
+        {
+            delete this;
+        }
+        return uret;
+    }
+
+    COM_METHOD(HRESULT,Activate)(THIS_ REFIID iid,DWORD dwClsCtx,PROPVARIANT *pActivationParams,void **ppInterface)
+    {
+        HRESULT hr;
+        MMDEVICE_IN();
+        hr = m_ptr->Activate(iid,dwClsCtx,pActivationParams,ppInterface);
+        if(SUCCEEDED(hr))
+        {
+            //DEBUG_INFO("iid %s\n",iid);
+            LPOLESTR test=NULL;
+            StringFromCLSID(iid, &test);
+            DEBUG_INFO("%ws\n", test);
+            CoTaskMemFree(test);
+            if(iid == __uuidof(IAudioClient))
+            {
+                IAudioClient* pClient=(IAudioClient*)*ppInterface;
+                DEBUG_INFO("active audio client\n");
+                DetourDeviceAudioClientVirtFunctions(pClient);
+            }
+        }
+        else
+        {
+            LPOLESTR test=NULL;
+            StringFromCLSID(iid, &test);
+            DEBUG_INFO("%ws\n", test);
+            CoTaskMemFree(test);
+            ERROR_INFO("error(0x%x)\n",hr);
+        }
+        MMDEVICE_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,OpenPropertyStore)(THIS_ DWORD stgmAccess,IPropertyStore **ppProperties)
+    {
+        HRESULT hr;
+        MMDEVICE_IN();
+        hr = m_ptr->OpenPropertyStore(stgmAccess,ppProperties);
+        MMDEVICE_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,GetId)(THIS_ LPWSTR *ppstrId)
+    {
+        HRESULT hr;
+        MMDEVICE_IN();
+        hr = m_ptr->GetId(ppstrId);
+        MMDEVICE_OUT();
+        return hr;
+    }
+
+    COM_METHOD(HRESULT,GetState)(THIS_ DWORD *pdwState)
+    {
+        HRESULT hr;
+        MMDEVICE_IN();
+        hr = m_ptr->GetState(pdwState);
+        MMDEVICE_OUT();
+        return hr;
+    }
+
+
+};
+
+
+static std::vector<IMMDevice*> st_MMDeviceVecs;
+static std::vector<CIMMDeviceHook*> st_MMDeviceHookVecs;
+static CRITICAL_SECTION st_MMDevCS;
+
+
+
+static CIMMDeviceHook* RegisterMMDevice(IMMDevice* pDevice)
+{
+    CIMMDeviceHook* pDevHook=NULL;
+    int findidx = -1;
+    unsigned int i;
+    EnterCriticalSection(&st_MMDevCS);
+    assert(st_MMDeviceVecs.size() == st_MMDeviceHookVecs.size());
+    for(i=0; i<st_MMDeviceVecs.size(); i++)
+    {
+        if(st_MMDeviceVecs[i] == pDevice)
+        {
+            findidx = i;
+            break;
+        }
+    }
+
+    if(findidx >= 0)
+    {
+        pDevHook = st_MMDeviceHookVecs[findidx];
+    }
+    else
+    {
+        pDevHook = new CIMMDeviceHook(pDevice);
+        st_MMDeviceVecs.push_back(pDevice);
+        st_MMDeviceHookVecs.push_back(pDevHook);
+        assert(pDevHook);
+        pDevice->AddRef();
+    }
+
+    LeaveCriticalSection(&st_MMDevCS);
+
+    return pDevHook;
+
+}
+
+static ULONG UnRegisterMMDevice(IMMDevice* pDevice)
+{
+    int findidx=-1;
+    ULONG uret;
+    unsigned int i;
+    CIMMDeviceHook* pDevHook=NULL;
+    EnterCriticalSection(&st_MMDevCS);
+    for(i=0; i<st_MMDeviceVecs.size(); i++)
+    {
+        if(st_MMDeviceVecs[i] == pDevice)
+        {
+            findidx = i;
+            break;
+        }
+    }
+
+    if(findidx >= 0)
+    {
+        pDevHook = st_MMDeviceHookVecs[findidx];
+        st_MMDeviceHookVecs.erase(st_MMDeviceHookVecs.begin()+findidx);
+        st_MMDeviceVecs.erase(st_MMDeviceVecs.begin() + findidx);
+    }
+
+    LeaveCriticalSection(&st_MMDevCS);
+    uret = 1;
+    if(findidx >= 0)
+    {
+        uret = pDevice->Release();
+    }
+
+    return uret;
+}
+
+
+
 
 /*****************************************************
 * device handler
@@ -1496,7 +1986,11 @@ HRESULT WINAPI DeviceCollectionItemCallBack(IMMDeviceCollection* pThis,UINT nDev
     if(SUCCEEDED(hr))
     {
         //DEBUG_INFO("\n");
-        DetourDeviceVirtFunctions(*ppDevice);
+        CIMMDeviceHook *pHook=NULL;
+        IMMDevice* pDevice=*ppDevice;
+        pHook = RegisterMMDevice(*ppDevice);
+        *ppDevice = pHook;
+        //DetourDeviceVirtFunctions(*ppDevice);
     }
     return hr;
 }
@@ -1561,7 +2055,11 @@ HRESULT WINAPI EnumeratorGetDefaultAudioEndpointCallBack(IMMDeviceEnumerator* pT
     if(SUCCEEDED(hr))
     {
         //DEBUG_INFO("\n");
-        DetourDeviceVirtFunctions(*ppEndpoint);
+        CIMMDeviceHook *pHook=NULL;
+        IMMDevice* pDevice=*ppEndpoint;
+        pHook = RegisterMMDevice(pDevice);
+        *ppEndpoint= pHook;
+        //DetourDeviceVirtFunctions(*ppEndpoint);
     }
     return hr;
 }
@@ -1578,7 +2076,11 @@ HRESULT WINAPI EnumeratorGetDeviceCallBack(IMMDeviceEnumerator* pThis,LPCWSTR pw
     if(SUCCEEDED(hr))
     {
         //DEBUG_INFO("\n");
-        DetourDeviceVirtFunctions(*ppDevice);
+        CIMMDeviceHook *pHook=NULL;
+        IMMDevice* pDevice=*ppDevice;
+        pHook = RegisterMMDevice(pDevice);
+        *ppDevice = pHook;
+        //DetourDeviceVirtFunctions(*ppDevice);
     }
     return hr;
 }
@@ -1685,6 +2187,8 @@ int PcmCapInjectInit(void)
     InitializeCriticalSection(&st_StateCS);
     InitializeCriticalSection(&st_DetourCS);
     InitializeCriticalSection(&st_ListCS);
+    //InitializeCriticalSection(&st_AudioClientCS);
+    InitializeCriticalSection(&st_MMDevCS);
     st_AudioFormat.m_Format = AV_SAMPLE_FMT_FLT;
     st_AudioFormat.m_BitsPerSample = 32;
     st_AudioFormat.m_Channels = 2;
