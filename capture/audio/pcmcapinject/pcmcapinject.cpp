@@ -932,7 +932,7 @@ int HandleAudioOperation(PCMCAP_CONTROL_t *pControl)
         return -ERROR_BAD_ENVIRONMENT;
     }
 
-	DEBUG_INFO("\n");
+	DEBUG_INFO("tmms %d\n",tmms);
     dret = WaitForSingleObject(st_hThreadSema , tmms ? tmms : INFINITE);
 	DEBUG_INFO("tmms %d ret %d\n",tmms,dret);
     if(dret != WAIT_OBJECT_0)
@@ -2197,7 +2197,6 @@ int PcmCapInjectInit(void)
     st_AudioFormat.m_SampleRate = 48000;
     st_AudioFormat.m_Volume = 0.0;
     st_hThreadSema = CreateSemaphore(NULL,1,10,NULL);
-    DEBUG_INFO("\n");
     if(st_hThreadSema == NULL)
     {
         /*we do not success*/
