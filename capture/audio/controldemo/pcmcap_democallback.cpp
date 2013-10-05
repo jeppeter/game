@@ -33,7 +33,7 @@ int CPcmCapDemoCallBack::OpenFile(const char * fname)
 {
     int ret;
     this->CloseFile();
-    fopen_s(&(this->m_fp),fname,"w");
+    fopen_s(&(this->m_fp),fname,"w+b");
     if(this->m_fp == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -61,20 +61,25 @@ VOID CPcmCapDemoCallBack::WaveInCb(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpPar
     int bytes;
     int ret;
     bytes = pPcmItem->m_AudioData.m_DataLen;
-    ret = fwrite(pPcmItem->m_AudioData.m_Data,bytes,1,this->m_fp);
-    if(ret != 1)
+    if(this->m_fp)
     {
-        ret = LAST_ERROR_CODE();
-        ERROR_INFO("could not write file error(%d)\n",ret);
-    }
-    else
-    {
-        this->m_WriteBlockSize += bytes;
-        if(this->m_WriteBlockSize > 0x40000)
+    	DEBUG_INFO("wave in bytes %d\n",bytes);
+    	//DEBUG_BUFFER(pPcmItem->m_AudioData.m_Data,bytes > 16 ? 16:bytes );
+        ret = fwrite(pPcmItem->m_AudioData.m_Data,bytes,1,this->m_fp);
+        if(ret != 1)
         {
-        	/*we should flush buffer when enough big ,so flush it*/
-            fflush(this->m_fp);
-            this->m_WriteBlockSize = 0;
+            ret = LAST_ERROR_CODE();
+            ERROR_INFO("could not write file error(%d)\n",ret);
+        }
+        else
+        {
+            this->m_WriteBlockSize += bytes;
+            if(this->m_WriteBlockSize > 0x40000)
+            {
+                /*we should flush buffer when enough big ,so flush it*/
+                fflush(this->m_fp);
+                this->m_WriteBlockSize = 0;
+            }
         }
     }
 

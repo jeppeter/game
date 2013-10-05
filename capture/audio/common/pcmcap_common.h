@@ -15,7 +15,7 @@ typedef struct
 {
     int m_DataLen;
     int m_DataSize;
-    unsigned int m_Data[4];
+    unsigned char m_Data[4];
 } PCM_AUDIO_DATA_t;
 
 typedef struct

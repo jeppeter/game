@@ -69,9 +69,12 @@ static int SetFormat(WAVEFORMATEX* pFormatEx)
     EnterCriticalSection(&st_StateCS);
     st_AudioFormat.m_Channels = pFormatEx->nChannels;
     st_AudioFormat.m_SampleRate = pFormatEx->nSamplesPerSec;
-    st_AudioFormat.m_BitsPerSample = pFormatEx->nBlockAlign;
+    st_AudioFormat.m_BitsPerSample = pFormatEx->wBitsPerSample;
     st_AudioFormat.m_Format = format;
     LeaveCriticalSection(&st_StateCS);
+
+    DEBUG_INFO("format %d channels %d samplespersec %d wBitsPerSample %d\n",
+               format ,pFormatEx->nChannels,pFormatEx->nSamplesPerSec,pFormatEx->wBitsPerSample);
 
     return 0;
 }
@@ -301,10 +304,11 @@ void __InitThreadControl(THREAD_CONTROL_t* pThreadControl)
     pThreadControl->m_ThreadExited = 1;
 }
 
-void __StopThread(THREAD_CONTROL_t* pThreadControl)
+void __StopThread(THREAD_CONTROL_t* pThreadControl,int force)
 {
     int ret;
     BOOL bret;
+    int printout =0;
     if(pThreadControl)
     {
         if(pThreadControl->m_hThread)
@@ -320,7 +324,17 @@ void __StopThread(THREAD_CONTROL_t* pThreadControl)
                     ERROR_INFO("could not setevent 0x%x error(%d)\n",pThreadControl->m_hExitEvt,
                                ret);
                 }
-                DEBUG_INFO("\n");
+                if((printout % 100)==0)
+                {
+                    DEBUG_INFO("printout %d\n",printout);
+                }
+
+                if(force && printout > 5)
+                {
+                    /*we force to do*/
+                    break;
+                }
+                printout ++;
                 SchedOut();
             }
         }
@@ -383,19 +397,19 @@ int __StartThread(THREAD_CONTROL_t* pThreadControl,ThreadFunc_t pStartFunc,void*
 
     return 0;
 fail:
-    __StopThread(pThreadControl);
+    __StopThread(pThreadControl,0);
     SetLastError(ret);
     return -ret;
 }
 
 
-void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
+void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt,int force)
 {
     PCM_EVTS_t* pPCMEvt = *ppPCMEvt;
     unsigned int i;
     if(pPCMEvt)
     {
-        __StopThread(&(pPCMEvt->m_ThreadControl));
+        __StopThread(&(pPCMEvt->m_ThreadControl),force);
         if(pPCMEvt->m_pFreeList)
         {
             DEBUG_INFO("freelist %d\n",pPCMEvt->m_pFreeList->size());
@@ -419,10 +433,10 @@ void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
                 pPCMEvt->m_pFillList->erase(pPCMEvt->m_pFillList->begin());
             }
 
-			delete pPCMEvt->m_pFillList;
+            delete pPCMEvt->m_pFillList;
         }
 
-		pPCMEvt->m_pFillList = NULL;
+        pPCMEvt->m_pFillList = NULL;
 
         /*now for free the whole list*/
         for(i=0; i<pPCMEvt->m_WholeListNum; i++)
@@ -520,8 +534,8 @@ PCM_EVTS_t* __AllocatePCMEvts(unsigned int num,int packsize,char* pMapFileName,c
 
     __InitThreadControl(&(pPCMEvt->m_ThreadControl));
 
-	pPCMEvt->m_pFreeList = new std::vector<EVENT_LIST_t*>();
-	pPCMEvt->m_pFillList = new std::vector<EVENT_LIST_t*>();
+    pPCMEvt->m_pFreeList = new std::vector<EVENT_LIST_t*>();
+    pPCMEvt->m_pFillList = new std::vector<EVENT_LIST_t*>();
 
     mapsize = num * packsize;
     pPCMEvt->m_MemMapSize = mapsize;
@@ -619,7 +633,7 @@ PCM_EVTS_t* __AllocatePCMEvts(unsigned int num,int packsize,char* pMapFileName,c
 
     return pPCMEvt;
 fail:
-    __FreePCMEvt(&pPCMEvt);
+    __FreePCMEvt(&pPCMEvt,0);
     SetLastError(ret);
     return NULL;
 }
@@ -656,7 +670,7 @@ static int InitializeWholeList(int num,int packsize,char* pMapFileName,char* pFr
     }
     return 0;
 fail:
-    __FreePCMEvt(&pPCMEvt);
+    __FreePCMEvt(&pPCMEvt,0);
     SetLastError(ret);
     return -ret;
 }
@@ -690,7 +704,7 @@ void DeInitializeWholeList(void)
         }
     }
     while(ret > 0);
-    __FreePCMEvt(&pPCMEvt);
+    __FreePCMEvt(&pPCMEvt,1);
     SetOperation(PCMCAP_AUDIO_NONE);
     return;
 }
@@ -754,6 +768,16 @@ int WriteSendBuffer(unsigned char* pBuffer,int numpacks)
     {
         ret = LAST_ERROR_CODE();
         ERROR_INFO("SetEvent %d error(%d)\n",pEventList->m_Idx,ret);
+    }
+    DEBUG_INFO("put filllist packs %d numbytes %d\n",numpacks,numbytes);
+    DEBUG_BUFFER(pAudioBuffer->m_AudioData.m_Data,numbytes > 16 ? 16 : numbytes);
+    DEBUG_BUFFER(pBuffer,numbytes > 16 ? 16 : numbytes);
+    if(numbytes > 16)
+    {
+        unsigned char* pCurPtr = (pBuffer + numbytes -16);
+        DEBUG_BUFFER(pCurPtr ,16);
+        pCurPtr = pAudioBuffer->m_AudioData.m_Data + numbytes - 16;
+        DEBUG_BUFFER(pCurPtr ,16);
     }
     PutFillList(pEventList);
     return 1;
@@ -859,6 +883,7 @@ DWORD WINAPI __WaitThreadImpl(LPVOID arg)
     {
         /*now we should  wait for 1 second ,this will give enough time */
         dret = WaitForMultipleObjects(num+1,pWaitHandles,FALSE,INFINITE);
+        //DEBUG_INFO("dret = %d\n",dret);
         if(dret == WAIT_TIMEOUT)
         {
             continue;
@@ -933,6 +958,7 @@ int __HandleAudioRecordStart(PCMCAP_CONTROL_t *pControl)
                               (char*)pControl->m_StartEvtName,(char*)pControl->m_StopEvtName);
     if(ret < 0)
     {
+        ret = -ret;
         goto fail;
     }
 
@@ -1261,7 +1287,7 @@ HRESULT WINAPI AudioRenderClientReleaseBufferCallBack(IAudioRenderClient* pRende
         newdwflag |= AUDCLNT_BUFFERFLAGS_SILENT;
     }
 
-    DEBUG_INFO("NumFramesWritten %d operation %d\n",NumFramesWritten,operation);
+    //DEBUG_INFO("NumFramesWritten %d operation %d\n",NumFramesWritten,operation);
     hr = AudioRenderClientReleaseBufferNext(pRender,NumFramesWritten,newdwflag);
     if(SUCCEEDED(hr))
     {
@@ -2243,6 +2269,7 @@ int PcmCapInjectInit(void)
         return ret;
     }
     DEBUG_INFO("\n");
+    SetUnhandledExceptionFilter(DetourApplicationCrashHandler);
 
     st_PcmCapInited = 1;
     DEBUG_INFO("Init PcmCapInject succ\n");
