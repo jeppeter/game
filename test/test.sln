@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "evcall", "evcall\evcall.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vlist", "vlist\vlist.vcxproj", "{3B63AC85-8296-45ED-9163-9E9CAC2FEBF1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wplay", "wplay\wplay.vcxproj", "{80C64D6F-A842-48B5-9B20-3926C47FECAA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -31,6 +33,10 @@ Global
 		{3B63AC85-8296-45ED-9163-9E9CAC2FEBF1}.Debug|Win32.Build.0 = Debug|Win32
 		{3B63AC85-8296-45ED-9163-9E9CAC2FEBF1}.Release|Win32.ActiveCfg = Release|Win32
 		{3B63AC85-8296-45ED-9163-9E9CAC2FEBF1}.Release|Win32.Build.0 = Release|Win32
+		{80C64D6F-A842-48B5-9B20-3926C47FECAA}.Debug|Win32.ActiveCfg = Debug|Win32
+		{80C64D6F-A842-48B5-9B20-3926C47FECAA}.Debug|Win32.Build.0 = Debug|Win32
+		{80C64D6F-A842-48B5-9B20-3926C47FECAA}.Release|Win32.ActiveCfg = Release|Win32
+		{80C64D6F-A842-48B5-9B20-3926C47FECAA}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
