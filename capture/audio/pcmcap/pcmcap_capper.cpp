@@ -63,6 +63,7 @@ BOOL CPcmCapper::__SetOperationInner(PCMCAP_CONTROL_t * pControl,DWORD *pRetCode
     int timeout=4;
     DWORD retcode;
 
+	DEBUG_INFO("operation %d\n",pControl->m_Operation);
 
     pControl->m_Timeout = timeout;
     /*now to call the */

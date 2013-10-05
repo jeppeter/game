@@ -67,7 +67,7 @@ CcontroldemoDlg::CcontroldemoDlg(CWnd* pParent /*=NULL*/)
 
 CcontroldemoDlg::~CcontroldemoDlg()
 {
-	this->StopCapper();
+    this->StopCapper();
 }
 
 
@@ -94,9 +94,9 @@ END_MESSAGE_MAP()
 
 BOOL CcontroldemoDlg::OnInitDialog()
 {
-	CButton* pCheck=NULL;
-	CEdit* pEdt=NULL;
-	CString fstr;
+    CButton* pCheck=NULL;
+    CEdit* pEdt=NULL;
+    CString fstr;
     CDialogEx::OnInitDialog();
 
     // 将“关于...”菜单项添加到系统菜单中。
@@ -126,16 +126,16 @@ BOOL CcontroldemoDlg::OnInitDialog()
 
     // TODO: 在此添加额外的初始化代码
     pCheck = (CButton*)this->GetDlgItem(IDC_CHK_RENDER);
-	pCheck->SetCheck(0);
-	pCheck = (CButton*)this->GetDlgItem(IDC_CHK_CAPTURE);
-	pCheck->SetCheck(1);
+    pCheck->SetCheck(0);
+    pCheck = (CButton*)this->GetDlgItem(IDC_CHK_CAPTURE);
+    pCheck->SetCheck(1);
 
-	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_BUFNUM);
-	fstr.Format(TEXT("%d"),10);
-	pEdt->SetWindowText(fstr);
-	pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_BLOCKSIZE);
-	fstr.Format(TEXT("%d"),10240);
-	pEdt->SetWindowText(fstr);
+    pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_BUFNUM);
+    fstr.Format(TEXT("%d"),10);
+    pEdt->SetWindowText(fstr);
+    pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_BLOCKSIZE);
+    fstr.Format(TEXT("%d"),10240);
+    pEdt->SetWindowText(fstr);
 
     return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -227,7 +227,7 @@ void CcontroldemoDlg::OnCheckBoxClick()
     bret = this->m_pCapper->SetAudioOperation(PCMCAPPER_OPERATION_NONE);
     if(!bret)
     {
-    	ret = LAST_ERROR_CODE();
+        ret = LAST_ERROR_CODE();
         errstr.Format(TEXT("could not set PCMCAPPER_OPERATION_NONE error(%d)"),ret);
         this->StopCapper();
         AfxMessageBox(errstr);
@@ -256,9 +256,9 @@ void CcontroldemoDlg::OnCheckBoxClick()
             errstr.Format(TEXT("set operation (%d) error(%d)"),iOperation,ret);
             break;
         }
-		this->StopCapper();
-		AfxMessageBox(errstr);
-		return;
+        this->StopCapper();
+        AfxMessageBox(errstr);
+        return;
     }
 
     return ;
@@ -285,6 +285,7 @@ void CcontroldemoDlg::StartCapper()
     int bufnum,blocksize;
 
 
+    DEBUG_INFO("\n");
 
     pEdt = (CEdit*)this->GetDlgItem(IDC_EDT_EXE);
     pEdt->GetWindowText(this->m_strExec);
@@ -358,14 +359,14 @@ void CcontroldemoDlg::StartCapper()
     pBlockSizeAnsi = (const char*) this->m_strBlockSize;
 #endif
 
-	DEBUG_INFO("\n");
+    DEBUG_INFO("\n");
 
     pCheck = (CButton*)this->GetDlgItem(IDC_CHK_RENDER);
     rendercheck = pCheck->GetCheck();
     pCheck = (CButton*)this->GetDlgItem(IDC_CHK_CAPTURE);
     capturecheck = pCheck->GetCheck();
 
-	DEBUG_INFO("\n");
+    DEBUG_INFO("\n");
     if(strlen(pExecAnsi) < 1 || strlen(pDllAnsi) < 1)
     {
         errstr.Format(TEXT("must specify execname and dllname"));
@@ -373,7 +374,7 @@ void CcontroldemoDlg::StartCapper()
         goto free_release;
     }
 
-	DEBUG_INFO("\n");
+    DEBUG_INFO("\n");
 
     bufnum = atoi(pBufNumAnsi);
     blocksize = atoi(pBlockSizeAnsi);
@@ -383,7 +384,7 @@ void CcontroldemoDlg::StartCapper()
         AfxMessageBox(errstr);
         goto free_release;
     }
-	DEBUG_INFO("\n");
+    DEBUG_INFO("\n");
 
     pPartDllAnsi = strrchr(pDllAnsi,'\\');
     if(pPartDllAnsi == NULL)
@@ -395,7 +396,7 @@ void CcontroldemoDlg::StartCapper()
         pPartDllAnsi ++ ;
     }
 
-	DEBUG_INFO("\n");
+    DEBUG_INFO("\n");
     /**/
     fullexecnamesize =strlen(pExecAnsi) + 1;
     if(strlen(pParamAnsi))
@@ -404,7 +405,7 @@ void CcontroldemoDlg::StartCapper()
     }
 
     pFullExecName = new char[fullexecnamesize];
-	DEBUG_INFO("\n");
+    DEBUG_INFO("\n");
 
     if(strlen(pParamAnsi))
     {
@@ -414,10 +415,11 @@ void CcontroldemoDlg::StartCapper()
     {
         _snprintf_s(pFullExecName,fullexecnamesize,_TRUNCATE,"%s",pExecAnsi);
     }
-	DEBUG_INFO("\n");
+    DEBUG_INFO("\n");
 
 
     ret = LoadInsert(NULL,pFullExecName,pDllAnsi,pPartDllAnsi);
+	DEBUG_INFO("LoadInsert ret %d\n",ret);
     if(ret < 0)
     {
         errstr.Format(TEXT("could not run (%s) error(%d) with dll(%s) part(%s)"),pFullExecName,ret,
@@ -425,6 +427,7 @@ void CcontroldemoDlg::StartCapper()
         AfxMessageBox(errstr);
         goto free_release;
     }
+    DEBUG_INFO("\n");
 
     processid= ret;
 
@@ -440,20 +443,26 @@ void CcontroldemoDlg::StartCapper()
                       ret);
         goto fail;
     }
+    DEBUG_INFO("\n");
 
 
     /*now to get the text  */
     this->m_pCapper = new CPcmCapper();
     this->m_pDemoCallBack = new CPcmCapDemoCallBack();
 
+    DEBUG_INFO("\n");
     /*now to make the dump file*/
-    ret = this->m_pDemoCallBack->OpenFile(pDumpAnsi);
-    if(ret < 0)
+    if(strlen(pDumpAnsi) > 0)
     {
-        errstr.Format(TEXT("can not open (%s) error(%d)"),pDumpAnsi,ret);
-        goto fail;
+        ret = this->m_pDemoCallBack->OpenFile(pDumpAnsi);
+        if(ret < 0)
+        {
+            errstr.Format(TEXT("can not open (%s) error(%d)"),pDumpAnsi,ret);
+            goto fail;
+        }
     }
 
+	DEBUG_INFO("\n");
     if(rendercheck == 0 && capturecheck == 0)
     {
         iOperation = PCMCAP_AUDIO_NONE;
@@ -471,9 +480,8 @@ void CcontroldemoDlg::StartCapper()
         iOperation = PCMCAP_AUDIO_BOTH;
     }
 
-    /*now to create the process*/
-
-
+    /*now to create the process*/	
+	DEBUG_INFO("\n");
 
 
     bret= this->m_pCapper->Start(this->m_hProc,iOperation,bufnum,blocksize,this->m_pDemoCallBack,NULL);
@@ -485,6 +493,7 @@ void CcontroldemoDlg::StartCapper()
     }
 
     /*ok all is ok*/
+	DEBUG_INFO("\n");
 
 
 #ifdef _UNICODE
@@ -589,6 +598,6 @@ void CcontroldemoDlg::OnBtnDump()
 
 void CcontroldemoDlg::OnBtnStart()
 {
-	this->StartCapper();
+    this->StartCapper();
 }
 

@@ -1202,7 +1202,7 @@ HRESULT WINAPI AudioRenderClientGetBufferCallBack(IAudioRenderClient* pRender,UI
     if(SUCCEEDED(hr))
     {
         st_pRenderBuffer = *ppData;
-		DEBUG_INFO("render get buffer 0x%p numframe requested %d\n",*ppData,NumFramesRequested);
+		//DEBUG_INFO("render get buffer 0x%p numframe requested %d\n",*ppData,NumFramesRequested);
     }
     return hr;
 }
