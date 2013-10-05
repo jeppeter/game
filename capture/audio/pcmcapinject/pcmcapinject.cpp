@@ -564,7 +564,7 @@ PCM_EVTS_t* __AllocatePCMEvts(unsigned int num,int packsize,char* pMapFileName,c
     if(pPCMEvt->m_hStartEvt == NULL)
     {
         ret = LAST_ERROR_CODE();
-        ERROR_INFO("could not getevent %s start event error(%d)\n",pStartEvtName,ret);
+        ERROR_INFO("could not getevent (%s) start event error(%d)\n",pStartEvtName,ret);
         goto fail;
     }
 
@@ -932,7 +932,7 @@ int HandleAudioOperation(PCMCAP_CONTROL_t *pControl)
         return -ERROR_BAD_ENVIRONMENT;
     }
 
-	DEBUG_INFO("tmms %d\n",tmms);
+	DEBUG_INFO("tmms %d operation %d\n",tmms,pControl->m_Operation);
     dret = WaitForSingleObject(st_hThreadSema , tmms ? tmms : INFINITE);
 	DEBUG_INFO("tmms %d ret %d\n",tmms,dret);
     if(dret != WAIT_OBJECT_0)
@@ -958,6 +958,7 @@ int HandleAudioOperation(PCMCAP_CONTROL_t *pControl)
     }
 
     ReleaseSemaphore(st_hThreadSema,1,NULL);
+	DEBUG_INFO("operation %d return %d\n",pControl->m_Operation,ret);
     return ret;
 }
 

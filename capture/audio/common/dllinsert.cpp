@@ -136,7 +136,7 @@ PVOID __GetModuleBaseAddr(unsigned int processid,const char* pDllName)
             goto fail;
         }
         LowerCaseName(pDebugString);
-        DEBUG_INFO("module (%s)\n",pDebugString);
+        //DEBUG_INFO("module (%s)\n",pDebugString);
 
         if(_stricmp(pDebugString,pDllName)==0)
 #else
