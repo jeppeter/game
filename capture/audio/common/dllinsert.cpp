@@ -132,6 +132,7 @@ PVOID __GetModuleBaseAddr(unsigned int processid,const char* pDllName)
         if(ret == 0 && GetLastError())
         {
             ret = GetLastError();
+			ERROR_INFO("\n");
             goto fail;
         }
         LowerCaseName(pDebugString);
@@ -153,7 +154,7 @@ PVOID __GetModuleBaseAddr(unsigned int processid,const char* pDllName)
 
     if(pBaseAddr == NULL)
     {
-        DEBUG_INFO("Error %d\n",GetLastError());
+        DEBUG_INFO("Error (%d) Module %s\n",GetLastError(),pDllName);
         ret = ERROR_MOD_NOT_FOUND;
         DEBUG_INFO("\n");
         goto fail;

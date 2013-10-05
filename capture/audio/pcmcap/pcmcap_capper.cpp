@@ -12,11 +12,11 @@
 #define  PCMCAP_DLL_NAME                 "pcmcapinject.dll"
 #define  PCMCAP_SET_OPERATION_FUNC_NAME  "HandleAudioOperation"
 
-#define  MAP_FILE_OBJNAME_BASE           "Global\\PCMCAP_CAPPER_MAPFILE"
-#define  FREE_EVENT_OBJNAME_BASE         "Global\\PCMCAP_CAPPER_FREEEVT"
-#define  FILL_EVENT_OBJNAME_BASE         "Global\\PCMCAP_CAPPER_FILLEVT"
-#define  START_EVENT_OBJNAME_BASE        "Global\\PCMCAP_CAPPER_START"
-#define  STOP_EVENT_OBJNAME_BASE         "Global\\PCMCAP_CAPPER_STOP"
+#define  MAP_FILE_OBJNAME_BASE           "PCMCAP_CAPPER_MAPFILE"
+#define  FREE_EVENT_OBJNAME_BASE         "PCMCAP_CAPPER_FREEEVT"
+#define  FILL_EVENT_OBJNAME_BASE         "PCMCAP_CAPPER_FILLEVT"
+#define  START_EVENT_OBJNAME_BASE        "PCMCAP_CAPPER_START"
+#define  STOP_EVENT_OBJNAME_BASE         "PCMCAP_CAPPER_STOP"
 
 #define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 

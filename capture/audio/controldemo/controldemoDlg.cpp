@@ -9,6 +9,7 @@
 #include <output_debug.h>
 #include <uniansi.h>
 #include <dllinsert.h>
+#include <sched.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -283,6 +284,7 @@ void CcontroldemoDlg::StartCapper()
     int iOperation=PCMCAP_AUDIO_NONE;
     BOOL bret;
     int bufnum,blocksize;
+    unsigned int i;
 
 
     DEBUG_INFO("\n");
@@ -419,7 +421,7 @@ void CcontroldemoDlg::StartCapper()
 
 
     ret = LoadInsert(NULL,pFullExecName,pDllAnsi,pPartDllAnsi);
-	DEBUG_INFO("LoadInsert ret %d\n",ret);
+    DEBUG_INFO("LoadInsert ret %d\n",ret);
     if(ret < 0)
     {
         errstr.Format(TEXT("could not run (%s) error(%d) with dll(%s) part(%s)"),pFullExecName,ret,
@@ -431,7 +433,10 @@ void CcontroldemoDlg::StartCapper()
 
     processid= ret;
 
-
+    for(i=0; i<10; i++)
+    {
+        SchedOut();
+    }
 
     this->StopCapper();
 
@@ -462,7 +467,7 @@ void CcontroldemoDlg::StartCapper()
         }
     }
 
-	DEBUG_INFO("\n");
+    DEBUG_INFO("\n");
     if(rendercheck == 0 && capturecheck == 0)
     {
         iOperation = PCMCAP_AUDIO_NONE;
@@ -480,8 +485,8 @@ void CcontroldemoDlg::StartCapper()
         iOperation = PCMCAP_AUDIO_BOTH;
     }
 
-    /*now to create the process*/	
-	DEBUG_INFO("\n");
+    /*now to create the process*/
+    DEBUG_INFO("\n");
 
 
     bret= this->m_pCapper->Start(this->m_hProc,iOperation,bufnum,blocksize,this->m_pDemoCallBack,NULL);
@@ -493,7 +498,7 @@ void CcontroldemoDlg::StartCapper()
     }
 
     /*ok all is ok*/
-	DEBUG_INFO("\n");
+    DEBUG_INFO("\n");
 
 
 #ifdef _UNICODE
