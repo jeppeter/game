@@ -320,17 +320,20 @@ void __StopThread(THREAD_CONTROL_t* pThreadControl)
                     ERROR_INFO("could not setevent 0x%x error(%d)\n",pThreadControl->m_hExitEvt,
                                ret);
                 }
+                DEBUG_INFO("\n");
                 SchedOut();
             }
         }
 
         if(pThreadControl->m_hThread)
         {
+            DEBUG_INFO("thread 0x%x\n",pThreadControl->m_hThread);
             CloseHandle(pThreadControl->m_hThread);
         }
         pThreadControl->m_hThread = NULL;
         if(pThreadControl->m_hExitEvt)
         {
+            DEBUG_INFO("hExitEvt 0x%x\n",pThreadControl->m_hExitEvt);
             CloseHandle(pThreadControl->m_hExitEvt);
         }
         pThreadControl->m_hExitEvt = NULL;
@@ -393,11 +396,16 @@ void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
     if(pPCMEvt)
     {
         __StopThread(&(pPCMEvt->m_ThreadControl));
+        DEBUG_INFO("freelist %d\n",pPCMEvt->m_FreeList.size());
+
         while(pPCMEvt->m_FreeList.size() > 0)
         {
+            DEBUG_INFO("free list %d\n",pPCMEvt->m_FreeList.size());
             pPCMEvt->m_FreeList.erase(pPCMEvt->m_FreeList.begin());
+            DEBUG_INFO("free list %d\n",pPCMEvt->m_FreeList.size());
         }
 
+        DEBUG_INFO("filllist %d\n",pPCMEvt->m_FillList.size());
         while(pPCMEvt->m_FillList.size() > 0)
         {
             pPCMEvt->m_FillList.erase(pPCMEvt->m_FillList.begin());
@@ -410,6 +418,7 @@ void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
             {
                 if(pPCMEvt->m_pWholeList[i].m_hFillEvt)
                 {
+                    DEBUG_INFO("[%d] 0x%x\n",i,pPCMEvt->m_pWholeList[i].m_hFillEvt);
                     CloseHandle(pPCMEvt->m_pWholeList[i].m_hFillEvt);
                 }
                 pPCMEvt->m_pWholeList[i].m_hFillEvt = NULL;
@@ -418,6 +427,7 @@ void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
 
         if(pPCMEvt->m_pWholeList)
         {
+            DEBUG_INFO("wholelist 0x%p\n",pPCMEvt->m_pWholeList);
             free(pPCMEvt->m_pWholeList);
         }
         pPCMEvt->m_pWholeList = NULL;
@@ -428,35 +438,41 @@ void __FreePCMEvt(PCM_EVTS_t** ppPCMEvt)
             {
                 if(pPCMEvt->m_pFreeEvt[i])
                 {
+                    DEBUG_INFO("[%d] 0x%p\n",i,pPCMEvt->m_pFreeEvt[i]);
                     CloseHandle(pPCMEvt->m_pFreeEvt[i]);
                 }
                 pPCMEvt->m_pFreeEvt[i]= NULL;
             }
 
+            DEBUG_INFO("freeevt 0x%p\n",pPCMEvt->m_pFreeEvt);
             free(pPCMEvt->m_pFreeEvt);
         }
         pPCMEvt->m_pFreeEvt = NULL;
 
         if(pPCMEvt->m_hStartEvt)
         {
+            DEBUG_INFO("hStartEvt 0x%x\n",pPCMEvt->m_hStartEvt);
             CloseHandle(pPCMEvt->m_hStartEvt);
         }
         pPCMEvt->m_hStartEvt = NULL;
 
         if(pPCMEvt->m_hStopEvt)
         {
+            DEBUG_INFO("hStopEvt 0x%x\n",pPCMEvt->m_hStopEvt);
             CloseHandle(pPCMEvt->m_hStopEvt);
         }
         pPCMEvt->m_hStopEvt = NULL;
 
+        DEBUG_INFO("pMemBase 0x%p\n",pPCMEvt->m_pMemBase);
         UnMapFileBuffer(&(pPCMEvt->m_pMemBase));
+        DEBUG_INFO("hMemMap 0x%x\n",pPCMEvt->m_hMemMap);
         CloseMapFileHandle(&(pPCMEvt->m_hMemMap));
         pPCMEvt->m_MemMapSize = 0;
         pPCMEvt->m_WholeListNum = 0;
         assert(pPCMEvt->m_GetWholeListNum == 0);
 
+        DEBUG_INFO("pPCMEvt 0x%p\n",pPCMEvt);
         free(pPCMEvt);
-
     }
     *ppPCMEvt = NULL;
     return ;
@@ -538,6 +554,7 @@ PCM_EVTS_t* __AllocatePCMEvts(unsigned int num,int packsize,char* pMapFileName,c
         pPCMEvt->m_pWholeList[i].m_Offset = (packsize)*i;
         pPCMEvt->m_pWholeList[i].m_Size = packsize;
         pPCMEvt->m_FreeList.push_back(&(pPCMEvt->m_pWholeList[i]));
+        DEBUG_INFO("freelist %d\n",pPCMEvt->m_FreeList.size());
     }
 
     pPCMEvt->m_pFreeEvt =(HANDLE*) calloc(sizeof(pPCMEvt->m_pFreeEvt[0]),num);
@@ -932,9 +949,9 @@ int HandleAudioOperation(PCMCAP_CONTROL_t *pControl)
         return -ERROR_BAD_ENVIRONMENT;
     }
 
-	DEBUG_INFO("tmms %d operation %d\n",tmms,pControl->m_Operation);
+    DEBUG_INFO("tmms %d operation %d\n",tmms,pControl->m_Operation);
     dret = WaitForSingleObject(st_hThreadSema , tmms ? tmms : INFINITE);
-	DEBUG_INFO("tmms %d ret %d\n",tmms,dret);
+    DEBUG_INFO("tmms %d ret %d\n",tmms,dret);
     if(dret != WAIT_OBJECT_0)
     {
         ret = -(LAST_ERROR_CODE());
@@ -958,7 +975,7 @@ int HandleAudioOperation(PCMCAP_CONTROL_t *pControl)
     }
 
     ReleaseSemaphore(st_hThreadSema,1,NULL);
-	DEBUG_INFO("operation %d return %d\n",pControl->m_Operation,ret);
+    DEBUG_INFO("operation %d return %d\n",pControl->m_Operation,ret);
     return ret;
 }
 
@@ -1205,7 +1222,7 @@ HRESULT WINAPI AudioRenderClientGetBufferCallBack(IAudioRenderClient* pRender,UI
     if(SUCCEEDED(hr))
     {
         st_pRenderBuffer = *ppData;
-		//DEBUG_INFO("render get buffer 0x%p numframe requested %d\n",*ppData,NumFramesRequested);
+        //DEBUG_INFO("render get buffer 0x%p numframe requested %d\n",*ppData,NumFramesRequested);
     }
     return hr;
 }
@@ -1228,7 +1245,7 @@ HRESULT WINAPI AudioRenderClientReleaseBufferCallBack(IAudioRenderClient* pRende
         newdwflag |= AUDCLNT_BUFFERFLAGS_SILENT;
     }
 
-	DEBUG_INFO("NumFramesWritten %d operation %d\n",NumFramesWritten,operation);
+    DEBUG_INFO("NumFramesWritten %d operation %d\n",NumFramesWritten,operation);
     hr = AudioRenderClientReleaseBufferNext(pRender,NumFramesWritten,newdwflag);
     if(SUCCEEDED(hr))
     {

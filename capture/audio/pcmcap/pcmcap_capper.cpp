@@ -824,9 +824,9 @@ BOOL CPcmCapper::__SetOperationCapture()
     pControl->m_NumPacks = this->m_BufNum;
     strncpy_s((char*)pControl->m_FreeListSemNameBase,sizeof(pControl->m_FreeListSemNameBase),(const char*)this->m_FreeEvtBaseName,_TRUNCATE);
     strncpy_s((char*)pControl->m_FillListSemNameBase,sizeof(pControl->m_FillListSemNameBase),(const char*)this->m_FillEvtBaseName,_TRUNCATE);
-    strncpy_s((char*)pControl->m_StartEvtName,sizeof(pControl->m_StartEvtName),(const char*)this->m_StartEvtBaseName,_TRUNCATE);
-	DEBUG_INFO("control start %s start evtname %s\n",pControl->m_StartEvtName,this->m_StartEvtBaseName);
-    strncpy_s((char*)pControl->m_StopEvtName,sizeof(pControl->m_StopEvtName),(const char*)this->m_StopEvtBaseName,_TRUNCATE);
+    //strncpy_s((char*)pControl->m_StartEvtName,sizeof(pControl->m_StartEvtName),(const char*)this->m_StartEvtBaseName,_TRUNCATE);
+	//DEBUG_INFO("control start %s start evtname %s\n",pControl->m_StartEvtName,this->m_StartEvtBaseName);
+    //strncpy_s((char*)pControl->m_StopEvtName,sizeof(pControl->m_StopEvtName),(const char*)this->m_StopEvtBaseName,_TRUNCATE);
 
     bret = this->__SetOperationInner(pControl,&retcode);
     if(!bret)
