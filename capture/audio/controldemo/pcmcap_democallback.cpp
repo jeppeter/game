@@ -63,7 +63,7 @@ VOID CPcmCapDemoCallBack::WaveInCb(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpPar
     bytes = pPcmItem->m_AudioData.m_DataLen;
     if(this->m_fp)
     {
-    	DEBUG_INFO("wave in bytes %d\n",bytes);
+    	//DEBUG_INFO("wave in bytes %d\n",bytes);
     	//DEBUG_BUFFER(pPcmItem->m_AudioData.m_Data,bytes > 16 ? 16:bytes );
         ret = fwrite(pPcmItem->m_AudioData.m_Data,bytes,1,this->m_fp);
         if(ret != 1)

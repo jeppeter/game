@@ -769,16 +769,9 @@ int WriteSendBuffer(unsigned char* pBuffer,int numpacks)
         ret = LAST_ERROR_CODE();
         ERROR_INFO("SetEvent %d error(%d)\n",pEventList->m_Idx,ret);
     }
-    DEBUG_INFO("put filllist packs %d numbytes %d\n",numpacks,numbytes);
-    DEBUG_BUFFER(pAudioBuffer->m_AudioData.m_Data,numbytes > 16 ? 16 : numbytes);
-    DEBUG_BUFFER(pBuffer,numbytes > 16 ? 16 : numbytes);
-    if(numbytes > 16)
-    {
-        unsigned char* pCurPtr = (pBuffer + numbytes -16);
-        DEBUG_BUFFER(pCurPtr ,16);
-        pCurPtr = pAudioBuffer->m_AudioData.m_Data + numbytes - 16;
-        DEBUG_BUFFER(pCurPtr ,16);
-    }
+    //DEBUG_INFO("put filllist packs %d numbytes %d\n",numpacks,numbytes);
+    //DEBUG_BUFFER(pAudioBuffer->m_AudioData.m_Data,numbytes > 16 ? 16 : numbytes);
+    //DEBUG_BUFFER(pBuffer,numbytes > 16 ? 16 : numbytes);
     PutFillList(pEventList);
     return 1;
 }
@@ -1659,11 +1652,11 @@ static int st_AudioClientStartDetoured=0;
 HRESULT WINAPI AudioClientStartCallBack(IAudioClient* pClient)
 {
     HRESULT hr;
-    DEBUG_INFO("\n");
+    DEBUG_INFO("start in\n");
     hr = AudioClientStartNext(pClient);
     if(SUCCEEDED(hr))
     {
-        DEBUG_INFO("\n");
+        DEBUG_INFO("start succ\n");
         NotifyAudioStart();
     }
     return hr;
@@ -1677,11 +1670,11 @@ static int st_AudioClientStopDetoured=0;
 HRESULT WINAPI AudioClientStopCallBack(IAudioClient* pClient)
 {
     HRESULT hr;
-    DEBUG_INFO("\n");
+    DEBUG_INFO("stop in\n");
     hr = AudioClientStopNext(pClient);
     if(SUCCEEDED(hr))
     {
-        DEBUG_INFO("\n");
+        DEBUG_INFO("stop succ\n");
         NotifyAudioStop();
     }
     else
