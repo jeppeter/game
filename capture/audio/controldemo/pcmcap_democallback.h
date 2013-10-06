@@ -5,6 +5,7 @@
 #include <pcmcap_callback.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "waveplay.h"
 
 
 class CPcmCapDemoCallBack : public IPcmCapperCallback
@@ -19,9 +20,17 @@ public:
 	void CloseFile();
 
 private:
+	void __StopPlay();
+	int __StartPlay(PCM_AUDIO_FORMAT_t* pFormat);
+	void __SetWaveFormatEx(WAVEFORMATEX* pwfx,PCM_AUDIO_FORMAT_t* pFormat);
+	int __Play(unsigned char* pBuffer,int bytes);
+	
+
+private:
 	FILE* m_fp;
 	int m_WriteBlockSize;
-	
+	CViWavePlay* m_pPlay;
+	PCM_AUDIO_FORMAT_t m_Format;
 };
 
 

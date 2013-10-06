@@ -7,6 +7,7 @@
 #define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
 #define DEBUG_BUFFER_FMT(buf,len,...) do{DebugBufferFmt(__FILE__,__LINE__,(unsigned char*)(buf),(int)(len),__VA_ARGS__);} while(0)
+#define DEBUG_INFO(...) do{fprintf(stdout,__VA_ARGS__);}while(0)
 
 void DebugBufferFmt(const char*file,int lineno,unsigned char* pBuffer,int buflen,const char* fmt,...)
 {
@@ -80,6 +81,7 @@ int main(int argc, char* argv[])
 
     pPlay = new CViWavePlay();
 
+	memset(&wfx,0,sizeof(wfx));
     wfx.nSamplesPerSec = 48000;
     wfx.wBitsPerSample = 32;
     wfx.nChannels  = 2;
@@ -89,6 +91,14 @@ int main(int argc, char* argv[])
     wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;
 
     rlen = wfx.nSamplesPerSec * wfx.wBitsPerSample * wfx.nChannels / 8 / 10;
+	DEBUG_INFO("wfx.nSamplesPerSec %d\n",wfx.nSamplesPerSec);
+	DEBUG_INFO("wfx.wBitsPerSample %d\n",wfx.wBitsPerSample);
+	DEBUG_INFO("wfx.nChannels %d\n",wfx.nChannels);
+	DEBUG_INFO("wfx.cbSize %d\n",wfx.cbSize);
+	DEBUG_INFO("wfx.wFormatTag %d\n",wfx.wFormatTag);
+	DEBUG_INFO("wfx.nBlockAlign %d\n",wfx.nBlockAlign);
+	DEBUG_INFO("wfx.nAvgBytesPerSec %d\n",wfx.nAvgBytesPerSec);
+	DEBUG_BUFFER_FMT(&wfx,sizeof(wfx),"wfx sizeof(%d)",sizeof(wfx));
 
     bret = pPlay->Start(&wfx);
     if(!bret)
@@ -107,7 +117,7 @@ int main(int argc, char* argv[])
         {
             retlen = filesize - totalread;
         }
-        DEBUG_BUFFER_FMT(pCurPtr,(retlen > 16 ? 16 : retlen),"buffer at %d retlen %d",totalread,retlen);
+        //DEBUG_BUFFER_FMT(pCurPtr,(retlen > 16 ? 16 : retlen),"buffer at %d retlen %d",totalread,retlen);
         bret = pPlay->PlayAudio(pCurPtr,retlen);
         if(!bret)
         {

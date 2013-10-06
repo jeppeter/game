@@ -1279,21 +1279,18 @@ HRESULT WINAPI AudioRenderClientReleaseBufferCallBack(IAudioRenderClient* pRende
     {
         newdwflag |= AUDCLNT_BUFFERFLAGS_SILENT;
     }
+	if(st_pRenderBuffer)
+	{
+		/*write buffer */
+		if(!(dwFlags & AUDCLNT_BUFFERFLAGS_SILENT) && (operation == PCMCAPPER_OPERATION_CAPTURE || operation == PCMCAPPER_OPERATION_BOTH))
+		{
+			WriteSendBuffer(st_pRenderBuffer,NumFramesWritten);
+		}
+	}
+	st_pRenderBuffer = NULL;
 
     //DEBUG_INFO("NumFramesWritten %d operation %d\n",NumFramesWritten,operation);
     hr = AudioRenderClientReleaseBufferNext(pRender,NumFramesWritten,newdwflag);
-    if(SUCCEEDED(hr))
-    {
-        if(st_pRenderBuffer)
-        {
-            /*write buffer */
-            if(!(dwFlags & AUDCLNT_BUFFERFLAGS_SILENT) && (operation == PCMCAPPER_OPERATION_CAPTURE || operation == PCMCAPPER_OPERATION_BOTH))
-            {
-                WriteSendBuffer(st_pRenderBuffer,NumFramesWritten);
-            }
-        }
-        st_pRenderBuffer = NULL;
-    }
     return hr;
 }
 
