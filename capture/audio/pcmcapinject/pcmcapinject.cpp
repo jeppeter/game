@@ -1226,6 +1226,88 @@ static int DetourSimpleAudioVolumeVirtFunctions(ISimpleAudioVolume *pThis)
 }
 
 /*****************************************************
+* audio render client register and buffer set
+*****************************************************/
+static CRITICAL_SECTION st_RenderCS;
+static unsigned char* st_pRenderBuffer=NULL;
+static std::vector<IAudioRenderClient*> st_RenderArrays;
+
+static unsigned char* GetReleaseBufferPointer(IAudioRenderClient* pRender)
+{
+    unsigned char* pPointer=NULL;
+    EnterCriticalSection(&st_RenderCS);
+    if(st_RenderArrays.size() > 0 && pRender == st_RenderArrays[0])
+    {
+        pPointer = st_pRenderBuffer ;
+        st_pRenderBuffer = NULL;
+    }
+    LeaveCriticalSection(&st_RenderCS);
+    return pPointer;
+}
+
+static int SetGetBufferPointer(IAudioRenderClient* pRender,unsigned char* pBuffer)
+{
+    int ret =0;
+    int findidx=-1;
+    unsigned int i;
+    EnterCriticalSection(&st_RenderCS);
+    if(st_RenderArrays.size() > 0 && pRender == st_RenderArrays[0])
+    {
+        ret = 1;
+        st_pRenderBuffer = pBuffer;
+    }
+    if(ret == 0)
+    {
+        /*to search if we do not have this render ,if not ,just input it*/
+        for(i=0; i<st_RenderArrays.size() ; i++)
+        {
+            if(pRender == st_RenderArrays[i])
+            {
+                findidx = i;
+                break;
+            }
+        }
+
+        if(findidx < 0)
+        {
+            st_RenderArrays.push_back(pRender);
+        }
+    }
+    LeaveCriticalSection(&st_RenderCS);
+
+    return ret;
+}
+
+
+static int ReleaseRenderClient(IAudioRenderClient* pRender)
+{
+    int ret=0;
+    int findidx = -1;
+    unsigned int i;
+
+    EnterCriticalSection(&st_RenderCS);
+    for(i=0; i<st_RenderArrays.size(); i++)
+    {
+        if(pRender == st_RenderArrays[i])
+        {
+            findidx = i;
+            break;
+        }
+    }
+
+    if(findidx >=0)
+    {
+        st_RenderArrays.erase(st_RenderArrays.begin() + findidx);
+        ret = 1;
+    }
+    LeaveCriticalSection(&st_RenderCS);
+
+    return ret;
+}
+
+
+
+/*****************************************************
 * audio render client
 *****************************************************/
 #define  AUDIO_RENDER_RELEASE_NUM        2
@@ -1239,8 +1321,18 @@ static int st_AudioRenderClientReleaseDetoured=0;
 ULONG WINAPI AudioRenderClientReleaseCallBack(IAudioRenderClient* pRender)
 {
     ULONG uret;
+    int ret;
 
     uret = AudioRenderClientReleaseNext(pRender);
+    if(uret == 0)
+    {
+        ret = ReleaseRenderClient(pRender);
+    	DEBUG_INFO("Release Render Client 0x%p ret %d\n",pRender,ret);
+        if(ret == 0)
+        {
+            ERROR_INFO("not set client 0x%p into the array\n",pRender);
+        }
+    }
     return uret;
 }
 
@@ -1248,7 +1340,6 @@ typedef HRESULT(WINAPI *AudioRenderClientGetBufferFunc_t)(IAudioRenderClient* pR
 static AudioRenderClientGetBufferFunc_t AudioRenderClientGetBufferNext=NULL;
 static int st_AudioRenderClientGetBufferDetoured=0;
 
-static unsigned char* st_pRenderBuffer=NULL;
 
 HRESULT WINAPI AudioRenderClientGetBufferCallBack(IAudioRenderClient* pRender,UINT32 NumFramesRequested,BYTE **ppData)
 {
@@ -1256,7 +1347,7 @@ HRESULT WINAPI AudioRenderClientGetBufferCallBack(IAudioRenderClient* pRender,UI
     hr = AudioRenderClientGetBufferNext(pRender,NumFramesRequested,ppData);
     if(SUCCEEDED(hr))
     {
-        st_pRenderBuffer = *ppData;
+    	SetGetBufferPointer(pRender,*ppData);
         //DEBUG_INFO("render get buffer 0x%p numframe requested %d\n",*ppData,NumFramesRequested);
     }
     return hr;
@@ -1272,6 +1363,7 @@ HRESULT WINAPI AudioRenderClientReleaseBufferCallBack(IAudioRenderClient* pRende
     HRESULT hr;
     int operation;
     DWORD newdwflag=dwFlags;
+	unsigned char* pBuffer=NULL;
 
     operation = GetOperation();
     if(operation == PCMCAPPER_OPERATION_NONE ||
@@ -1279,15 +1371,15 @@ HRESULT WINAPI AudioRenderClientReleaseBufferCallBack(IAudioRenderClient* pRende
     {
         newdwflag |= AUDCLNT_BUFFERFLAGS_SILENT;
     }
-	if(st_pRenderBuffer)
-	{
-		/*write buffer */
-		if(!(dwFlags & AUDCLNT_BUFFERFLAGS_SILENT) && (operation == PCMCAPPER_OPERATION_CAPTURE || operation == PCMCAPPER_OPERATION_BOTH))
-		{
-			WriteSendBuffer(st_pRenderBuffer,NumFramesWritten);
-		}
-	}
-	st_pRenderBuffer = NULL;
+	pBuffer = GetReleaseBufferPointer(pRender);
+    if(pBuffer)
+    {
+        /*write buffer */
+        if(!(dwFlags & AUDCLNT_BUFFERFLAGS_SILENT) && (operation == PCMCAPPER_OPERATION_CAPTURE || operation == PCMCAPPER_OPERATION_BOTH))
+        {
+            WriteSendBuffer(pBuffer,NumFramesWritten);
+        }
+    }
 
     //DEBUG_INFO("NumFramesWritten %d operation %d\n",NumFramesWritten,operation);
     hr = AudioRenderClientReleaseBufferNext(pRender,NumFramesWritten,newdwflag);

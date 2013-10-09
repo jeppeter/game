@@ -217,7 +217,7 @@ VOID CPcmCapDemoCallBack::WaveInCb(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpPar
             }
         }
     }
-#if 1
+#if 0
     ret = this->__StartPlay(&(pPcmItem->m_Format));
     if(ret < 0)
     {
