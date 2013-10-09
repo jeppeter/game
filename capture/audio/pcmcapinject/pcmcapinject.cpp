@@ -1230,6 +1230,7 @@ static int DetourSimpleAudioVolumeVirtFunctions(ISimpleAudioVolume *pThis)
 *****************************************************/
 static CRITICAL_SECTION st_RenderCS;
 static unsigned char* st_pRenderBuffer=NULL;
+static int st_RenderNotSet=0;
 static std::vector<IAudioRenderClient*> st_RenderArrays;
 
 static unsigned char* GetReleaseBufferPointer(IAudioRenderClient* pRender)
@@ -1240,6 +1241,15 @@ static unsigned char* GetReleaseBufferPointer(IAudioRenderClient* pRender)
     {
         pPointer = st_pRenderBuffer ;
         st_pRenderBuffer = NULL;
+        st_RenderNotSet = 0;
+    }
+    else
+    {
+        st_RenderNotSet ++;
+        if(st_RenderNotSet > 20)
+        {
+            DEBUG_INFO("Not Get Buffer for %d times\n",st_RenderNotSet);
+        }
     }
     LeaveCriticalSection(&st_RenderCS);
     return pPointer;
@@ -1271,6 +1281,12 @@ static int SetGetBufferPointer(IAudioRenderClient* pRender,unsigned char* pBuffe
         if(findidx < 0)
         {
             st_RenderArrays.push_back(pRender);
+            /*this is the first one*/
+            if(st_RenderArrays.size() == 1)
+            {
+                ret = 1;
+                st_pRenderBuffer = pBuffer;
+            }
         }
     }
     LeaveCriticalSection(&st_RenderCS);
@@ -1327,7 +1343,6 @@ ULONG WINAPI AudioRenderClientReleaseCallBack(IAudioRenderClient* pRender)
     if(uret == 0)
     {
         ret = ReleaseRenderClient(pRender);
-    	DEBUG_INFO("Release Render Client 0x%p ret %d\n",pRender,ret);
         if(ret == 0)
         {
             ERROR_INFO("not set client 0x%p into the array\n",pRender);
@@ -1347,7 +1362,7 @@ HRESULT WINAPI AudioRenderClientGetBufferCallBack(IAudioRenderClient* pRender,UI
     hr = AudioRenderClientGetBufferNext(pRender,NumFramesRequested,ppData);
     if(SUCCEEDED(hr))
     {
-    	SetGetBufferPointer(pRender,*ppData);
+        SetGetBufferPointer(pRender,*ppData);
         //DEBUG_INFO("render get buffer 0x%p numframe requested %d\n",*ppData,NumFramesRequested);
     }
     return hr;
@@ -1363,7 +1378,7 @@ HRESULT WINAPI AudioRenderClientReleaseBufferCallBack(IAudioRenderClient* pRende
     HRESULT hr;
     int operation;
     DWORD newdwflag=dwFlags;
-	unsigned char* pBuffer=NULL;
+    unsigned char* pBuffer=NULL;
 
     operation = GetOperation();
     if(operation == PCMCAPPER_OPERATION_NONE ||
@@ -1371,7 +1386,7 @@ HRESULT WINAPI AudioRenderClientReleaseBufferCallBack(IAudioRenderClient* pRende
     {
         newdwflag |= AUDCLNT_BUFFERFLAGS_SILENT;
     }
-	pBuffer = GetReleaseBufferPointer(pRender);
+    pBuffer = GetReleaseBufferPointer(pRender);
     if(pBuffer)
     {
         /*write buffer */
@@ -2331,6 +2346,7 @@ int PcmCapInjectInit(void)
     InitializeCriticalSection(&st_StateCS);
     InitializeCriticalSection(&st_DetourCS);
     InitializeCriticalSection(&st_ListCS);
+	InitializeCriticalSection(&st_RenderCS);
     //InitializeCriticalSection(&st_AudioClientCS);
     InitializeCriticalSection(&st_MMDevCS);
     st_AudioFormat.m_Format = AV_SAMPLE_FMT_FLT;
