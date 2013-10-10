@@ -722,6 +722,7 @@ int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpa
     pEventList = GetFreeList();
     if(pEventList == NULL)
     {
+    	DEBUG_INFO("RenderClient 0x%p get no eventlist\n",pClient);
         return 0;
     }
 
@@ -1744,9 +1745,11 @@ static int st_AudioClientReleaseDetoured=0;
 ULONG WINAPI AudioClientReleaseCallBack(IAudioClient* pClient)
 {
     ULONG uret;
-    DEBUG_INFO("\n");
     uret = AudioClientReleaseNext(pClient);
-    DEBUG_INFO("\n");
+    if(uret == 0)
+    {
+        DEBUG_INFO("AudioClient 0x%p uret %d\n",pClient,uret);
+    }
     return uret;
 }
 
@@ -1762,7 +1765,7 @@ HRESULT WINAPI AudioClientInitializeCallBack(IAudioClient* pClient,AUDCLNT_SHARE
     hr = AudioClientInitializeNext(pClient,ShareMode,StreamFlags,hnsBufferDuration,hnsPeriodicity,pFormat,AudioSessionGuid);
     if(SUCCEEDED(hr) && pFormat)
     {
-        DEBUG_INFO("\n");
+        DEBUG_INFO("AudioClient 0x%p sharemode %d streamflags %d\n",pClient,ShareMode,StreamFlags);
         SetFormat((WAVEFORMATEX*)pFormat);
     }
     return hr;
@@ -1779,7 +1782,7 @@ HRESULT WINAPI AudioClientStartCallBack(IAudioClient* pClient)
     hr = AudioClientStartNext(pClient);
     if(SUCCEEDED(hr))
     {
-        DEBUG_INFO("start succ\n");
+        DEBUG_INFO("AudioClient 0x%p start succ\n",pClient);
         NotifyAudioStart();
     }
     return hr;
@@ -1797,12 +1800,8 @@ HRESULT WINAPI AudioClientStopCallBack(IAudioClient* pClient)
     hr = AudioClientStopNext(pClient);
     if(SUCCEEDED(hr))
     {
-        DEBUG_INFO("stop succ\n");
+        DEBUG_INFO("AudioClient 0x%p stop succ\n",pClient);
         NotifyAudioStop();
-    }
-    else
-    {
-        DEBUG_INFO("Stop hr(0x%08x)\n",hr);
     }
     return hr;
 }
@@ -1814,11 +1813,10 @@ static int st_AudioClientResetDetoured=0;
 HRESULT WINAPI AudioClientResetCallBack(IAudioClient* pClient)
 {
     HRESULT hr;
-    DEBUG_INFO("\n");
     hr = AudioClientResetNext(pClient);
     if(SUCCEEDED(hr))
     {
-        DEBUG_INFO("\n");
+        DEBUG_INFO("AudioClient 0x%p Reset\n",pClient);
         NotifyAudioStop();
         NotifyAudioStart();
     }
@@ -1840,25 +1838,25 @@ HRESULT WINAPI AudioClientGetServiceCallBack(IAudioClient* pClient,REFIID riid,v
         if(riid == __uuidof(IAudioRenderClient))
         {
             IAudioRenderClient* pRender = (IAudioRenderClient*)*ppv;
-            DEBUG_INFO("\n");
+            DEBUG_INFO("AudioClient 0x%p Render 0x%p\n",pClient,pRender);
             DetourAudioRenderClientVirtFunctions(pRender);
         }
         else if(riid == __uuidof(IAudioStreamVolume))
         {
             IAudioStreamVolume* pStream= (IAudioStreamVolume*)*ppv;
-            DEBUG_INFO("\n");
+            DEBUG_INFO("AudioClient 0x%p AudioStreamVolume 0x%p\n",pClient,pStream);
             DetourStreamAudioVolumeVirtFunctions(pStream);
         }
         else if(riid == __uuidof(IChannelAudioVolume))
         {
             IChannelAudioVolume* pChannel = (IChannelAudioVolume*)*ppv;
-            DEBUG_INFO("\n");
+            DEBUG_INFO("AudioClient 0x%p ChannelAudioVolume 0x%p\n",pClient,pChannel);
             DetourChannelAudioVolumeVirtFunctions(pChannel);
         }
         else if(riid == __uuidof(ISimpleAudioVolume))
         {
             ISimpleAudioVolume* pSimple = (ISimpleAudioVolume*)*ppv;
-            DEBUG_INFO("\n");
+            DEBUG_INFO("AudioClient 0x%p SimpleAudioVolume 0x%p\n",pClient,pSimple);
             DetourSimpleAudioVolumeVirtFunctions(pSimple);
         }
     }
@@ -1940,25 +1938,12 @@ public:
         hr = m_ptr->Activate(iid,dwClsCtx,pActivationParams,ppInterface);
         if(SUCCEEDED(hr))
         {
-            //DEBUG_INFO("iid %s\n",iid);
-            LPOLESTR test=NULL;
-            StringFromCLSID(iid, &test);
-            DEBUG_INFO("%ws\n", test);
-            CoTaskMemFree(test);
             if(iid == __uuidof(IAudioClient))
             {
                 IAudioClient* pClient=(IAudioClient*)*ppInterface;
-                DEBUG_INFO("active audio client\n");
+                DEBUG_INFO("Hook(0x%p) 0x%p active audio client 0x%p\n",this,m_ptr,pClient);
                 DetourDeviceAudioClientVirtFunctions(pClient);
             }
-        }
-        else
-        {
-            LPOLESTR test=NULL;
-            StringFromCLSID(iid, &test);
-            DEBUG_INFO("%ws\n", test);
-            CoTaskMemFree(test);
-            ERROR_INFO("error(0x%x)\n",hr);
         }
         MMDEVICE_OUT();
         return hr;
@@ -2149,6 +2134,10 @@ ULONG WINAPI DeviceCollectionReleaseCallBack(IMMDeviceCollection* pThis)
     ULONG uret;
     uret = DeviceCollectionReleaseNext(pThis);
     //DEBUG_INFO("uret %d\n",uret);
+    if(uret == 0)
+    {
+        DEBUG_INFO("Collection 0x%p released\n",pThis);
+    }
     return uret;
 }
 
@@ -2168,6 +2157,7 @@ HRESULT WINAPI DeviceCollectionItemCallBack(IMMDeviceCollection* pThis,UINT nDev
         IMMDevice* pDevice=*ppDevice;
         pHook = RegisterMMDevice(*ppDevice);
         *ppDevice = pHook;
+        DEBUG_INFO("Collection 0x%p Item 0x%p (Hook 0x%p)\n",pThis,pDevice,pHook);
         //DetourDeviceVirtFunctions(*ppDevice);
     }
     return hr;
@@ -2198,7 +2188,10 @@ ULONG WINAPI EnumeratorReleaseCallBack(IMMDeviceEnumerator* pThis)
     ULONG uret;
     //DEBUG_INFO("\n");
     uret = EnumeratorReleaseNext(pThis);
-    //DEBUG_INFO("uret %d\n",uret);
+    if(uret == 0)
+    {
+        DEBUG_INFO("Enumerator 0x%p uret %d\n",pThis,uret);
+    }
     return uret;
 }
 
@@ -2214,7 +2207,7 @@ HRESULT WINAPI EnumeratorEnumAudioEndpointsCallBack(IMMDeviceEnumerator* pThis,E
     if(SUCCEEDED(hr))
     {
         /*now success ,so we should to detour for the function of device collection*/
-        //DEBUG_INFO("\n");
+        DEBUG_INFO("Enumerator 0x%p flow %d mask %d EnumAudioEndpoints collection 0x%p\n",pThis,dataFlow,dwStateMask,*ppDevices);
         DetourDeviceCollectionVirtFunctions(*ppDevices);
     }
     return hr;
@@ -2237,6 +2230,7 @@ HRESULT WINAPI EnumeratorGetDefaultAudioEndpointCallBack(IMMDeviceEnumerator* pT
         IMMDevice* pDevice=*ppEndpoint;
         pHook = RegisterMMDevice(pDevice);
         *ppEndpoint= pHook;
+        DEBUG_INFO("Enumerator 0x%p GetDefaultAudioEndpoint 0x%p (Hook 0x%p)\n",pThis,pDevice,pHook);
         //DetourDeviceVirtFunctions(*ppEndpoint);
     }
     return hr;
@@ -2258,6 +2252,7 @@ HRESULT WINAPI EnumeratorGetDeviceCallBack(IMMDeviceEnumerator* pThis,LPCWSTR pw
         IMMDevice* pDevice=*ppDevice;
         pHook = RegisterMMDevice(pDevice);
         *ppDevice = pHook;
+        DEBUG_INFO("Enumerator 0x%p GetDevice 0x%p (Hook 0x%p)\n",pThis,pDevice,pHook);
         //DetourDeviceVirtFunctions(*ppDevice);
     }
     return hr;
