@@ -31,11 +31,16 @@ void DebugBufferFmt(const char*file,int lineno,unsigned char* pBuffer,int buflen
     return;
 }
 
+static unsigned char st_FormatEx[] = {0xfe,0xff,0x02,0x00,0x80,0xbb,0x00,0x00,0x00,0xdc,0x05,0x00,0x08,0x00,0x20,0x00,
+	0x16,0x00,0x20,0x00,0x03,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x10,0x00,
+	0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71
+};
+
 int main(int argc, char* argv[])
 {
     FILE* fp=NULL;
     CViWavePlay *pPlay=NULL;
-    WAVEFORMATEX wfx ;
+	WAVEFORMATEX *pwfx=(WAVEFORMATEX*)st_FormatEx;
     int ret;
     BOOL bret;
     char* pBuffer=NULL;
@@ -81,7 +86,7 @@ int main(int argc, char* argv[])
 
     pPlay = new CViWavePlay();
 
-	memset(&wfx,0,sizeof(wfx));
+#if 0
     wfx.nSamplesPerSec = 48000;
     wfx.wBitsPerSample = 32;
     wfx.nChannels  = 2;
@@ -90,17 +95,18 @@ int main(int argc, char* argv[])
     wfx.nBlockAlign     = (wfx.wBitsPerSample * wfx.nChannels) >> 3;
     wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;
 
-    rlen = wfx.nSamplesPerSec * wfx.wBitsPerSample * wfx.nChannels / 8 / 10;
-	DEBUG_INFO("wfx.nSamplesPerSec %d\n",wfx.nSamplesPerSec);
-	DEBUG_INFO("wfx.wBitsPerSample %d\n",wfx.wBitsPerSample);
-	DEBUG_INFO("wfx.nChannels %d\n",wfx.nChannels);
-	DEBUG_INFO("wfx.cbSize %d\n",wfx.cbSize);
-	DEBUG_INFO("wfx.wFormatTag %d\n",wfx.wFormatTag);
-	DEBUG_INFO("wfx.nBlockAlign %d\n",wfx.nBlockAlign);
-	DEBUG_INFO("wfx.nAvgBytesPerSec %d\n",wfx.nAvgBytesPerSec);
-	DEBUG_BUFFER_FMT(&wfx,sizeof(wfx),"wfx sizeof(%d)",sizeof(wfx));
-
-    bret = pPlay->Start(&wfx);
+#endif
+    rlen = pwfx->nSamplesPerSec * pwfx->wBitsPerSample * pwfx->nChannels / 8 / 10;
+	DEBUG_INFO("pwfx->nSamplesPerSec %d\n",pwfx->nSamplesPerSec);
+	DEBUG_INFO("pwfx->wBitsPerSample %d\n",pwfx->wBitsPerSample);
+	DEBUG_INFO("pwfx->nChannels %d\n",pwfx->nChannels);
+	DEBUG_INFO("pwfx->cbSize %d\n",pwfx->cbSize);
+	DEBUG_INFO("pwfx->wFormatTag %d\n",pwfx->wFormatTag);
+	DEBUG_INFO("pwfx->nBlockAlign %d\n",pwfx->nBlockAlign);
+	DEBUG_INFO("pwfx->nAvgBytesPerSec %d\n",pwfx->nAvgBytesPerSec);
+	DEBUG_BUFFER_FMT(pwfx,sizeof(st_FormatEx),"wfx sizeof(%d)",sizeof(st_FormatEx));
+	SetLastError(0);
+    bret = pPlay->Start(pwfx);
     if(!bret)
     {
         ret = -LAST_ERROR_CODE();

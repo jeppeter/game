@@ -49,6 +49,11 @@ static int SetVolume(float volume)
 static int SetFormat(WAVEFORMATEX* pFormatEx)
 {
     int format;
+	int size = sizeof(*pFormatEx);
+	size += pFormatEx->cbSize;
+
+	DEBUG_INFO("Set Format Buffer\n");
+	DEBUG_BUFFER(pFormatEx,size);
 
     switch(pFormatEx->nBlockAlign)
     {
