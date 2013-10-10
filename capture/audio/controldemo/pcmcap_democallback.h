@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "waveplay.h"
-
+#include <vector>
 
 class CPcmCapDemoCallBack : public IPcmCapperCallback
 {
@@ -24,13 +24,16 @@ private:
 	int __StartPlay(PCM_AUDIO_FORMAT_t* pFormat);
 	void __SetWaveFormatEx(WAVEFORMATEX* pwfx,PCM_AUDIO_FORMAT_t* pFormat);
 	int __Play(unsigned char* pBuffer,int bytes);
+	int __WriteFile(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpParam);
 	
 
 private:
-	FILE* m_fp;
-	int m_WriteBlockSize;
+	std::vector<FILE*> m_FpVecs;
+	std::vector<void*> m_PointerVecs;
+	std::vector<int> m_WriteBlockSizeVecs;
 	CViWavePlay* m_pPlay;
 	PCM_AUDIO_FORMAT_t m_Format;
+	unsigned char m_FileNameBase[128];
 };
 
 

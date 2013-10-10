@@ -8,20 +8,46 @@
 
 CPcmCapDemoCallBack::CPcmCapDemoCallBack()
 {
-    m_fp = NULL;
-    m_WriteBlockSize = 0;
+	assert(m_FpVecs.size() == 0);
+	assert(m_PointerVecs.size() == 0);
+	assert(m_WriteBlockSizeVecs.size() ==0);
     m_pPlay = NULL;
     memset(&m_Format,0,sizeof(m_Format));
+	memset(&m_FileNameBase,0,sizeof(m_FileNameBase));
 }
+
+#define  VEC_SIZE_EQUAL() \
+do\
+{\
+	assert(this->m_FpVecs.size() == this->m_PointerVecs.size());\
+	assert(this->m_PointerVecs.size() == this->m_WriteBlockSizeVecs.size());\
+}while(0)
 
 void CPcmCapDemoCallBack::CloseFile()
 {
-    if(this->m_fp)
-    {
-        fclose(this->m_fp);
-    }
-    this->m_fp = NULL;
-    this->m_WriteBlockSize = 0;
+	VEC_SIZE_EQUAL();
+
+	while(this->m_FpVecs.size() > 0)
+	{
+		FILE* fp=this->m_FpVecs[0];
+		void* pPointer= this->m_PointerVecs[0];
+		int wsize= this->m_WriteBlockSizeVecs[0];
+
+		this->m_FpVecs.erase(this->m_FpVecs.begin());
+		this->m_PointerVecs.erase(this->m_PointerVecs.begin());
+		this->m_WriteBlockSizeVecs.erase(this->m_WriteBlockSizeVecs.begin());
+		VEC_SIZE_EQUAL();
+
+		if (fp)
+		{
+			fclose(fp);
+		}
+		fp = NULL;
+		pPointer = NULL;
+		wsize = 0;
+	}
+
+	memset(this->m_FileNameBase,0,sizeof(this->m_FileNameBase));
     return;
 }
 
@@ -165,15 +191,8 @@ fail:
 
 int CPcmCapDemoCallBack::OpenFile(const char * fname)
 {
-    int ret;
     this->CloseFile();
-    fopen_s(&(this->m_fp),fname,"w+b");
-    if(this->m_fp == NULL)
-    {
-        ret = LAST_ERROR_CODE();
-        return -ret;
-    }
-    this->m_WriteBlockSize = 0;
+	strncpy_s((char*)this->m_FileNameBase,sizeof(this->m_FileNameBase),fname,_TRUNCATE);
 
     return 0;
 }
@@ -190,33 +209,107 @@ VOID CPcmCapDemoCallBack::WaveCloseCb(LPVOID lpParam)
     return;
 }
 
+int CPcmCapDemoCallBack::__WriteFile(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpParam)
+{
+	unsigned int i;
+	int findidx=-1;
+	int removeidx=-1;
+	FILE *pOpenFp=NULL,*pWriteFp=NULL;
+	int writesize;
+	void* pPointer=NULL,*pSearchPointer=NULL;
+	int ret=1;
+	unsigned char fnametmp[150];
+	
+	/*now first to make sure file is opened*/
+	pSearchPointer = (void*)pPcmItem->m_AudioData.m_Pointer;
+	for (i=0;i<this->m_PointerVecs.size();i++)
+	{
+		if (pSearchPointer == this->m_PointerVecs[i])
+		{
+			findidx = i;
+			break;
+		}
+	}
+
+	if (findidx >= 0)
+	{
+		pWriteFp = this->m_FpVecs[findidx];
+		writesize = this->m_WriteBlockSizeVecs[findidx];
+	}
+	else
+	{
+		_snprintf_s((char*)fnametmp,sizeof(fnametmp),_TRUNCATE,"%s.0x%p",this->m_FileNameBase,pSearchPointer);
+		fopen_s(&pOpenFp,(const char*)fnametmp,"w+b");
+		if (pOpenFp == NULL)
+		{
+			ret = LAST_ERROR_CODE();
+			ERROR_INFO("could not open %s error(%d)\n",fnametmp,ret);
+			goto fail;
+		}
+
+		pWriteFp = pOpenFp;
+		writesize = 0;
+	}
+
+	/*now to write*/
+	ret = fwrite(pPcmItem->m_AudioData.m_Data,pPcmItem->m_AudioData.m_DataLen,1,pWriteFp);
+	if (ret != 1)
+	{
+		ret = LAST_ERROR_CODE();
+		_snprintf_s((char*)fnametmp,sizeof(fnametmp),_TRUNCATE,"%s.0x%p",this->m_FileNameBase,pSearchPointer);
+		ERROR_INFO("can not write %s error(%d)\n",fnametmp,ret);
+		goto fail;
+	}
+
+	writesize += pPcmItem->m_AudioData.m_DataLen;
+	if (writesize >= 0x40000)
+	{
+		fflush(pWriteFp);
+		writesize = 0;
+	}
+	if (findidx >= 0)
+	{
+		this->m_WriteBlockSizeVecs[findidx]=writesize;
+	}
+	else
+	{
+		this->m_FpVecs.push_back(pOpenFp);
+		this->m_WriteBlockSizeVecs.push_back(writesize);
+		this->m_PointerVecs.push_back(pSearchPointer);
+	}
+
+	return 0;
+fail:
+	if (findidx >= 0)
+	{
+		FILE* fp=NULL;
+		assert((unsigned int)findidx < this->m_FpVecs.size());
+		VEC_SIZE_EQUAL();
+		fp = this->m_FpVecs[findidx];
+		this->m_FpVecs.erase(this->m_FpVecs.begin() + findidx);
+		this->m_PointerVecs.erase(this->m_PointerVecs.begin() + findidx);
+		this->m_WriteBlockSizeVecs.erase(this->m_WriteBlockSizeVecs.begin() + findidx);
+		if (fp)
+		{
+			fclose(fp);
+		}
+		fp = NULL;
+		VEC_SIZE_EQUAL();
+	}	
+
+	if (pOpenFp)
+	{
+		fclose(pOpenFp);
+	}
+	pOpenFp = NULL;
+	pWriteFp = NULL;
+	SetLastError(ret);
+	return -ret;
+}
+
 VOID CPcmCapDemoCallBack::WaveInCb(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpParam)
 {
-    int bytes;
-    int ret;
-    bytes = pPcmItem->m_AudioData.m_DataLen;
-	//DEBUG_BUFFER(pPcmItem->m_AudioData.m_Data,bytes > 16 ? 16 : bytes);	
-    if(this->m_fp)
-    {
-        //DEBUG_INFO("wave in bytes %d\n",bytes);
-        //DEBUG_BUFFER(pPcmItem->m_AudioData.m_Data,bytes > 16 ? 16:bytes );
-        ret = fwrite(pPcmItem->m_AudioData.m_Data,bytes,1,this->m_fp);
-        if(ret != 1)
-        {
-            ret = LAST_ERROR_CODE();
-            ERROR_INFO("could not write file error(%d)\n",ret);
-        }
-        else
-        {
-            this->m_WriteBlockSize += bytes;
-            if(this->m_WriteBlockSize > 0x40000)
-            {
-                /*we should flush buffer when enough big ,so flush it*/
-                fflush(this->m_fp);
-                this->m_WriteBlockSize = 0;
-            }
-        }
-    }
+	this->__WriteFile(pPcmItem,lpParam);
 #if 0
     ret = this->__StartPlay(&(pPcmItem->m_Format));
     if(ret < 0)

@@ -13,6 +13,7 @@ typedef unsigned long ptr_type_t;
 
 typedef struct
 {
+	int m_Pointer;
     int m_DataLen;
     int m_DataSize;
     unsigned char m_Data[4];

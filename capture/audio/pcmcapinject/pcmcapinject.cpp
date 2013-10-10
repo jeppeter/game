@@ -710,7 +710,7 @@ void DeInitializeWholeList(void)
 }
 
 
-int WriteSendBuffer(unsigned char* pBuffer,int numpacks)
+int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpacks)
 {
     EVENT_LIST_t* pEventList=NULL;
     int ret;
@@ -756,6 +756,13 @@ int WriteSendBuffer(unsigned char* pBuffer,int numpacks)
     }
 
     ret = WriteShareMem((unsigned char*)&(pAudioBuffer->m_AudioData.m_DataLen),0,(unsigned char*)&(numbytes),sizeof(numbytes));
+    if(ret < 0)
+    {
+        PutFreeList(pEventList);
+        return 0;
+    }
+
+    ret = WriteShareMem((unsigned char*)&(pAudioBuffer->m_AudioData.m_Pointer),0,(unsigned char*)&(pClient),sizeof(pAudioBuffer->m_AudioData.m_Pointer));
     if(ret < 0)
     {
         PutFreeList(pEventList);
@@ -1229,29 +1236,39 @@ static int DetourSimpleAudioVolumeVirtFunctions(ISimpleAudioVolume *pThis)
 * audio render client register and buffer set
 *****************************************************/
 static CRITICAL_SECTION st_RenderCS;
-static unsigned char* st_pRenderBuffer=NULL;
 static int st_RenderNotSet=0;
 static std::vector<IAudioRenderClient*> st_RenderArrays;
+static std::vector<unsigned char*> st_RenderBufferArrays;
+
+#define RENDER_BUFFER_ASSERT()  \
+do\
+{\
+	assert(st_RenderArrays.size() == st_RenderBufferArrays.size());\
+}while(0)
 
 static unsigned char* GetReleaseBufferPointer(IAudioRenderClient* pRender)
 {
     unsigned char* pPointer=NULL;
+    unsigned int i;
+    int findidx=-1;
     EnterCriticalSection(&st_RenderCS);
-    if(st_RenderArrays.size() > 0 && pRender == st_RenderArrays[0])
+    RENDER_BUFFER_ASSERT();
+    for(i=0; i<st_RenderArrays.size(); i++)
     {
-        pPointer = st_pRenderBuffer ;
-        st_pRenderBuffer = NULL;
-        st_RenderNotSet = 0;
-    }
-    else
-    {
-        st_RenderNotSet ++;
-        if(st_RenderNotSet > 20)
+        if(pRender == st_RenderArrays[i])
         {
-            DEBUG_INFO("Not Get Buffer for %d times\n",st_RenderNotSet);
+            findidx = i;
+            pPointer = st_RenderBufferArrays[i];
+            st_RenderBufferArrays[i] = NULL;
+            break;
         }
     }
     LeaveCriticalSection(&st_RenderCS);
+
+    if(findidx >= 0 && pPointer == NULL)
+    {
+        ERROR_INFO("Render 0x%p releasebuffer null\n",pRender);
+    }
     return pPointer;
 }
 
@@ -1260,37 +1277,32 @@ static int SetGetBufferPointer(IAudioRenderClient* pRender,unsigned char* pBuffe
     int ret =0;
     int findidx=-1;
     unsigned int i;
+    unsigned char* pOldPointer=NULL;
     EnterCriticalSection(&st_RenderCS);
-    if(st_RenderArrays.size() > 0 && pRender == st_RenderArrays[0])
+    for(i=0; i<st_RenderArrays.size() ; i++)
     {
-        ret = 1;
-        st_pRenderBuffer = pBuffer;
-    }
-    if(ret == 0)
-    {
-        /*to search if we do not have this render ,if not ,just input it*/
-        for(i=0; i<st_RenderArrays.size() ; i++)
+        if(pRender == st_RenderArrays[i])
         {
-            if(pRender == st_RenderArrays[i])
-            {
-                findidx = i;
-                break;
-            }
+            findidx = i;
+            pOldPointer = st_RenderBufferArrays[i];
+            st_RenderBufferArrays[i] = pBuffer;
+            break;
         }
+    }
 
-        if(findidx < 0)
-        {
-            st_RenderArrays.push_back(pRender);
-            /*this is the first one*/
-            if(st_RenderArrays.size() == 1)
-            {
-                ret = 1;
-                st_pRenderBuffer = pBuffer;
-            }
-        }
+    if(findidx < 0)
+    {
+        st_RenderArrays.push_back(pRender);
+        st_RenderBufferArrays.push_back(pBuffer);
+        ret = 1;
     }
+    RENDER_BUFFER_ASSERT();
     LeaveCriticalSection(&st_RenderCS);
 
+    if(pOldPointer)
+    {
+        ERROR_INFO("render 0x%p old renderbuffer 0x%p\n",pRender,pOldPointer);
+    }
     return ret;
 }
 
@@ -1300,7 +1312,7 @@ static int ReleaseRenderClient(IAudioRenderClient* pRender)
     int ret=0;
     int findidx = -1;
     unsigned int i;
-
+    unsigned char* pOldPointer=NULL;
     EnterCriticalSection(&st_RenderCS);
     for(i=0; i<st_RenderArrays.size(); i++)
     {
@@ -1314,10 +1326,17 @@ static int ReleaseRenderClient(IAudioRenderClient* pRender)
     if(findidx >=0)
     {
         st_RenderArrays.erase(st_RenderArrays.begin() + findidx);
+        pOldPointer = st_RenderBufferArrays[findidx];
+        st_RenderBufferArrays.erase(st_RenderBufferArrays.begin() + findidx);
         ret = 1;
     }
+    RENDER_BUFFER_ASSERT();
     LeaveCriticalSection(&st_RenderCS);
 
+    if(pOldPointer)
+    {
+        ERROR_INFO("release Render(0x%p) oldpointer 0x%p not null\n",pRender,pOldPointer);
+    }
     return ret;
 }
 
@@ -1392,7 +1411,7 @@ HRESULT WINAPI AudioRenderClientReleaseBufferCallBack(IAudioRenderClient* pRende
         /*write buffer */
         if(!(dwFlags & AUDCLNT_BUFFERFLAGS_SILENT) && (operation == PCMCAPPER_OPERATION_CAPTURE || operation == PCMCAPPER_OPERATION_BOTH))
         {
-            WriteSendBuffer(pBuffer,NumFramesWritten);
+            WriteSendBuffer(pRender,pBuffer,NumFramesWritten);
         }
     }
 
@@ -2346,7 +2365,7 @@ int PcmCapInjectInit(void)
     InitializeCriticalSection(&st_StateCS);
     InitializeCriticalSection(&st_DetourCS);
     InitializeCriticalSection(&st_ListCS);
-	InitializeCriticalSection(&st_RenderCS);
+    InitializeCriticalSection(&st_RenderCS);
     //InitializeCriticalSection(&st_AudioClientCS);
     InitializeCriticalSection(&st_MMDevCS);
     st_AudioFormat.m_Format = AV_SAMPLE_FMT_FLT;

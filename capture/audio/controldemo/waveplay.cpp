@@ -52,7 +52,7 @@ BOOL CViWavePlay::Open(PWAVEFORMATEX pWaveformat)
 	m_Waveformat.nAvgBytesPerSec = m_Waveformat.nBlockAlign * m_Waveformat.nSamplesPerSec;
 
 	MMRESULT mRet;
-	WAVEFORMATEX wfx;
+	//WAVEFORMATEX wfx;
 
 	//lphWaveOut: PHWaveOut;   {用于返回设备句柄的指针; 如果 dwFlags=WAVE_FORMAT_QUERY, 这里应是 nil}
 	//uDeviceID: UINT;         {设备ID; 可以指定为: WAVE_MAPPER, 这样函数会根据给定的波形格式选择合适的设备}
