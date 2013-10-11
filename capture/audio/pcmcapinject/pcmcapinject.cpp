@@ -71,8 +71,8 @@ static int SetFormat(WAVEFORMATEX* pFormatEx)
         DEBUG_BUFFER(pFormatEx,size);
     }
 
-	
-	DEBUG_BUFFER(pFormatEx,size);
+
+    DEBUG_BUFFER(pFormatEx,size);
     DEBUG_INFO("format %d channels %d samplespersec %d wBitsPerSample %d\n",
                pFormatEx->wFormatTag,pFormatEx->nChannels,pFormatEx->nSamplesPerSec,pFormatEx->wBitsPerSample);
 
@@ -81,33 +81,33 @@ static int SetFormat(WAVEFORMATEX* pFormatEx)
 
 static WAVEFORMATEX* GetCopiedFormat()
 {
-	unsigned int size=FORMAT_EXTEND_SIZE;
-	unsigned int cpysize=0;
-	WAVEFORMATEX* pFormatEx=NULL;
-	WAVEFORMATEX* pPtrFormatEx=NULL;
+    unsigned int size=FORMAT_EXTEND_SIZE;
+    unsigned int cpysize=0;
+    WAVEFORMATEX* pFormatEx=NULL;
+    WAVEFORMATEX* pPtrFormatEx=NULL;
 
-	pFormatEx = malloc(size);
-	if (pFormatEx == NULL)
-	{
-		return NULL;
-	}
-	memset(pFormatEx,0,size);
+    pFormatEx = malloc(size);
+    if(pFormatEx == NULL)
+    {
+        return NULL;
+    }
+    memset(pFormatEx,0,size);
 
     EnterCriticalSection(&st_StateCS);
-	cpysize = sizeof(*pPtrFormatEx);
-	pPtrFormatEx = (WAVEFORMATEX*) st_AudioFormat.m_Format;
-	cpysize += pPtrFormatEx->cbSize;
-	if (cpysize < size)
-	{
-		memcpy(pFormatEx,pPtrFormatEx,cpysize);
-	}
-	else
-	{
-		memcpy(pFormatEx,pPtrFormatEx,size);
-	}
+    cpysize = sizeof(*pPtrFormatEx);
+    pPtrFormatEx = (WAVEFORMATEX*) st_AudioFormat.m_Format;
+    cpysize += pPtrFormatEx->cbSize;
+    if(cpysize < size)
+    {
+        memcpy(pFormatEx,pPtrFormatEx,cpysize);
+    }
+    else
+    {
+        memcpy(pFormatEx,pPtrFormatEx,size);
+    }
     LeaveCriticalSection(&st_StateCS);
 
-	return pFormatEx;
+    return pFormatEx;
 }
 
 
@@ -734,7 +734,7 @@ int IsBufferMute(unsigned char* pBuffer,int size)
     unsigned char ch;
     unsigned char* pCurPtr=pBuffer;
 
-	/*all bytes are the same ,it means it is mute*/
+    /*all bytes are the same ,it means it is mute*/
     ch = 0;
 
     for(i=0; i<size; i++,pCurPtr++)
@@ -1352,7 +1352,7 @@ static int SetGetBufferPointer(IAudioRenderClient* pRender,unsigned char* pBuffe
     {
         st_RenderArrays.push_back(pRender);
         st_RenderBufferArrays.push_back(pBuffer);
-		st_RenderFormatArrays.push_back(NULL);
+        st_RenderFormatArrays.push_back(NULL);
         ret = 1;
     }
     RENDER_BUFFER_ASSERT();
@@ -1377,7 +1377,7 @@ static int ReleaseRenderClient(IAudioRenderClient* pRender)
     int findidx = -1;
     unsigned int i;
     unsigned char* pOldPointer=NULL;
-	WAVEFORMATEX* pFormatEx=NULL;
+    WAVEFORMATEX* pFormatEx=NULL;
     EnterCriticalSection(&st_RenderCS);
     for(i=0; i<st_RenderArrays.size(); i++)
     {
@@ -1393,8 +1393,8 @@ static int ReleaseRenderClient(IAudioRenderClient* pRender)
         st_RenderArrays.erase(st_RenderArrays.begin() + findidx);
         pOldPointer = st_RenderBufferArrays[findidx];
         st_RenderBufferArrays.erase(st_RenderBufferArrays.begin() + findidx);
-		pFormatEx = st_RenderFormatArrays[findidx];
-		st_RenderFormatArrays.erase(st_RenderFormatArrays.begin() + findidx);
+        pFormatEx = st_RenderFormatArrays[findidx];
+        st_RenderFormatArrays.erase(st_RenderFormatArrays.begin() + findidx);
         ret = 1;
     }
     RENDER_BUFFER_ASSERT();
@@ -1405,95 +1405,115 @@ static int ReleaseRenderClient(IAudioRenderClient* pRender)
         ERROR_INFO("release Render(0x%p) oldpointer 0x%p not null\n",pRender,pOldPointer);
     }
 
-	if (pFormatEx)
-	{
-		free(pFormatEx);
-	}
-	else
-	{
-		ERROR_INFO("Render 0x%p not has format\n",pRender);
-	}
-	pFormatEx = NULL;
+    if(pFormatEx)
+    {
+        free(pFormatEx);
+    }
+    else
+    {
+        ERROR_INFO("Render 0x%p not has format\n",pRender);
+    }
+    pFormatEx = NULL;
     DEBUG_INFO("release RenderClient 0x%p\n",pRender);
     return ret;
 }
 
 static int InitializeRenderFormat(IAudioRenderClient* pRender)
 {
-	WAVEFORMATEX* pFormatEx=NULL;
-	int ret=0;
-	unsigned int size=sizeof(*pFormatEx);
-	int findidx=-1;
-	unsigned int i;
+    WAVEFORMATEX* pFormatEx=NULL;
+    int ret=0;
+    unsigned int size=sizeof(*pFormatEx);
+    int findidx=-1;
+    unsigned int i;
 
-	pFormatEx = GetCopiedFormat();
-	EnterCriticalSection(&st_RenderCS);
-	RENDER_BUFFER_ASSERT();
-	for (i=0;st_RenderArrays.size();i++)
-	{
-		if (pRender == st_RenderArrays[i])
-		{
-			findidx = i;
-			break;
-		}
-	}
+    pFormatEx = GetCopiedFormat();
+    EnterCriticalSection(&st_RenderCS);
+    RENDER_BUFFER_ASSERT();
+    for(i=0; st_RenderArrays.size(); i++)
+    {
+        if(pRender == st_RenderArrays[i])
+        {
+            findidx = i;
+            break;
+        }
+    }
 
-	if (findidx < 0)
-	{
-		st_RenderArrays.push_back(pRender);
-		st_RenderBufferArrays.push_back(NULL);
-		st_RenderFormatArrays.push_back(pFormatEx);
-		ret = 1;
-	}
-	LeaveCriticalSection(&st_RenderCS);
+    if(findidx < 0)
+    {
+        st_RenderArrays.push_back(pRender);
+        st_RenderBufferArrays.push_back(NULL);
+        st_RenderFormatArrays.push_back(pFormatEx);
+        ret = 1;
+    }
+    LeaveCriticalSection(&st_RenderCS);
 
-	if (ret == 0)
-	{
-		/*not inserted ,so we should remove it */
-		free(pFormatEx);
-		pFormatEx = NULL;
-	}
+    if(ret == 0)
+    {
+        /*not inserted ,so we should remove it */
+        free(pFormatEx);
+        pFormatEx = NULL;
+    }
 
-	return ret;
+    return ret;
 }
 
 static void RemoveAllRenders()
 {
-	int ret;
+    int ret;
 
-	while(1)
-	{
-		ret = ReleaseRenderClient(NULL);
-		if (ret == 0)
-		{
-			break;
-		}
-	}
+    while(1)
+    {
+        ret = ReleaseRenderClient(NULL);
+        if(ret == 0)
+        {
+            break;
+        }
+    }
 
-	return ;
+    return ;
 }
 
 static int GetFormat(IAudioRenderClient* pRender,PCM_AUDIO_FORMAT_t *pAudioFormat)
 {
-	int ret=0;
-	WAVEFORMATEX* pFormat=NULL;
-	unsigned int i;
-	int size=sizeof(*pFormat);
-	int findidx=-1;
+    int ret=0;
+    WAVEFORMATEX* pFormat=NULL;
+    unsigned int i;
+    int size=sizeof(*pFormat);
+    int findidx=-1;
     EnterCriticalSection(&st_RenderCS);
 
-	for(i=0;i<st_RenderArrays.size();i++)
-	{
-		if (pRender == st_RenderArrays[i])
-		{
-			findidx = i;
-			break;
-		}
-	}
+    for(i=0; i<st_RenderArrays.size(); i++)
+    {
+        if(pRender == st_RenderArrays[i])
+        {
+            findidx = i;
+            break;
+        }
+    }
 
-	
-	
+    if(findidx >= 0)
+    {
+        pFormat = st_RenderFormatArrays[findidx];
+        size += pFormat->cbSize;
+        if(size >= sizeof(pAudioFormat->m_Format))
+        {
+            memcpy(pAudioFormat->m_Format,pFormat,sizeof(pAudioFormat->m_Format));
+        }
+        else
+        {
+            memcpy(pAudioFormat->m_Format,pFormat,size);
+        }
+
+        ret = 1;
+    }
     LeaveCriticalSection(&st_RenderCS);
+
+    if(ret > 0)
+    {
+        EnterCriticalSection(&st_StateCS);
+        pAudioFormat->m_Volume = st_AudioFormat.m_Volume;
+        LeaveCriticalSection(&st_StateCS);
+    }
     return ret;
 }
 
@@ -1997,7 +2017,7 @@ HRESULT WINAPI AudioClientGetServiceCallBack(IAudioClient* pClient,REFIID riid,v
             IAudioRenderClient* pRender = (IAudioRenderClient*)*ppv;
             DEBUG_INFO("AudioClient 0x%p Render 0x%p\n",pClient,pRender);
             DetourAudioRenderClientVirtFunctions(pRender);
-			InitializeRenderFormat(pRender);
+            InitializeRenderFormat(pRender);
         }
         else if(riid == __uuidof(IAudioStreamVolume))
         {
@@ -2496,7 +2516,7 @@ void PcmCapInjectFini(void)
         {
             ERROR_INFO("could not set audio none error(%d)\n",ret);
         }
-		RemoveAllRenders();
+        RemoveAllRenders();
         CloseHandle(st_hThreadSema);
         st_hThreadSema = NULL;
     }
