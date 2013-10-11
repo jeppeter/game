@@ -21,11 +21,8 @@ typedef struct
 
 typedef struct
 {
-    int m_Format;
-    int m_Channels;
-    int m_SampleRate;
-    int m_BitsPerSample;
-    float m_Volume;
+	float m_Volume;
+	unsigned char m_Format[128];
 } PCM_AUDIO_FORMAT_t;
 
 typedef struct

@@ -22,7 +22,7 @@ public:
 private:
 	void __StopPlay();
 	int __StartPlay(PCM_AUDIO_FORMAT_t* pFormat);
-	void __SetWaveFormatEx(WAVEFORMATEX* pwfx,PCM_AUDIO_FORMAT_t* pFormat);
+	int __SetWaveFormatEx(WAVEFORMATEX* pwfx,PCM_AUDIO_FORMAT_t* pFormat,int maxsize);
 	int __Play(unsigned char* pBuffer,int bytes);
 	int __WriteFile(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpParam);
 	

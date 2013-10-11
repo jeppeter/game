@@ -48,52 +48,39 @@ static int SetVolume(float volume)
 
 static int SetFormat(WAVEFORMATEX* pFormatEx)
 {
-    int format;
-	int size = sizeof(*pFormatEx);
-	size += pFormatEx->cbSize;
+    unsigned int size = sizeof(*pFormatEx);
+    int error = 0;
+    size += pFormatEx->cbSize;
 
-	DEBUG_INFO("Set Format Buffer\n");
-	DEBUG_BUFFER(pFormatEx,size);
-
-    switch(pFormatEx->nBlockAlign)
-    {
-    case 8:
-        format = AV_SAMPLE_FMT_U8;
-        break;
-    case 16:
-        format = AV_SAMPLE_FMT_S16;
-        break;
-    case 32:
-        format = AV_SAMPLE_FMT_FLT;
-        break;
-    default:
-        format = AV_SAMPLE_FMT_FLT;
-        break;
-    }
 
     EnterCriticalSection(&st_StateCS);
-    st_AudioFormat.m_Channels = pFormatEx->nChannels;
-    st_AudioFormat.m_SampleRate = pFormatEx->nSamplesPerSec;
-    st_AudioFormat.m_BitsPerSample = pFormatEx->wBitsPerSample;
-    st_AudioFormat.m_Format = format;
+    if(size <= sizeof(st_AudioFormat.m_Format))
+    {
+        memcpy(st_AudioFormat.m_Format,pFormatEx,size);
+    }
+    else
+    {
+        error =1;
+        memcpy(st_AudioFormat.m_Format,pFormatEx,sizeof(st_AudioFormat.m_Format));
+    }
     LeaveCriticalSection(&st_StateCS);
 
+    if(error)
+    {
+        ERROR_INFO("need size (%d) > sizeof(%d)\n",size,sizeof(st_AudioFormat.m_Format));
+        DEBUG_BUFFER(pFormatEx,size);
+    }
     DEBUG_INFO("format %d channels %d samplespersec %d wBitsPerSample %d\n",
-               format ,pFormatEx->nChannels,pFormatEx->nSamplesPerSec,pFormatEx->wBitsPerSample);
+               pFormatEx->wFormatTag,pFormatEx->nChannels,pFormatEx->nSamplesPerSec,pFormatEx->wBitsPerSample);
 
     return 0;
 }
 
 
-static int GetFormat(int* pFormat,int* pChannels,int*pSampleRate,int* pBitsPerSample,float* pVolume)
+static int GetFormat(PCM_AUDIO_FORMAT_t *pAudioFormat)
 {
     EnterCriticalSection(&st_StateCS);
-
-    *pFormat = st_AudioFormat.m_Format;
-    *pChannels = st_AudioFormat.m_Channels;
-    *pSampleRate = st_AudioFormat.m_SampleRate;
-    *pBitsPerSample = st_AudioFormat.m_BitsPerSample;
-    *pVolume = st_AudioFormat.m_Volume;
+    memcpy(pAudioFormat,&st_AudioFormat,sizeof(st_AudioFormat));
     LeaveCriticalSection(&st_StateCS);
     return 1;
 }
@@ -588,8 +575,8 @@ PCM_EVTS_t* __AllocatePCMEvts(unsigned int num,int packsize,char* pMapFileName,c
         pPCMEvt->m_pWholeList[i].m_Idx = i;
         pPCMEvt->m_pWholeList[i].m_Offset = (packsize)*i;
         pPCMEvt->m_pWholeList[i].m_Size = packsize;
-        pPCMEvt->m_pFreeList->push_back(&(pPCMEvt->m_pWholeList[i]));
-        DEBUG_INFO("freelist %d\n",pPCMEvt->m_pFreeList->size());
+        pPCMEvt->m_pFillList->push_back(&(pPCMEvt->m_pWholeList[i]));
+        DEBUG_INFO("filllist %d\n",pPCMEvt->m_pFillList->size());
     }
 
     pPCMEvt->m_pFreeEvt =(HANDLE*) calloc(sizeof(pPCMEvt->m_pFreeEvt[0]),num);
@@ -723,33 +710,39 @@ int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpa
     unsigned int numbytes;
     PCMCAP_AUDIO_BUFFER_t* pAudioBuffer=NULL;
     PCM_AUDIO_FORMAT_t  audioformat;
+    WAVEFORMATEX* pAudioFormat=NULL;
 
     pEventList = GetFreeList();
     if(pEventList == NULL)
     {
-    	DEBUG_INFO("RenderClient 0x%p get no eventlist\n",pClient);
+        DEBUG_INFO("RenderClient 0x%p get no eventlist\n",pClient);
         return 0;
     }
 
-    ret = GetFormat(&(audioformat.m_Format),&(audioformat.m_Channels),&(audioformat.m_SampleRate),&(audioformat.m_BitsPerSample),&(audioformat.m_Volume));
+    ret = GetFormat(&audioformat);
     if(ret <= 0)
     {
         PutFreeList(pEventList);
         return 0;
     }
 
+    pAudioFormat = (WAVEFORMATEX*)audioformat.m_Format;
+
     /*now to copy the file*/
-    numbytes = numpacks * audioformat.m_Channels *(audioformat.m_BitsPerSample / 8);
+    numbytes = numpacks * pAudioFormat->nChannels *(pAudioFormat->wBitsPerSample / 8);
     pAudioBuffer = (PCMCAP_AUDIO_BUFFER_t*)((ptr_type_t)pEventList->m_BaseAddr+pEventList->m_Offset);
     ret = WriteShareMem((unsigned char*)pAudioBuffer,0,(unsigned char*)&audioformat,sizeof(audioformat));
     if(ret < 0)
     {
+		ERROR_INFO("audio buffer format write error %d\n",ret);
         PutFreeList(pEventList);
         return 0;
     }
 
-    if(numbytes > (pEventList->m_Size - sizeof(audioformat)))
+    if(numbytes > (pEventList->m_Size - sizeof(audioformat)-sizeof(pAudioBuffer->m_AudioData) + sizeof(pAudioBuffer->m_AudioData.m_Data)))
     {
+		ERROR_INFO("Exceeded size (%d) > (%d - %d - %d + %d)\n",numbytes,pEventList->m_Size ,sizeof(audioformat),
+			sizeof(pAudioBuffer->m_AudioData),sizeof(pAudioBuffer->m_AudioData.m_Data));
         PutFreeList(pEventList);
         return 0;
     }
@@ -757,6 +750,7 @@ int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpa
     ret = WriteShareMem((unsigned char*)pAudioBuffer->m_AudioData.m_Data,0,pBuffer,numbytes);
     if(ret < 0)
     {
+		ERROR_INFO("audio buffer data write error %d\n",ret);
         PutFreeList(pEventList);
         return 0;
     }
@@ -764,6 +758,7 @@ int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpa
     ret = WriteShareMem((unsigned char*)&(pAudioBuffer->m_AudioData.m_DataLen),0,(unsigned char*)&(numbytes),sizeof(numbytes));
     if(ret < 0)
     {
+		ERROR_INFO("audio datalen write error %d\n",ret);
         PutFreeList(pEventList);
         return 0;
     }
@@ -771,6 +766,7 @@ int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpa
     ret = WriteShareMem((unsigned char*)&(pAudioBuffer->m_AudioData.m_Pointer),0,(unsigned char*)&(pClient),sizeof(pAudioBuffer->m_AudioData.m_Pointer));
     if(ret < 0)
     {
+		ERROR_INFO("audio client pointer write error %d\n",ret);
         PutFreeList(pEventList);
         return 0;
     }
@@ -2368,11 +2364,7 @@ int PcmCapInjectInit(void)
     InitializeCriticalSection(&st_RenderCS);
     //InitializeCriticalSection(&st_AudioClientCS);
     InitializeCriticalSection(&st_MMDevCS);
-    st_AudioFormat.m_Format = AV_SAMPLE_FMT_FLT;
-    st_AudioFormat.m_BitsPerSample = 32;
-    st_AudioFormat.m_Channels = 2;
-    st_AudioFormat.m_SampleRate = 48000;
-    st_AudioFormat.m_Volume = 0.0;
+    memset(&st_AudioFormat,0,sizeof(st_AudioFormat));
     st_hThreadSema = CreateSemaphore(NULL,1,10,NULL);
     if(st_hThreadSema == NULL)
     {
