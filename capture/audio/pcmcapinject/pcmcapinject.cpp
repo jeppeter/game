@@ -70,20 +70,47 @@ static int SetFormat(WAVEFORMATEX* pFormatEx)
         ERROR_INFO("need size (%d) > sizeof(%d)\n",size,sizeof(st_AudioFormat.m_Format));
         DEBUG_BUFFER(pFormatEx,size);
     }
+
+	
+	DEBUG_BUFFER(pFormatEx,size);
     DEBUG_INFO("format %d channels %d samplespersec %d wBitsPerSample %d\n",
                pFormatEx->wFormatTag,pFormatEx->nChannels,pFormatEx->nSamplesPerSec,pFormatEx->wBitsPerSample);
 
     return 0;
 }
 
-
-static int GetFormat(PCM_AUDIO_FORMAT_t *pAudioFormat)
+static WAVEFORMATEX* GetCopiedFormat()
 {
+	unsigned int size=128;
+	unsigned int cpysize=0;
+	WAVEFORMATEX* pFormatEx=NULL;
+	WAVEFORMATEX* pPtrFormatEx=NULL;
+
+	pFormatEx = malloc(size);
+	if (pFormatEx == NULL)
+	{
+		return NULL;
+	}
+	memset(pFormatEx,0,size);
+
     EnterCriticalSection(&st_StateCS);
-    memcpy(pAudioFormat,&st_AudioFormat,sizeof(st_AudioFormat));
+	cpysize = sizeof(*pPtrFormatEx);
+	pPtrFormatEx = (WAVEFORMATEX*) st_AudioFormat.m_Format;
+	cpysize += pPtrFormatEx->cbSize;
+	if (cpysize < size)
+	{
+		memcpy(pFormatEx,pPtrFormatEx,cpysize);
+	}
+	else
+	{
+		memcpy(pFormatEx,pPtrFormatEx,size);
+	}
     LeaveCriticalSection(&st_StateCS);
-    return 1;
+
+	return pFormatEx;
 }
+
+
 
 
 
@@ -701,6 +728,26 @@ void DeInitializeWholeList(void)
     return;
 }
 
+int IsBufferMute(unsigned char* pBuffer,int size)
+{
+    int i;
+    unsigned char ch;
+    unsigned char* pCurPtr=pBuffer;
+
+	/*all bytes are the same ,it means it is mute*/
+    ch = pBuffer[0];
+
+    for(i=0; i<size; i++,pCurPtr++)
+    {
+        if(*pCurPtr != ch)
+        {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 
 int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpacks)
 {
@@ -719,7 +766,7 @@ int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpa
         return 0;
     }
 
-    ret = GetFormat(&audioformat);
+    ret = GetFormat(pClient,&audioformat);
     if(ret <= 0)
     {
         PutFreeList(pEventList);
@@ -730,19 +777,26 @@ int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpa
 
     /*now to copy the file*/
     numbytes = numpacks * pAudioFormat->nChannels *(pAudioFormat->wBitsPerSample / 8);
+
+    ret = IsBufferMute(pBuffer,numbytes);
+    if(ret > 0)
+    {
+        PutFreeList(pEventList);
+        return 0;
+    }
     pAudioBuffer = (PCMCAP_AUDIO_BUFFER_t*)((ptr_type_t)pEventList->m_BaseAddr+pEventList->m_Offset);
     ret = WriteShareMem((unsigned char*)pAudioBuffer,0,(unsigned char*)&audioformat,sizeof(audioformat));
     if(ret < 0)
     {
-		ERROR_INFO("audio buffer format write error %d\n",ret);
+        ERROR_INFO("audio buffer format write error %d\n",ret);
         PutFreeList(pEventList);
         return 0;
     }
 
     if(numbytes > (pEventList->m_Size - sizeof(audioformat)-sizeof(pAudioBuffer->m_AudioData) + sizeof(pAudioBuffer->m_AudioData.m_Data)))
     {
-		ERROR_INFO("Exceeded size (%d) > (%d - %d - %d + %d)\n",numbytes,pEventList->m_Size ,sizeof(audioformat),
-			sizeof(pAudioBuffer->m_AudioData),sizeof(pAudioBuffer->m_AudioData.m_Data));
+        ERROR_INFO("Exceeded size (%d) > (%d - %d - %d + %d)\n",numbytes,pEventList->m_Size ,sizeof(audioformat),
+                   sizeof(pAudioBuffer->m_AudioData),sizeof(pAudioBuffer->m_AudioData.m_Data));
         PutFreeList(pEventList);
         return 0;
     }
@@ -750,7 +804,7 @@ int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpa
     ret = WriteShareMem((unsigned char*)pAudioBuffer->m_AudioData.m_Data,0,pBuffer,numbytes);
     if(ret < 0)
     {
-		ERROR_INFO("audio buffer data write error %d\n",ret);
+        ERROR_INFO("audio buffer data write error %d\n",ret);
         PutFreeList(pEventList);
         return 0;
     }
@@ -758,7 +812,7 @@ int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpa
     ret = WriteShareMem((unsigned char*)&(pAudioBuffer->m_AudioData.m_DataLen),0,(unsigned char*)&(numbytes),sizeof(numbytes));
     if(ret < 0)
     {
-		ERROR_INFO("audio datalen write error %d\n",ret);
+        ERROR_INFO("audio datalen write error %d\n",ret);
         PutFreeList(pEventList);
         return 0;
     }
@@ -766,7 +820,7 @@ int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpa
     ret = WriteShareMem((unsigned char*)&(pAudioBuffer->m_AudioData.m_Pointer),0,(unsigned char*)&(pClient),sizeof(pAudioBuffer->m_AudioData.m_Pointer));
     if(ret < 0)
     {
-		ERROR_INFO("audio client pointer write error %d\n",ret);
+        ERROR_INFO("audio client pointer write error %d\n",ret);
         PutFreeList(pEventList);
         return 0;
     }
@@ -1241,11 +1295,13 @@ static CRITICAL_SECTION st_RenderCS;
 static int st_RenderNotSet=0;
 static std::vector<IAudioRenderClient*> st_RenderArrays;
 static std::vector<unsigned char*> st_RenderBufferArrays;
+static std::vector<WAVEFORMATEX*> st_RenderFormatArrays;
 
 #define RENDER_BUFFER_ASSERT()  \
 do\
 {\
 	assert(st_RenderArrays.size() == st_RenderBufferArrays.size());\
+	assert( st_RenderBufferArrays.size() == st_RenderFormatArrays.size());\
 }while(0)
 
 static unsigned char* GetReleaseBufferPointer(IAudioRenderClient* pRender)
@@ -1296,15 +1352,16 @@ static int SetGetBufferPointer(IAudioRenderClient* pRender,unsigned char* pBuffe
     {
         st_RenderArrays.push_back(pRender);
         st_RenderBufferArrays.push_back(pBuffer);
+		st_RenderFormatArrays.push_back(NULL);
         ret = 1;
     }
     RENDER_BUFFER_ASSERT();
     LeaveCriticalSection(&st_RenderCS);
 
-	if (ret > 0)
-	{
-		DEBUG_INFO("Insert New Render 0x%p\n",pRender);
-	}
+    if(ret > 0)
+    {
+        DEBUG_INFO("Insert New Render 0x%p\n",pRender);
+    }
 
     if(pOldPointer)
     {
@@ -1320,10 +1377,11 @@ static int ReleaseRenderClient(IAudioRenderClient* pRender)
     int findidx = -1;
     unsigned int i;
     unsigned char* pOldPointer=NULL;
+	WAVEFORMATEX* pFormatEx=NULL;
     EnterCriticalSection(&st_RenderCS);
     for(i=0; i<st_RenderArrays.size(); i++)
     {
-        if(pRender == st_RenderArrays[i])
+        if(pRender == NULL ||pRender == st_RenderArrays[i])
         {
             findidx = i;
             break;
@@ -1335,6 +1393,8 @@ static int ReleaseRenderClient(IAudioRenderClient* pRender)
         st_RenderArrays.erase(st_RenderArrays.begin() + findidx);
         pOldPointer = st_RenderBufferArrays[findidx];
         st_RenderBufferArrays.erase(st_RenderBufferArrays.begin() + findidx);
+		pFormatEx = st_RenderFormatArrays[findidx];
+		st_RenderFormatArrays.erase(st_RenderFormatArrays.begin() + findidx);
         ret = 1;
     }
     RENDER_BUFFER_ASSERT();
@@ -1344,9 +1404,49 @@ static int ReleaseRenderClient(IAudioRenderClient* pRender)
     {
         ERROR_INFO("release Render(0x%p) oldpointer 0x%p not null\n",pRender,pOldPointer);
     }
-	DEBUG_INFO("release RenderClient 0x%p\n",pRender);
+
+	if (pFormatEx)
+	{
+		free(pFormatEx);
+	}
+	else
+	{
+		ERROR_INFO("Render 0x%p not has format\n",pRender);
+	}
+	pFormatEx = NULL;
+    DEBUG_INFO("release RenderClient 0x%p\n",pRender);
     return ret;
 }
+
+static int InitializeRenderFormat(IAudioRenderClient* pRender)
+{
+	
+}
+
+static int GetFormat(IAudioRenderClient* pRender,PCM_AUDIO_FORMAT_t *pAudioFormat)
+{
+	int ret=0;
+	WAVEFORMATEX* pFormat=NULL;
+	unsigned int i;
+	int size=sizeof(*pFormat);
+	int findidx=-1;
+    EnterCriticalSection(&st_RenderCS);
+
+	for(i=0;i<st_RenderArrays.size();i++)
+	{
+		if (pRender == st_RenderArrays[i])
+		{
+			findidx = i;
+			break;
+		}
+	}
+
+	
+	
+    LeaveCriticalSection(&st_RenderCS);
+    return ret;
+}
+
 
 
 
