@@ -1301,6 +1301,11 @@ static int SetGetBufferPointer(IAudioRenderClient* pRender,unsigned char* pBuffe
     RENDER_BUFFER_ASSERT();
     LeaveCriticalSection(&st_RenderCS);
 
+	if (ret > 0)
+	{
+		DEBUG_INFO("Insert New Render 0x%p\n",pRender);
+	}
+
     if(pOldPointer)
     {
         ERROR_INFO("render 0x%p old renderbuffer 0x%p\n",pRender,pOldPointer);
@@ -1339,6 +1344,7 @@ static int ReleaseRenderClient(IAudioRenderClient* pRender)
     {
         ERROR_INFO("release Render(0x%p) oldpointer 0x%p not null\n",pRender,pOldPointer);
     }
+	DEBUG_INFO("release RenderClient 0x%p\n",pRender);
     return ret;
 }
 
