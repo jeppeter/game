@@ -19,10 +19,12 @@ typedef struct
     unsigned char m_Data[4];
 } PCM_AUDIO_DATA_t;
 
+#define  FORMAT_EXTEND_SIZE   128
+
 typedef struct
 {
 	float m_Volume;
-	unsigned char m_Format[128];
+	unsigned char m_Format[FORMAT_EXTEND_SIZE];
 } PCM_AUDIO_FORMAT_t;
 
 typedef struct

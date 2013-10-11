@@ -81,7 +81,7 @@ static int SetFormat(WAVEFORMATEX* pFormatEx)
 
 static WAVEFORMATEX* GetCopiedFormat()
 {
-	unsigned int size=128;
+	unsigned int size=FORMAT_EXTEND_SIZE;
 	unsigned int cpysize=0;
 	WAVEFORMATEX* pFormatEx=NULL;
 	WAVEFORMATEX* pPtrFormatEx=NULL;
@@ -735,7 +735,7 @@ int IsBufferMute(unsigned char* pBuffer,int size)
     unsigned char* pCurPtr=pBuffer;
 
 	/*all bytes are the same ,it means it is mute*/
-    ch = pBuffer[0];
+    ch = 0;
 
     for(i=0; i<size; i++,pCurPtr++)
     {
@@ -1420,7 +1420,57 @@ static int ReleaseRenderClient(IAudioRenderClient* pRender)
 
 static int InitializeRenderFormat(IAudioRenderClient* pRender)
 {
-	
+	WAVEFORMATEX* pFormatEx=NULL;
+	int ret=0;
+	unsigned int size=sizeof(*pFormatEx);
+	int findidx=-1;
+	unsigned int i;
+
+	pFormatEx = GetCopiedFormat();
+	EnterCriticalSection(&st_RenderCS);
+	RENDER_BUFFER_ASSERT();
+	for (i=0;st_RenderArrays.size();i++)
+	{
+		if (pRender == st_RenderArrays[i])
+		{
+			findidx = i;
+			break;
+		}
+	}
+
+	if (findidx < 0)
+	{
+		st_RenderArrays.push_back(pRender);
+		st_RenderBufferArrays.push_back(NULL);
+		st_RenderFormatArrays.push_back(pFormatEx);
+		ret = 1;
+	}
+	LeaveCriticalSection(&st_RenderCS);
+
+	if (ret == 0)
+	{
+		/*not inserted ,so we should remove it */
+		free(pFormatEx);
+		pFormatEx = NULL;
+	}
+
+	return ret;
+}
+
+static void RemoveAllRenders()
+{
+	int ret;
+
+	while(1)
+	{
+		ret = ReleaseRenderClient(NULL);
+		if (ret == 0)
+		{
+			break;
+		}
+	}
+
+	return ;
 }
 
 static int GetFormat(IAudioRenderClient* pRender,PCM_AUDIO_FORMAT_t *pAudioFormat)
@@ -1947,6 +1997,7 @@ HRESULT WINAPI AudioClientGetServiceCallBack(IAudioClient* pClient,REFIID riid,v
             IAudioRenderClient* pRender = (IAudioRenderClient*)*ppv;
             DEBUG_INFO("AudioClient 0x%p Render 0x%p\n",pClient,pRender);
             DetourAudioRenderClientVirtFunctions(pRender);
+			InitializeRenderFormat(pRender);
         }
         else if(riid == __uuidof(IAudioStreamVolume))
         {
@@ -2432,6 +2483,7 @@ void PcmCapInjectFini(void)
     {
         int ret;
         int tries = 0;
+
         do
         {
             memset(&st_DummyControl,0,sizeof(st_DummyControl));
@@ -2444,6 +2496,7 @@ void PcmCapInjectFini(void)
         {
             ERROR_INFO("could not set audio none error(%d)\n",ret);
         }
+		RemoveAllRenders();
         CloseHandle(st_hThreadSema);
         st_hThreadSema = NULL;
     }
