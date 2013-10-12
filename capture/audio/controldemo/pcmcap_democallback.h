@@ -20,10 +20,11 @@ public:
 	void CloseFile();
 
 private:
-	void __StopPlay();
-	int __StartPlay(PCM_AUDIO_FORMAT_t* pFormat);
-	int __SetWaveFormatEx(WAVEFORMATEX* pwfx,PCM_AUDIO_FORMAT_t* pFormat,int maxsize);
-	int __Play(unsigned char* pBuffer,int bytes);
+	int __StartPcmPlay(PCM_AUDIO_FORMAT_t* pFormat);
+	int __PcmPlay(PCM_AUDIO_FORMAT_t*pFormat,unsigned char* pBuffer,int bytes);
+	void __StopPcmPlay();
+	void __InnerPcmPlay(PCMCAP_AUDIO_BUFFER_t *pPcmItem,LPVOID lpParam);
+	
 	int __WriteFile(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpParam);
 	
 
@@ -31,9 +32,9 @@ private:
 	std::vector<FILE*> m_FpVecs;
 	std::vector<void*> m_PointerVecs;
 	std::vector<int> m_WriteBlockSizeVecs;
-	CViWavePlay* m_pPlay;
 	PCM_AUDIO_FORMAT_t m_Format;
 	unsigned char m_FileNameBase[128];
+	CPcmPlayer *m_pPlay;
 };
 
 

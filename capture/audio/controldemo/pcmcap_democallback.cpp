@@ -65,158 +65,10 @@ void CPcmCapDemoCallBack::__StopPlay()
 CPcmCapDemoCallBack::~CPcmCapDemoCallBack()
 {
     this->CloseFile();
-    this->__StopPlay();
+    this->__StopPcmPlay();
 }
 
-int CPcmCapDemoCallBack::__SetWaveFormatEx(WAVEFORMATEX * pwfx,PCM_AUDIO_FORMAT_t * pFormat,int maxsize)
-{
-	int size= sizeof(*pwfx);
-	int ret;
-    if(maxsize > sizeof(pFormat->m_Format))
-    {
-        memcpy(pwfx,pFormat->m_Format,sizeof(pFormat->m_Format));
-    }
-    else
-    {
-        memcpy(pwfx,pFormat->m_Format,maxsize);
-    }
 
-	if (maxsize < size)
-	{
-		ret = ERROR_INSUFFICIENT_BUFFER;
-		goto fail;
-	}
-	size += pwfx->cbSize;
-	if (maxsize < size)
-	{
-		ret = ERROR_INSUFFICIENT_BUFFER;
-		goto fail;
-	}
-
-    return 0;
-fail:
-	SetLastError(ret);
-	return -ret;
-}
-
-int CPcmCapDemoCallBack::__StartPlay(PCM_AUDIO_FORMAT_t * pFormat)
-{
-
-    PCM_AUDIO_FORMAT_t format;
-    WAVEFORMATEX* pwfx=NULL;
-    BOOL bret;
-    int ret;
-    pwfx = (WAVEFORMATEX*)format.m_Format;
-    if(this->m_pPlay == NULL)
-    {
-        this->m_pPlay = new CViWavePlay();
-        ret = this->__SetWaveFormatEx(pwfx,pFormat,sizeof(format.m_Format));
-		if (ret < 0)
-		{
-			ERROR_INFO("could not set format\n");
-			DEBUG_BUFFER(pFormat->m_Format,sizeof(pFormat->m_Format));
-            this->__StopPlay();
-            return ret;
-		}
-
-        bret = this->m_pPlay->Start(pwfx);
-        if(!bret)
-        {
-            ret = -LAST_ERROR_CODE();
-            DEBUG_INFO("pwfx->nSamplesPerSec %d\n",pwfx->nSamplesPerSec);
-            DEBUG_INFO("pwfx->wBitsPerSample %d\n",pwfx->wBitsPerSample);
-            DEBUG_INFO("pwfx->nChannels %d\n",pwfx->nChannels);
-            DEBUG_INFO("pwfx->cbSize %d\n",pwfx->cbSize);
-            DEBUG_INFO("pwfx->wFormatTag %d\n",pwfx->wFormatTag);
-            DEBUG_INFO("pwfx->nBlockAlign %d\n",pwfx->nBlockAlign);
-            DEBUG_INFO("pwfx->nAvgBytesPerSec %d\n",pwfx->nAvgBytesPerSec);
-            //ERROR_INFO("can not start error(%d)\n",ret);
-            this->__StopPlay();
-            return ret;
-        }
-        DEBUG_INFO("pwfx->nSamplesPerSec %d\n",pwfx->nSamplesPerSec);
-        DEBUG_INFO("pwfx->wBitsPerSample %d\n",pwfx->wBitsPerSample);
-        DEBUG_INFO("pwfx->nChannels %d\n",pwfx->nChannels);
-        DEBUG_INFO("pwfx->cbSize %d\n",pwfx->cbSize);
-        DEBUG_INFO("pwfx->wFormatTag %d\n",pwfx->wFormatTag);
-        DEBUG_INFO("pwfx->nBlockAlign %d\n",pwfx->nBlockAlign);
-        DEBUG_INFO("pwfx->nAvgBytesPerSec %d\n",pwfx->nAvgBytesPerSec);
-        DEBUG_BUFFER(pFormat->m_Format,sizeof(pFormat->m_Format));
-        memcpy(&(this->m_Format),pFormat,sizeof(*pFormat));
-        return 0;
-    }
-
-    /*now to compare whether changed*/
-    if(memcmp(&(this->m_Format),pFormat,sizeof(*pFormat))==0)
-    {
-        return 0;
-    }
-
-    DEBUG_INFO("Change Format\n");
-
-    this->__StopPlay();
-    assert(this->m_pPlay == NULL);
-    this->m_pPlay = new CViWavePlay();
-    ret = this->__SetWaveFormatEx(pwfx,pFormat,sizeof(format.m_Format));
-	if (ret < 0)
-	{
-		ERROR_INFO("could not set format\n");
-		DEBUG_BUFFER(pFormat->m_Format,sizeof(pFormat->m_Format));
-		this->__StopPlay();
-		return ret;
-	}
-    bret = this->m_pPlay->Start(pwfx);
-    if(!bret)
-    {
-        ret = -LAST_ERROR_CODE();
-        DEBUG_INFO("pwfx->nSamplesPerSec %d\n",pwfx->nSamplesPerSec);
-        DEBUG_INFO("pwfx->wBitsPerSample %d\n",pwfx->wBitsPerSample);
-        DEBUG_INFO("pwfx->nChannels %d\n",pwfx->nChannels);
-        DEBUG_INFO("pwfx->cbSize %d\n",pwfx->cbSize);
-        DEBUG_INFO("pwfx->wFormatTag %d\n",pwfx->wFormatTag);
-        DEBUG_INFO("pwfx->nBlockAlign %d\n",pwfx->nBlockAlign);
-        DEBUG_INFO("pwfx->nAvgBytesPerSec %d\n",pwfx->nAvgBytesPerSec);
-        ERROR_INFO("can not start error(%d)\n",ret);
-        this->__StopPlay();
-        return ret;
-    }
-    DEBUG_INFO("pwfx->nSamplesPerSec %d\n",pwfx->nSamplesPerSec);
-    DEBUG_INFO("pwfx->wBitsPerSample %d\n",pwfx->wBitsPerSample);
-    DEBUG_INFO("pwfx->nChannels %d\n",pwfx->nChannels);
-    DEBUG_INFO("pwfx->cbSize %d\n",pwfx->cbSize);
-    DEBUG_INFO("pwfx->wFormatTag %d\n",pwfx->wFormatTag);
-    DEBUG_INFO("pwfx->nBlockAlign %d\n",pwfx->nBlockAlign);
-    DEBUG_INFO("pwfx->nAvgBytesPerSec %d\n",pwfx->nAvgBytesPerSec);
-	DEBUG_BUFFER(pFormat->m_Format,sizeof(pFormat->m_Format));
-    memcpy(&(this->m_Format),pFormat,sizeof(*pFormat));
-    return 0;
-}
-
-int CPcmCapDemoCallBack::__Play(unsigned char * pBuffer,int bytes)
-{
-    BOOL bret;
-    int ret;
-    if(this->m_pPlay == NULL)
-    {
-        ret = ERROR_INVALID_PARAMETER;
-        goto fail;
-    }
-
-    bret = this->m_pPlay->PlayAudio((char*)pBuffer,bytes);
-    if(!bret)
-    {
-        ret = LAST_ERROR_CODE();
-        DEBUG_INFO("could not play %d error(%d)\n",bytes,ret);
-        DEBUG_BUFFER(pBuffer,bytes > 16 ? 16 : bytes);
-        goto fail;
-    }
-
-    return 0;
-fail:
-    this->__StopPlay();
-    SetLastError(ret);
-    return -ret;
-}
 
 
 int CPcmCapDemoCallBack::OpenFile(const char * fname)
@@ -337,24 +189,114 @@ fail:
     return -ret;
 }
 
+
+void CPcmCapDemoCallBack::__StopPcmPlay()
+{
+	if (this->m_pPlay)
+	{
+		this->m_pPlay->Stop();
+		delete this->m_pPlay;
+	}
+	this->m_pPlay = NULL;
+}
+
+int CPcmCapDemoCallBack::__StartPcmPlay(PCM_AUDIO_FORMAT_t * pFormat)
+{
+	BOOL bret;
+	int ret;
+	if (this->m_pPlay)
+	{
+		return 0;
+	}
+
+	/*now we set the play*/
+	this->m_pPlay = new CPcmPlayer();
+	bret = this->m_pPlay->Start(2£¬AV_CH_LAYOUT_STERO£¬AV_SAMPLE_FMT_S16£¬48000£¬4£¬4096);
+	if (!bret)
+	{
+		ret = LAST_ERROR_CODE();
+		this->__StopPcmPlay();
+		ERROR_INFO("could not start player error(%d)\n",ret);
+		return -ret;
+	}
+
+	return 1;
+}
+
+int CPcmCapDemoCallBack::__PcmPlay(PCM_AUDIO_FORMAT_t * pFormat,unsigned char * pBuffer,int bytes)
+{
+	BOOL bret;
+	int ret;
+	WAVEFORMATEX* pFormatEx=NULL;
+	int size;
+
+	/*now to change the format */
+	pFormatEx = (WAVEFORMATEX*) pFormat->m_Format;
+	size = sizeof(*pFormatEx);
+	size += pFormatEx->cbSize;
+	if (size > sizeof(pFormat->m_Format))
+	{
+		ret = ERROR_INSUFFICIENT_BUFFER;
+		ERROR_INFO("the format size %d > sizeof(%d)\n",size,sizeof(pFormat->m_Format));
+		goto fail;
+	}
+
+	/*now to test if this is 2 channels*/
+	if (pFormatEx->nChannels != 2)
+	{
+		ret = ERROR_INVALID_PARAMETER;
+		ERROR_INFO("channels %d not valid\n",pFormatEx->nChannels);
+		goto fail;
+	}
+
+	if (pFormatEx->wFormatTag != WAVE_FORMAT_EXTENSIBLE && pFormatEx->wFormatTag != WAVE_FORMAT_PCM)
+	{
+		ret = ERROR_INVALID_PARAMETER;
+		ERROR_INFO("formattag 0x%x not supported\n",pFormatEx->wFormatTag);
+		goto fail;
+	}
+
+	if (pFormatEx->wFormatTag == WAVE_FORMAT_PCM)
+	{
+	}
+
+	
+
+	return 0;
+fail:
+	SetLastError(ret);
+	return -ret;
+}
+
+void CPcmCapDemoCallBack::__InnerPcmPlay(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpParam)
+{
+	int ret ;
+
+	ret = this->__StartPcmPlay(&(pPcmItem->m_Format));
+	if (ret < 0)
+	{
+		this->__StopPcmPlay();
+		return ;
+	}
+
+	ret = this->__PcmPlay(&(pPcmItem->m_Format),pPcmItem->m_AudioData.m_Data,pPcmItem->m_AudioData.m_DataLen);
+	if (ret < 0)
+	{
+		this->__StopPcmPlay();
+		return ;
+	}
+
+	return ;
+}
+
+
+
 VOID CPcmCapDemoCallBack::WaveInCb(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpParam)
 {
+#if 0	
     this->__WriteFile(pPcmItem,lpParam);
-#if 0
-    ret = this->__StartPlay(&(pPcmItem->m_Format));
-    if(ret < 0)
-    {
-        this->__StopPlay();
-        return ;
-    }
-
-    ret = this->__Play(pPcmItem->m_AudioData.m_Data,bytes);
-    if(ret < 0)
-    {
-        this->__StopPlay();
-        return ;
-    }
 #endif
+	this->__InnerPcmPlay(pPcmItem,lpParam);
     return ;
 }
 
