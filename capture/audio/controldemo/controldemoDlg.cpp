@@ -10,6 +10,7 @@
 #include <uniansi.h>
 #include <dllinsert.h>
 #include <sched.h>
+#include <procex.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -282,9 +283,11 @@ void CcontroldemoDlg::StartCapper()
     CString errstr;
     CButton* pCheck=NULL;
     int iOperation=PCMCAP_AUDIO_NONE;
-    BOOL bret;
     int bufnum,blocksize;
     unsigned int i;
+    unsigned int *pInsertProcessId=NULL;
+    int insertprocsize=0;
+	unsigned int insertprocnum=0;
 
 
     DEBUG_INFO("\n");
@@ -308,7 +311,6 @@ void CcontroldemoDlg::StartCapper()
     if(ret < 0)
     {
         errstr.Format(TEXT("can not Get exec string"));
-        AfxMessageBox(errstr);
         goto free_release;
     }
 
@@ -316,7 +318,6 @@ void CcontroldemoDlg::StartCapper()
     if(ret < 0)
     {
         errstr.Format(TEXT("can not get param string"));
-        AfxMessageBox(errstr);
         goto free_release;
     }
 
@@ -324,7 +325,6 @@ void CcontroldemoDlg::StartCapper()
     if(ret < 0)
     {
         errstr.Format(TEXT("can not get dll string"));
-        AfxMessageBox(errstr);
         goto free_release;
     }
 
@@ -332,7 +332,6 @@ void CcontroldemoDlg::StartCapper()
     if(ret < 0)
     {
         errstr.Format(TEXT("can not get dump string"));
-        AfxMessageBox(errstr);
         goto free_release;
     }
 
@@ -340,7 +339,6 @@ void CcontroldemoDlg::StartCapper()
     if(ret < 0)
     {
         errstr.Format(TEXT("can not get bufnum string"));
-        AfxMessageBox(errstr);
         goto free_release;
     }
 
@@ -348,7 +346,6 @@ void CcontroldemoDlg::StartCapper()
     if(ret < 0)
     {
         errstr.Format(TEXT("can not get blocksize string"));
-        AfxMessageBox(errstr);
         goto free_release;
     }
 
@@ -372,7 +369,6 @@ void CcontroldemoDlg::StartCapper()
     if(strlen(pExecAnsi) < 1 || strlen(pDllAnsi) < 1)
     {
         errstr.Format(TEXT("must specify execname and dllname"));
-        AfxMessageBox(errstr);
         goto free_release;
     }
 
@@ -383,7 +379,6 @@ void CcontroldemoDlg::StartCapper()
     if(bufnum < 1 || blocksize < 0x1000)
     {
         errstr.Format(TEXT("bufnum %d < 1 or blocksize %d < 0x1000"),bufnum,blocksize);
-        AfxMessageBox(errstr);
         goto free_release;
     }
     DEBUG_INFO("\n");
@@ -426,26 +421,116 @@ void CcontroldemoDlg::StartCapper()
     {
         errstr.Format(TEXT("could not run (%s) error(%d) with dll(%s) part(%s)"),pFullExecName,ret,
                       pDllAnsi,pPartDllAnsi);
-        AfxMessageBox(errstr);
         goto free_release;
     }
     DEBUG_INFO("\n");
 
-    processid= ret;
 
-    for(i=0; i<10; i++)
+    for(i=0; i<100; i++)
     {
         SchedOut();
     }
 
+    ret = GetModuleInsertedProcess(pPartDllAnsi,&pInsertProcessId,&insertprocsize);
+    if(ret < 0)
+    {
+        ret = LAST_ERROR_CODE();
+        errstr.Format(TEXT("could not get (%s) inserted process error(%d)"),pPartDllAnsi,ret);
+        goto fail;
+    }
+
+    /*now we should */
+    insertprocnum = ret;
+
+    for(i=0; i<insertprocnum; i++)
+    {
+        ret = this->StartProcessCapper(pInsertProcessId[i],rendercheck,capturecheck,bufnum,blocksize,pDumpAnsi);
+        if(ret >= 0)
+        {
+            break;
+        }
+    }
+
+    if(i >= insertprocnum)
+    {
+        ret = LAST_ERROR_CODE();
+        errstr.Format(TEXT("could not start capper for insert (%s:%d)(num:%d) error(%d)\n"),pDllAnsi,pPartDllAnsi,insertprocnum,ret);
+        goto fail;
+    }
+
+
+    /*ok all is ok*/
+    DEBUG_INFO("\n");
+
+
+#ifdef _UNICODE
+    UnicodeToAnsi(NULL,&pExecAnsi,&execansisize);
+    UnicodeToAnsi(NULL,&pDllAnsi,&dllansisize);
+    UnicodeToAnsi(NULL,&pParamAnsi,&paramansisize);
+    UnicodeToAnsi(NULL,&pDumpAnsi,&dumpansisize);
+    UnicodeToAnsi(NULL,&pBufNumAnsi,&bufnumansisize);
+    UnicodeToAnsi(NULL,&pBlockSizeAnsi,&blocksizeansisize);
+#endif
+    if(pFullExecName)
+    {
+        delete [] pFullExecName;
+    }
+    pFullExecName = NULL;
+
+    if(pInsertProcessId)
+    {
+        free(pInsertProcessId);
+    }
+    pInsertProcessId = NULL;
+    insertprocnum =0;
+    insertprocsize = 0;
+
+    return ;
+
+fail:
+    this->StopCapper();
+free_release:
+#ifdef _UNICODE
+    UnicodeToAnsi(NULL,&pExecAnsi,&execansisize);
+    UnicodeToAnsi(NULL,&pDllAnsi,&dllansisize);
+    UnicodeToAnsi(NULL,&pParamAnsi,&paramansisize);
+    UnicodeToAnsi(NULL,&pDumpAnsi,&dumpansisize);
+    UnicodeToAnsi(NULL,&pBufNumAnsi,&bufnumansisize);
+    UnicodeToAnsi(NULL,&pBlockSizeAnsi,&blocksizeansisize);
+#endif
+    if(pFullExecName)
+    {
+        delete [] pFullExecName;
+    }
+    pFullExecName = NULL;
+
+    if(pInsertProcessId)
+    {
+        free(pInsertProcessId);
+    }
+    pInsertProcessId = NULL;
+    insertprocnum =0;
+    insertprocsize = 0;
+    AfxMessageBox(errstr);
+
+    return;
+
+}
+
+int CcontroldemoDlg::StartProcessCapper(unsigned int procid,int rendercheck,int capturecheck,int bufnum,int blocksize,const char * pDumpAnsi)
+{
+    int ret;
+    CString errstr;
+    int iOperation = PCMCAP_AUDIO_NONE;
+    BOOL bret;
     this->StopCapper();
 
-    this->m_hProc = OpenProcess(PROCESS_VM_OPERATION |PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION | PROCESS_CREATE_THREAD ,FALSE,processid);
+    this->m_hProc = OpenProcess(PROCESS_VM_OPERATION |PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION | PROCESS_CREATE_THREAD ,FALSE,procid);
     if(this->m_hProc == NULL)
     {
         ret = LAST_ERROR_CODE();
-        errstr.Format(TEXT("could not open process(%d) error(%d)"),processid,
-                      ret);
+        errstr.Format(TEXT("could not open process(%d) error(%d)"),procid,ret);
+        ERROR_INFO("could not open process(%d) error(%d)",procid,ret);
         goto fail;
     }
     DEBUG_INFO("\n");
@@ -462,7 +547,9 @@ void CcontroldemoDlg::StartCapper()
         ret = this->m_pDemoCallBack->OpenFile(pDumpAnsi);
         if(ret < 0)
         {
+            ret = LAST_ERROR_CODE();
             errstr.Format(TEXT("can not open (%s) error(%d)"),pDumpAnsi,ret);
+            ERROR_INFO("can not open (%s) error(%d)",pDumpAnsi,ret);
             goto fail;
         }
     }
@@ -494,48 +581,16 @@ void CcontroldemoDlg::StartCapper()
     {
         ret = LAST_ERROR_CODE();
         errstr.Format(TEXT("could not start %d operation error(%d)"),iOperation,ret);
+        ERROR_INFO("could not start %d operation error(%d)",iOperation,ret);
         goto fail;
     }
 
-    /*ok all is ok*/
-    DEBUG_INFO("\n");
-
-
-#ifdef _UNICODE
-    UnicodeToAnsi(NULL,&pExecAnsi,&execansisize);
-    UnicodeToAnsi(NULL,&pDllAnsi,&dllansisize);
-    UnicodeToAnsi(NULL,&pParamAnsi,&paramansisize);
-    UnicodeToAnsi(NULL,&pDumpAnsi,&dumpansisize);
-    UnicodeToAnsi(NULL,&pBufNumAnsi,&bufnumansisize);
-    UnicodeToAnsi(NULL,&pBlockSizeAnsi,&blocksizeansisize);
-#endif
-    if(pFullExecName)
-    {
-        delete [] pFullExecName;
-    }
-    pFullExecName = NULL;
-
-
-    return ;
+    return 0;
 
 fail:
     this->StopCapper();
-free_release:
-#ifdef _UNICODE
-    UnicodeToAnsi(NULL,&pExecAnsi,&execansisize);
-    UnicodeToAnsi(NULL,&pDllAnsi,&dllansisize);
-    UnicodeToAnsi(NULL,&pParamAnsi,&paramansisize);
-    UnicodeToAnsi(NULL,&pDumpAnsi,&dumpansisize);
-    UnicodeToAnsi(NULL,&pBufNumAnsi,&bufnumansisize);
-    UnicodeToAnsi(NULL,&pBlockSizeAnsi,&blocksizeansisize);
-#endif
-    if(pFullExecName)
-    {
-        delete [] pFullExecName;
-    }
-    pFullExecName = NULL;
-    return;
-
+    SetLastError(ret);
+    return ret;
 }
 
 void CcontroldemoDlg::StopCapper()

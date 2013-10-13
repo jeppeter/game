@@ -15,12 +15,18 @@
 #include <evt.h>
 #include <memshare.h>
 #include <StackWalker.h>
+#include <psapi.h>
+#include <uniansi.h>
 
 #pragma comment(lib,"common.lib")
+#pragma comment(lib,"psapi.lib")
 
 #define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
 #define COM_METHOD(TYPE, METHOD) TYPE STDMETHODCALLTYPE METHOD
+
+extern "C" BOOL UpdateImports(HANDLE hProcess, LPCSTR *plpDlls, DWORD nDlls);
+
 
 static CRITICAL_SECTION st_DetourCS;
 static CRITICAL_SECTION st_StateCS;
@@ -86,7 +92,7 @@ static WAVEFORMATEX* GetCopiedFormat()
     WAVEFORMATEX* pFormatEx=NULL;
     WAVEFORMATEX* pPtrFormatEx=NULL;
 
-    pFormatEx = malloc(size);
+    pFormatEx = (WAVEFORMATEX*)malloc(size);
     if(pFormatEx == NULL)
     {
         return NULL;
@@ -748,6 +754,7 @@ int IsBufferMute(unsigned char* pBuffer,int size)
     return 1;
 }
 
+static int GetFormat(IAudioRenderClient* pRender,PCM_AUDIO_FORMAT_t *pAudioFormat);
 
 int WriteSendBuffer(IAudioRenderClient *pClient,unsigned char* pBuffer,int numpacks)
 {
@@ -2507,8 +2514,8 @@ static int DetourPCMCapFunctions(void)
     return 0;
 }
 
-static std::vector<unsigned char*> st_InsertDllFullNames;
-static std::vector<unsigned char*> st_InsertDllPartNames;
+static std::vector<char*> st_InsertDllFullNames;
+static std::vector<char*> st_InsertDllPartNames;
 static CRITICAL_SECTION st_DllNameCS;
 
 #define INSERT_DLL_NAME_ASSERT() \
@@ -2524,8 +2531,8 @@ static int InsertDllNames(const char* pFullName,const char* pPartName)
     unsigned int i;
     char *pAllocFullName=NULL,*pAllocPartName=NULL;
 
-    pAllocFullName = strdup(pFullName);
-    pAllocPartName = strdup(pPartName);
+    pAllocFullName = _strdup(pFullName);
+    pAllocPartName = _strdup(pPartName);
     if(pAllocFullName == NULL || pAllocPartName == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -2642,7 +2649,6 @@ static void ClearAllDllNames()
 static int GetDllNames(int idx,char**ppFullName,char**ppPartName)
 {
     int ret = 0;
-    unsigned int i;
     int overflow ;
     int fullmallocsize=1024,fullsize;
     char* pFullName=*ppFullName;
@@ -2667,8 +2673,8 @@ static int GetDllNames(int idx,char**ppFullName,char**ppPartName)
             free(pPartName);
         }
         pPartName = NULL;
-        pFullName = malloc(fullmallocsize);
-        pPartName = malloc(fullmallocsize);
+        pFullName = (char*)malloc(fullmallocsize);
+        pPartName = (char*)malloc(fullmallocsize);
         if(pFullName == NULL || pPartName == NULL)
         {
             ret = LAST_ERROR_CODE();
@@ -2679,7 +2685,7 @@ static int GetDllNames(int idx,char**ppFullName,char**ppPartName)
         overflow = 0;
         EnterCriticalSection(&st_DllNameCS);
         INSERT_DLL_NAME_ASSERT();
-        if(st_InsertDllFullNames.size() > idx)
+        if(st_InsertDllFullNames.size() > (unsigned int)idx)
         {
             fullsize = strlen(st_InsertDllFullNames[idx]);
             if(fullsize < fullmallocsize)
@@ -2819,10 +2825,7 @@ BOOL WINAPI CreateProcessCallBack(LPCTSTR lpApplicationName,
 {
     DWORD dwMyCreationFlags = (dwCreationFlags | CREATE_SUSPENDED);
     PROCESS_INFORMATION pi;
-    DWORD processid;
     int ret;
-    LPCSTR rlpDlls[2];
-    DWORD nDlls = 0;
 
     if(!CreateProcessNext(lpApplicationName,
                           lpCommandLine,
@@ -2859,7 +2862,6 @@ BOOL WINAPI CreateProcessCallBack(LPCTSTR lpApplicationName,
     {
         ResumeThread(pi.hThread);
     }
-    DEBUG_INFO("processid %d\n",processid);
     return TRUE;
 
 }
@@ -2869,35 +2871,54 @@ static int InsertModuleFileName(HMODULE hModule)
 {
     HANDLE hProcess=NULL;
     DWORD dret;
+#ifdef _UNICODE
+    wchar_t *pModuleFullNameW=NULL;
+    int modulefullnamesize=0;
+#else
+    char *pModuleFullNameA=NULL;
+#endif
     char* pModuleFullName=NULL,*pModulePartName=NULL;
-    int fullnamesize=1024;
     int lasterr=0;
     int ret;
+    unsigned int fullnamesize=1024;
 
     hProcess = GetCurrentProcess();
     do
     {
         lasterr = 0;
-        if(pModuleFullName == NULL)
+#ifdef _UNICODE
+        pModuleFullNameW = (wchar_t*)calloc(sizeof(*pModuleFullNameW),fullnamesize);
+        if(pModuleFullNameW == NULL)
         {
-            pModuleFullName = malloc(fullnamesize);
-            if(pModuleFullName == NULL)
-            {
-                ret = LAST_ERROR_CODE();
-                goto fail;
-            }
+            ret = LAST_ERROR_CODE();
+            goto fail;
         }
+        dret = GetModuleFileNameEx(hProcess,hModule,pModuleFullNameW,fullnamesize);
+#else
+        pModuleFullNameA = calloc(sizeof(*pModuleFullNameA),fullnamesize);
+        if(pModuleFullNameA == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            goto fail;
+        }
+        dret = GetModuleFileNameEx(hProcess,hModule,pModuleFullNameA,fullnamesize);
+#endif
 
-        dret = GetModuleFileNameExA(hProcess,hModule,pModuleFullName,fullnamesize);
+
         if(dret == 0 || dret >= fullnamesize)
         {
             lasterr = LAST_ERROR_CODE();
-            free(pModuleFullName);
-            pModuleFullName = NULL;
+#ifdef _UNICODE
+            free(pModuleFullNameW);
+            pModuleFullNameW = NULL;
+#else
+            free(pModuleFullNameA);
+            pModuleFullNameA = NULL;
+#endif
             fullnamesize <<= 1;
         }
     }
-    while(lasterr == ERROR_INSUFICIENT_BUFFER);
+    while(lasterr == ERROR_INSUFFICIENT_BUFFER);
 
     if(dret == 0 || dret >= fullnamesize)
     {
@@ -2905,6 +2926,17 @@ static int InsertModuleFileName(HMODULE hModule)
         ERROR_INFO("can not get [0x%x:0x%x] modulefilename error(%d)\n",hProcess,hModule,ret);
         goto fail;
     }
+
+#ifdef _UNICODE
+    ret = UnicodeToAnsi(pModuleFullNameW,&pModuleFullName,&modulefullnamesize);
+    if(ret < 0)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
+#else
+    pModuleFullName = pModuleFullNameA;
+#endif
 
     /*now get the name so we should*/
     pModulePartName = strrchr(pModuleFullName,'\\');
@@ -2929,23 +2961,47 @@ static int InsertModuleFileName(HMODULE hModule)
     DEBUG_INFO("Insert (%s:%d) succ\n",pModuleFullName,pModulePartName);
 
 
-    if(pModuleFullName)
+#ifdef _UNICODE
+    UnicodeToAnsi(NULL,&pModuleFullName,&modulefullnamesize);
+    if(pModuleFullNameW)
     {
-        free(pModuleFullName);
+        free(pModuleFullNameW);
     }
+    pModuleFullNameW = NULL;
+    pModulePartName = NULL;
+#else
+    if(pModuleFullNameA)
+    {
+        free(pModuleFullNameA);
+    }
+    pModuleFullNameA = NULL;
     pModuleFullName = NULL;
     pModulePartName = NULL;
+#endif
 
+    fullnamesize = 0;
 
     return 0;
 
 fail:
-    if(pModuleFullName)
+#ifdef _UNICODE
+    UnicodeToAnsi(NULL,&pModuleFullName,&modulefullnamesize);
+    if(pModuleFullNameW)
     {
-        free(pModuleFullName);
+        free(pModuleFullNameW);
     }
+    pModuleFullNameW = NULL;
+    pModulePartName = NULL;
+#else
+    if(pModuleFullNameA)
+    {
+        free(pModuleFullNameA);
+    }
+    pModuleFullNameA = NULL;
     pModuleFullName = NULL;
     pModulePartName = NULL;
+#endif
+    fullnamesize = 0;
     SetLastError(ret);
     return -ret;
 

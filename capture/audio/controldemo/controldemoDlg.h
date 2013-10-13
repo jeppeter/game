@@ -46,6 +46,7 @@ public:
 	afx_msg void OnBtnStart();
 	void StartCapper();
 	void StopCapper();
+	int StartProcessCapper(unsigned int procid,int rendercheck,int capturecheck,int bufnum,int blocksize,const char* pDumpAnsi);
 
 
 

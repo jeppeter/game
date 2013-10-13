@@ -24,6 +24,7 @@ private:
 	int __PcmPlay(PCM_AUDIO_FORMAT_t*pFormat,unsigned char* pBuffer,int bytes);
 	void __StopPcmPlay();
 	void __InnerPcmPlay(PCMCAP_AUDIO_BUFFER_t *pPcmItem,LPVOID lpParam);
+	void __StopPlay();
 	
 	int __WriteFile(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpParam);
 	
@@ -34,7 +35,6 @@ private:
 	std::vector<int> m_WriteBlockSizeVecs;
 	PCM_AUDIO_FORMAT_t m_Format;
 	unsigned char m_FileNameBase[128];
-	CPcmPlayer *m_pPlay;
 };
 
 

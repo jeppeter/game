@@ -11,7 +11,6 @@ CPcmCapDemoCallBack::CPcmCapDemoCallBack()
     assert(m_FpVecs.size() == 0);
     assert(m_PointerVecs.size() == 0);
     assert(m_WriteBlockSizeVecs.size() ==0);
-    m_pPlay = NULL;
     memset(&m_Format,0,sizeof(m_Format));
     memset(&m_FileNameBase,0,sizeof(m_FileNameBase));
 }
@@ -53,12 +52,6 @@ void CPcmCapDemoCallBack::CloseFile()
 
 void CPcmCapDemoCallBack::__StopPlay()
 {
-    if(this->m_pPlay)
-    {
-        this->m_pPlay->Stop();
-        delete this->m_pPlay;
-    }
-    this->m_pPlay = NULL;
     memset(&(this->m_Format),0,sizeof(this->m_Format));
 }
 
@@ -192,40 +185,16 @@ fail:
 
 void CPcmCapDemoCallBack::__StopPcmPlay()
 {
-	if (this->m_pPlay)
-	{
-		this->m_pPlay->Stop();
-		delete this->m_pPlay;
-	}
-	this->m_pPlay = NULL;
+	return;
 }
 
 int CPcmCapDemoCallBack::__StartPcmPlay(PCM_AUDIO_FORMAT_t * pFormat)
 {
-	BOOL bret;
-	int ret;
-	if (this->m_pPlay)
-	{
-		return 0;
-	}
-
-	/*now we set the play*/
-	this->m_pPlay = new CPcmPlayer();
-	bret = this->m_pPlay->Start(2£¬AV_CH_LAYOUT_STERO£¬AV_SAMPLE_FMT_S16£¬48000£¬4£¬4096);
-	if (!bret)
-	{
-		ret = LAST_ERROR_CODE();
-		this->__StopPcmPlay();
-		ERROR_INFO("could not start player error(%d)\n",ret);
-		return -ret;
-	}
-
 	return 1;
 }
 
 int CPcmCapDemoCallBack::__PcmPlay(PCM_AUDIO_FORMAT_t * pFormat,unsigned char * pBuffer,int bytes)
 {
-	BOOL bret;
 	int ret;
 	WAVEFORMATEX* pFormatEx=NULL;
 	int size;
@@ -256,9 +225,6 @@ int CPcmCapDemoCallBack::__PcmPlay(PCM_AUDIO_FORMAT_t * pFormat,unsigned char * 
 		goto fail;
 	}
 
-	if (pFormatEx->wFormatTag == WAVE_FORMAT_PCM)
-	{
-	}
 
 	
 
@@ -293,10 +259,12 @@ void CPcmCapDemoCallBack::__InnerPcmPlay(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID
 
 VOID CPcmCapDemoCallBack::WaveInCb(PCMCAP_AUDIO_BUFFER_t * pPcmItem,LPVOID lpParam)
 {
-#if 0	
+#if 1
     this->__WriteFile(pPcmItem,lpParam);
-#endif
+#else
 	this->__InnerPcmPlay(pPcmItem,lpParam);
+
+#endif
     return ;
 }
 

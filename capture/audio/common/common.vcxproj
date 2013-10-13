@@ -81,6 +81,7 @@
     <ClInclude Include="evt.h" />
     <ClInclude Include="memshare.h" />
     <ClInclude Include="output_debug.h" />
+    <ClInclude Include="procex.h" />
     <ClInclude Include="sched.h" />
     <ClInclude Include="StackWalker.h" />
     <ClInclude Include="timeticks.h" />
@@ -96,6 +97,7 @@
     <ClCompile Include="memshare.cpp" />
     <ClCompile Include="modules.cpp" />
     <ClCompile Include="output_debug.cpp" />
+    <ClCompile Include="procex.cpp" />
     <ClCompile Include="sched.cpp" />
     <ClCompile Include="StackWalker.cpp" />
     <ClCompile Include="timeticks.cpp" />

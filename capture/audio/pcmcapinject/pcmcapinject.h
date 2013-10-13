@@ -16,7 +16,7 @@
 #endif
 
 extern "C" PCMCAPINJECT_API int HandleAudioOperation(PCMCAP_CONTROL_t* pControl);
-extern "C" int PcmCapInjectInit(void);
-extern "C" void PcmCapInjectFini(HMODULE hModule);
+extern "C" int PcmCapInjectInit(HMODULE hModule);
+extern "C" void PcmCapInjectFini(void);
 
 #endif /*__PCMCAP_INJECT_H__*/
