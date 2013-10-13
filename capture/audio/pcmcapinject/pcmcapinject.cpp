@@ -2457,6 +2457,56 @@ LONG WINAPI DetourApplicationCrashHandler(EXCEPTION_POINTERS *pException)
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
+
+
+static  HRESULT(WINAPI *CoCreateInstanceNext)(
+    REFCLSID rclsid,
+    LPUNKNOWN pUnkOuter,
+    DWORD dwClsContext,
+    REFIID riid,
+    LPVOID *ppv
+) = CoCreateInstance;
+
+HRESULT WINAPI  CoCreateInstanceCallBack(
+    REFCLSID rclsid,
+    LPUNKNOWN pUnkOuter,
+    DWORD dwClsContext,
+    REFIID riid,
+    LPVOID *ppv
+)
+{
+    HRESULT hr;
+    SetUnhandledExceptionFilter(DetourApplicationCrashHandler);
+    hr = CoCreateInstanceNext(rclsid,
+                              pUnkOuter,dwClsContext,riid,ppv);
+    if(SUCCEEDED(hr))
+    {
+        if(rclsid == __uuidof(MMDeviceEnumerator))
+        {
+            IMMDeviceEnumerator* pEnumerator = (IMMDeviceEnumerator*)(*ppv);
+            //DEBUG_INFO("\n");
+            /*now we should change function*/
+            DetourEnumeratorVirtFunctions(pEnumerator);
+        }
+
+    }
+    return hr;
+}
+
+
+
+
+
+static int DetourPCMCapFunctions(void)
+{
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourAttach((PVOID*)&CoCreateInstanceNext,CoCreateInstanceCallBack);
+    DetourTransactionCommit();
+
+    return 0;
+}
+
 static std::vector<unsigned char*> st_InsertDllFullNames;
 static std::vector<unsigned char*> st_InsertDllPartNames;
 static CRITICAL_SECTION st_DllNameCS;
@@ -2530,6 +2580,10 @@ fail:
     return -ret;
 }
 
+
+
+
+
 static int ClearDllNames(const char* pPartName)
 {
     char* pFreePartName=NULL;
@@ -2570,6 +2624,21 @@ static int ClearDllNames(const char* pPartName)
     return ret;
 }
 
+static void ClearAllDllNames()
+{
+    int ret;
+
+    while(1)
+    {
+        ret = ClearDllNames(NULL);
+        if(ret == 0)
+        {
+            break;
+        }
+    }
+    return ;
+}
+
 static int GetDllNames(int idx,char**ppFullName,char**ppPartName)
 {
     int ret = 0;
@@ -2598,7 +2667,6 @@ static int GetDllNames(int idx,char**ppFullName,char**ppPartName)
             free(pPartName);
         }
         pPartName = NULL;
-        overflow = 0;
         pFullName = malloc(fullmallocsize);
         pPartName = malloc(fullmallocsize);
         if(pFullName == NULL || pPartName == NULL)
@@ -2617,8 +2685,8 @@ static int GetDllNames(int idx,char**ppFullName,char**ppPartName)
             if(fullsize < fullmallocsize)
             {
                 ret = 1;
-                strncpy(pFullName,st_InsertDllFullNames[idx],fullmallocsize);
-                strncpy(pPartName,st_InsertDllPartNames[idx],fullmallocsize);
+                strncpy_s(pFullName,fullmallocsize,st_InsertDllFullNames[idx],_TRUNCATE);
+                strncpy_s(pPartName,fullmallocsize,st_InsertDllPartNames[idx],_TRUNCATE);
             }
             else
             {
@@ -2674,10 +2742,6 @@ static BOOL InsertDlls(HANDLE hProcess)
     int i;
     char* pFullName=NULL,*pPartName=NULL;
     LPCSTR rlpDlls[2];
-    DWORD nDlls = 0;
-
-
-
     i = 0;
     while(1)
     {
@@ -2698,20 +2762,30 @@ static BOOL InsertDlls(HANDLE hProcess)
         rlpDlls[0] = pFullName;
         rlpDlls[1] = pPartName;
 
-        bret = UpdateImports(hProcess,rlpDlls,1);
+        bret = UpdateImports(hProcess,rlpDlls,2);
         if(!bret)
         {
             ret = LAST_ERROR_CODE();
             ERROR_INFO("Import Dll(%s:%s) error(%d)\n",pFullName,pPartName,ret);
-            goto fail;
         }
 
-		free(pFullName);
-		free(pPartName);
-		pFullName = NULL;
-		pPartName = NULL;
+        free(pFullName);
+        free(pPartName);
+        pFullName = NULL;
+        pPartName = NULL;
+        i ++;
 
     }
+    if(pFullName)
+    {
+        free(pFullName);
+    }
+    pFullName = NULL;
+    if(pPartName)
+    {
+        free(pPartName);
+    }
+    pPartName = NULL;
 
     return TRUE;
 fail:
@@ -2730,7 +2804,7 @@ fail:
 }
 
 typedef BOOL(WINAPI *CreateProcessFunc_t)(LPCTSTR lpApplicationName,LPTSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,LPSECURITY_ATTRIBUTES lpThreadAttributes,BOOL bInheritHandles,DWORD dwCreationFlags,LPVOID lpEnvironment,LPCTSTR lpCurrentDirectory,LPSTARTUPINFO lpStartupInfo,LPPROCESS_INFORMATION lpProcessInformation);
-static CreateProcessFunc_t CreateProcessNext=NULL;
+static CreateProcessFunc_t CreateProcessNext=CreateProcess;
 
 BOOL WINAPI CreateProcessCallBack(LPCTSTR lpApplicationName,
                                   LPTSTR lpCommandLine,
@@ -2771,7 +2845,6 @@ BOOL WINAPI CreateProcessCallBack(LPCTSTR lpApplicationName,
 
     if(!InsertDlls(pi.hProcess))
     {
-        DEBUG_INFO("\n");
         ret = LAST_ERROR_CODE();
         SetLastError(ret);
         return FALSE;
@@ -2792,42 +2865,101 @@ BOOL WINAPI CreateProcessCallBack(LPCTSTR lpApplicationName,
 }
 
 
-static  HRESULT(WINAPI *CoCreateInstanceNext)(
-    REFCLSID rclsid,
-    LPUNKNOWN pUnkOuter,
-    DWORD dwClsContext,
-    REFIID riid,
-    LPVOID *ppv
-) = CoCreateInstance;
-
-HRESULT WINAPI  CoCreateInstanceCallBack(
-    REFCLSID rclsid,
-    LPUNKNOWN pUnkOuter,
-    DWORD dwClsContext,
-    REFIID riid,
-    LPVOID *ppv
-)
+static int InsertModuleFileName(HMODULE hModule)
 {
-    HRESULT hr;
-    SetUnhandledExceptionFilter(DetourApplicationCrashHandler);
-    hr = CoCreateInstanceNext(rclsid,
-                              pUnkOuter,dwClsContext,riid,ppv);
-    if(SUCCEEDED(hr))
+    HANDLE hProcess=NULL;
+    DWORD dret;
+    char* pModuleFullName=NULL,*pModulePartName=NULL;
+    int fullnamesize=1024;
+    int lasterr=0;
+    int ret;
+
+    hProcess = GetCurrentProcess();
+    do
     {
-        if(rclsid == __uuidof(MMDeviceEnumerator))
+        lasterr = 0;
+        if(pModuleFullName == NULL)
         {
-            IMMDeviceEnumerator* pEnumerator = (IMMDeviceEnumerator*)(*ppv);
-            //DEBUG_INFO("\n");
-            /*now we should change function*/
-            DetourEnumeratorVirtFunctions(pEnumerator);
+            pModuleFullName = malloc(fullnamesize);
+            if(pModuleFullName == NULL)
+            {
+                ret = LAST_ERROR_CODE();
+                goto fail;
+            }
         }
 
+        dret = GetModuleFileNameExA(hProcess,hModule,pModuleFullName,fullnamesize);
+        if(dret == 0 || dret >= fullnamesize)
+        {
+            lasterr = LAST_ERROR_CODE();
+            free(pModuleFullName);
+            pModuleFullName = NULL;
+            fullnamesize <<= 1;
+        }
     }
-    return hr;
+    while(lasterr == ERROR_INSUFICIENT_BUFFER);
+
+    if(dret == 0 || dret >= fullnamesize)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("can not get [0x%x:0x%x] modulefilename error(%d)\n",hProcess,hModule,ret);
+        goto fail;
+    }
+
+    /*now get the name so we should*/
+    pModulePartName = strrchr(pModuleFullName,'\\');
+    if(pModulePartName)
+    {
+        pModulePartName ++;
+    }
+    else
+    {
+        pModulePartName = pModuleFullName;
+    }
+
+    /*now insert the dlls*/
+    ret = InsertDllNames(pModuleFullName,pModulePartName);
+    if(ret < 0)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not insert (%s:%s) error(%d)\n",pModuleFullName,pModulePartName,ret);
+        goto fail;
+    }
+
+    DEBUG_INFO("Insert (%s:%d) succ\n",pModuleFullName,pModulePartName);
+
+
+    if(pModuleFullName)
+    {
+        free(pModuleFullName);
+    }
+    pModuleFullName = NULL;
+    pModulePartName = NULL;
+
+
+    return 0;
+
+fail:
+    if(pModuleFullName)
+    {
+        free(pModuleFullName);
+    }
+    pModuleFullName = NULL;
+    pModulePartName = NULL;
+    SetLastError(ret);
+    return -ret;
+
 }
 
 
-
+static int DetourCreateProcessFunctions()
+{
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourAttach((PVOID*)&CreateProcessNext,CreateProcessCallBack);
+    DetourTransactionCommit();
+    return 0;
+}
 
 static PCMCAP_CONTROL_t st_DummyControl;
 
@@ -2851,6 +2983,7 @@ void PcmCapInjectFini(void)
             ERROR_INFO("could not set audio none error(%d)\n",ret);
         }
         RemoveAllRenders();
+        ClearAllDllNames();
         CloseHandle(st_hThreadSema);
         st_hThreadSema = NULL;
     }
@@ -2858,15 +2991,6 @@ void PcmCapInjectFini(void)
     return;
 }
 
-static int DetourPCMCapFunctions(void)
-{
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    DetourAttach((PVOID*)&CoCreateInstanceNext,CoCreateInstanceCallBack);
-    DetourTransactionCommit();
-
-    return 0;
-}
 
 int PcmCapInjectInit(HMODULE hModule)
 {
@@ -2885,6 +3009,20 @@ int PcmCapInjectInit(HMODULE hModule)
         /*we do not success*/
         return 0;
     }
+
+
+    ret = DetourCreateProcessFunctions();
+    if(ret < 0)
+    {
+        return ret;
+    }
+
+    ret = InsertModuleFileName(hModule);
+    if(ret < 0)
+    {
+        return ret;
+    }
+
 
     ret = DetourPCMCapFunctions();
     if(ret < 0)
