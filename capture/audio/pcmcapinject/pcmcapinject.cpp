@@ -2461,12 +2461,125 @@ static std::vector<unsigned char*> st_InsertDllFullNames;
 static std::vector<unsigned char*> st_InsertDllPartNames;
 static CRITICAL_SECTION st_DllNameCS;
 
-BOOL InsertDlls(HANDLE hProcess)
+#define INSERT_DLL_NAME_ASSERT() \
+do\
+{\
+	assert(st_InsertDllFullNames.size() == st_InsertDllPartNames.size());\
+}while(0)
+
+static int InsertDllNames(const char* pFullName,const char* pPartName)
+{
+    int ret=0;
+    int findidx=-1;
+    unsigned int i;
+    char *pAllocFullName=NULL,*pAllocPartName=NULL;
+
+    pAllocFullName = strdup(pFullName);
+    pAllocPartName = strdup(pPartName);
+    if(pAllocFullName == NULL || pAllocPartName == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
+
+    EnterCriticalSection(&st_DllNameCS);
+
+    INSERT_DLL_NAME_ASSERT();
+    for(i=0; i<st_InsertDllPartNames.size(); i++)
+    {
+        if(strcmp(pAllocPartName,st_InsertDllPartNames[i])==0)
+        {
+            findidx = i;
+            break;
+        }
+    }
+
+    if(findidx < 0)
+    {
+        st_InsertDllFullNames.push_back(pAllocFullName);
+        st_InsertDllPartNames.push_back(pAllocPartName);
+        ret = 1;
+    }
+
+    LeaveCriticalSection(&st_DllNameCS);
+
+    if(ret == 0)
+    {
+        assert(pAllocFullName && pAllocPartName);
+        free(pAllocFullName);
+        pAllocFullName = NULL;
+        free(pAllocPartName);
+        pAllocPartName = NULL;
+    }
+
+    return ret;
+
+fail:
+    if(pAllocFullName)
+    {
+        free(pAllocFullName);
+    }
+    pAllocFullName = NULL;
+
+    if(pAllocPartName)
+    {
+        free(pAllocPartName);
+    }
+    pAllocPartName = NULL;
+    SetLastError(ret);
+    return -ret;
+}
+
+static int ClearDllNames(const char* pPartName)
+{
+    char* pFreePartName=NULL;
+    char* pFreeFullName=NULL;
+    int findidx=-1;
+    unsigned int i;
+    int ret =0;
+
+    EnterCriticalSection(&st_DllNameCS);
+    INSERT_DLL_NAME_ASSERT();
+    for(i=0; i<st_InsertDllPartNames.size(); i++)
+    {
+        if(pPartName == NULL || strcmp(pPartName,st_InsertDllPartNames[i])==0)
+        {
+            findidx = i;
+            break;
+        }
+    }
+
+    if(findidx >=0)
+    {
+        pFreePartName = st_InsertDllPartNames[findidx];
+        pFreeFullName = st_InsertDllFullNames[findidx];
+        st_InsertDllFullNames.erase(st_InsertDllFullNames.begin() + findidx);
+        st_InsertDllPartNames.erase(st_InsertDllPartNames.begin() + findidx);
+        ret = 1;
+    }
+
+    LeaveCriticalSection(&st_DllNameCS);
+    if(ret > 0)
+    {
+        assert(pFreePartName && pFreeFullName);
+        free(pFreePartName);
+        free(pFreeFullName);
+        pFreePartName = NULL;
+        pFreeFullName = NULL;
+    }
+    return ret;
+}
+
+static int GetDllNames(char**ppFullName,char**ppPartName)
+{
+}
+
+static BOOL InsertDlls(HANDLE hProcess)
 {
     int ret;
     BOOL bret;
 
-    
+
 
     return TRUE;
 fail:
@@ -2494,7 +2607,7 @@ BOOL WINAPI CreateProcessCallBack(LPCTSTR lpApplicationName,
     int ret;
     LPCSTR rlpDlls[2];
     DWORD nDlls = 0;
-    
+
     if(!CreateProcessNext(lpApplicationName,
                           lpCommandLine,
                           lpProcessAttributes,
