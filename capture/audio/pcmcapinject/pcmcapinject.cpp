@@ -2457,6 +2457,85 @@ LONG WINAPI DetourApplicationCrashHandler(EXCEPTION_POINTERS *pException)
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
+static std::vector<unsigned char*> st_InsertDllFullNames;
+static std::vector<unsigned char*> st_InsertDllPartNames;
+static CRITICAL_SECTION st_DllNameCS;
+
+BOOL InsertDlls(HANDLE hProcess)
+{
+    int ret;
+    BOOL bret;
+
+    
+
+    return TRUE;
+fail:
+    SetLastError(ret);
+    return FALSE;
+}
+
+typedef BOOL(WINAPI *CreateProcessFunc_t)(LPCTSTR lpApplicationName,LPTSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,LPSECURITY_ATTRIBUTES lpThreadAttributes,BOOL bInheritHandles,DWORD dwCreationFlags,LPVOID lpEnvironment,LPCTSTR lpCurrentDirectory,LPSTARTUPINFO lpStartupInfo,LPPROCESS_INFORMATION lpProcessInformation);
+static CreateProcessFunc_t CreateProcessNext=NULL;
+
+BOOL WINAPI CreateProcessCallBack(LPCTSTR lpApplicationName,
+                                  LPTSTR lpCommandLine,
+                                  LPSECURITY_ATTRIBUTES lpProcessAttributes,
+                                  LPSECURITY_ATTRIBUTES lpThreadAttributes,
+                                  BOOL bInheritHandles,
+                                  DWORD dwCreationFlags,
+                                  LPVOID lpEnvironment,
+                                  LPCTSTR lpCurrentDirectory,
+                                  LPSTARTUPINFO lpStartupInfo,
+                                  LPPROCESS_INFORMATION lpProcessInformation)
+{
+    DWORD dwMyCreationFlags = (dwCreationFlags | CREATE_SUSPENDED);
+    PROCESS_INFORMATION pi;
+    DWORD processid;
+    int ret;
+    LPCSTR rlpDlls[2];
+    DWORD nDlls = 0;
+    
+    if(!CreateProcessNext(lpApplicationName,
+                          lpCommandLine,
+                          lpProcessAttributes,
+                          lpThreadAttributes,
+                          bInheritHandles,
+                          dwMyCreationFlags,
+                          lpEnvironment,
+                          lpCurrentDirectory,
+                          lpStartupInfo,
+                          &pi))
+    {
+        ret = LAST_ERROR_CODE();
+        DEBUG_INFO("lasterror %d\n",GetLastError());
+        SetLastError(ret);
+        return FALSE;
+    }
+
+    DEBUG_INFO("\n");
+
+    if(!InsertDlls(pi.hProcess))
+    {
+        DEBUG_INFO("\n");
+        ret = LAST_ERROR_CODE();
+        SetLastError(ret);
+        return FALSE;
+    }
+
+    if(lpProcessInformation)
+    {
+        CopyMemory(lpProcessInformation, &pi, sizeof(pi));
+    }
+
+    if(!(dwCreationFlags & CREATE_SUSPENDED))
+    {
+        ResumeThread(pi.hThread);
+    }
+    DEBUG_INFO("processid %d\n",processid);
+    return TRUE;
+
+}
+
 
 static  HRESULT(WINAPI *CoCreateInstanceNext)(
     REFCLSID rclsid,
@@ -2534,7 +2613,7 @@ static int DetourPCMCapFunctions(void)
     return 0;
 }
 
-int PcmCapInjectInit(void)
+int PcmCapInjectInit(HMODULE hModule)
 {
     int ret;
     InitializeCriticalSection(&st_StateCS);
@@ -2543,6 +2622,7 @@ int PcmCapInjectInit(void)
     InitializeCriticalSection(&st_RenderCS);
     //InitializeCriticalSection(&st_AudioClientCS);
     InitializeCriticalSection(&st_MMDevCS);
+    InitializeCriticalSection(&st_DllNameCS);
     memset(&st_AudioFormat,0,sizeof(st_AudioFormat));
     st_hThreadSema = CreateSemaphore(NULL,1,10,NULL);
     if(st_hThreadSema == NULL)

@@ -15,7 +15,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
 		DEBUG_INFO("\n");
-        ret = PcmCapInjectInit();
+        ret = PcmCapInjectInit(hModule);
         break;
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
