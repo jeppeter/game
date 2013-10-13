@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     BOOL bret;
     int ret;
     char* pCommandLine=NULL;
-    STARTUPINFOA si;
+	STARTUPINFOA si;
     PROCESS_INFORMATION pi;
 
     memset(&si,0,sizeof(si));
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
         ERROR_INFO("format arg error(%d)\n",ret);
         return -ret;
     }
-
+	DEBUG_INFO("createprocessA 0x%p\n",CreateProcessA);
     /*now create process*/
     bret = CreateProcessA(NULL,pCommandLine,NULL,NULL,FALSE,0,NULL,NULL,&si,&pi);
     if(!bret)

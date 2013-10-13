@@ -393,7 +393,7 @@ void CcontroldemoDlg::StartCapper()
         pPartDllAnsi ++ ;
     }
 
-    DEBUG_INFO("\n");
+    DEBUG_INFO("DllAnsi %s PartDllAnsi %s\n",pDllAnsi,pPartDllAnsi);
     /**/
     fullexecnamesize =strlen(pExecAnsi) + 1;
     if(strlen(pParamAnsi))
@@ -454,7 +454,7 @@ void CcontroldemoDlg::StartCapper()
     if(i >= insertprocnum)
     {
         ret = LAST_ERROR_CODE();
-        errstr.Format(TEXT("could not start capper for insert (%s:%d)(num:%d) error(%d)\n"),pDllAnsi,pPartDllAnsi,insertprocnum,ret);
+        errstr.Format(TEXT("could not start capper for insert (%S:%S)(num:%d) error(%d)\n"),pDllAnsi,pPartDllAnsi,insertprocnum,ret);
         goto fail;
     }
 

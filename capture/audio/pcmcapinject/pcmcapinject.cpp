@@ -2809,37 +2809,38 @@ fail:
     return FALSE;
 }
 
-typedef BOOL(WINAPI *CreateProcessFunc_t)(LPCTSTR lpApplicationName,LPTSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,LPSECURITY_ATTRIBUTES lpThreadAttributes,BOOL bInheritHandles,DWORD dwCreationFlags,LPVOID lpEnvironment,LPCTSTR lpCurrentDirectory,LPSTARTUPINFO lpStartupInfo,LPPROCESS_INFORMATION lpProcessInformation);
-static CreateProcessFunc_t CreateProcessNext=CreateProcess;
+typedef BOOL(WINAPI *CreateProcessWFunc_t)(LPCWSTR lpApplicationName,LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,LPSECURITY_ATTRIBUTES lpThreadAttributes,BOOL bInheritHandles,DWORD dwCreationFlags,LPVOID lpEnvironment,LPCWSTR lpCurrentDirectory,LPSTARTUPINFO lpStartupInfo,LPPROCESS_INFORMATION lpProcessInformation);
+static CreateProcessWFunc_t CreateProcessWNext=CreateProcessW;
 
-BOOL WINAPI CreateProcessCallBack(LPCTSTR lpApplicationName,
-                                  LPTSTR lpCommandLine,
-                                  LPSECURITY_ATTRIBUTES lpProcessAttributes,
-                                  LPSECURITY_ATTRIBUTES lpThreadAttributes,
-                                  BOOL bInheritHandles,
-                                  DWORD dwCreationFlags,
-                                  LPVOID lpEnvironment,
-                                  LPCTSTR lpCurrentDirectory,
-                                  LPSTARTUPINFO lpStartupInfo,
-                                  LPPROCESS_INFORMATION lpProcessInformation)
+BOOL WINAPI CreateProcessWCallBack(LPCWSTR lpApplicationName,
+                                   LPWSTR lpCommandLine,
+                                   LPSECURITY_ATTRIBUTES lpProcessAttributes,
+                                   LPSECURITY_ATTRIBUTES lpThreadAttributes,
+                                   BOOL bInheritHandles,
+                                   DWORD dwCreationFlags,
+                                   LPVOID lpEnvironment,
+                                   LPCWSTR lpCurrentDirectory,
+                                   LPSTARTUPINFO lpStartupInfo,
+                                   LPPROCESS_INFORMATION lpProcessInformation)
 {
     DWORD dwMyCreationFlags = (dwCreationFlags | CREATE_SUSPENDED);
     PROCESS_INFORMATION pi;
     int ret;
 
-    if(!CreateProcessNext(lpApplicationName,
-                          lpCommandLine,
-                          lpProcessAttributes,
-                          lpThreadAttributes,
-                          bInheritHandles,
-                          dwMyCreationFlags,
-                          lpEnvironment,
-                          lpCurrentDirectory,
-                          lpStartupInfo,
-                          &pi))
+    DEBUG_INFO("Current  Process %d\n",GetCurrentProcessId());
+    if(!CreateProcessWNext(lpApplicationName,
+                           lpCommandLine,
+                           lpProcessAttributes,
+                           lpThreadAttributes,
+                           bInheritHandles,
+                           dwMyCreationFlags,
+                           lpEnvironment,
+                           lpCurrentDirectory,
+                           lpStartupInfo,
+                           &pi))
     {
         ret = LAST_ERROR_CODE();
-        DEBUG_INFO("lasterror %d\n",GetLastError());
+        DEBUG_INFO("lasterror %d\n",ret);
         SetLastError(ret);
         return FALSE;
     }
@@ -2852,6 +2853,7 @@ BOOL WINAPI CreateProcessCallBack(LPCTSTR lpApplicationName,
         SetLastError(ret);
         return FALSE;
     }
+    DEBUG_INFO("\n");
 
     if(lpProcessInformation)
     {
@@ -2862,9 +2864,73 @@ BOOL WINAPI CreateProcessCallBack(LPCTSTR lpApplicationName,
     {
         ResumeThread(pi.hThread);
     }
+    DEBUG_INFO("\n");
     return TRUE;
 
 }
+
+typedef BOOL(WINAPI *CreateProcessAFunc_t)(LPCSTR lpApplicationName,LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,
+        LPSECURITY_ATTRIBUTES lpThreadAttributes,BOOL bInheritHandles,DWORD dwCreationFlags,LPVOID lpEnvironment,LPCSTR lpCurrentDirectory,
+        LPSTARTUPINFOA lpStartupInfo,LPPROCESS_INFORMATION lpProcessInformation);
+static CreateProcessAFunc_t CreateProcessANext=CreateProcessA;
+
+BOOL WINAPI CreateProcessACallBack(LPCSTR lpApplicationName,
+                                   LPSTR lpCommandLine,
+                                   LPSECURITY_ATTRIBUTES lpProcessAttributes,
+                                   LPSECURITY_ATTRIBUTES lpThreadAttributes,
+                                   BOOL bInheritHandles,
+                                   DWORD dwCreationFlags,
+                                   LPVOID lpEnvironment,
+                                   LPCSTR lpCurrentDirectory,
+                                   LPSTARTUPINFOA lpStartupInfo,
+                                   LPPROCESS_INFORMATION lpProcessInformation)
+{
+    DWORD dwMyCreationFlags = (dwCreationFlags | CREATE_SUSPENDED);
+    PROCESS_INFORMATION pi;
+    int ret;
+
+    DEBUG_INFO("Current  Process %d\n",GetCurrentProcessId());
+    if(!CreateProcessANext(lpApplicationName,
+                           lpCommandLine,
+                           lpProcessAttributes,
+                           lpThreadAttributes,
+                           bInheritHandles,
+                           dwMyCreationFlags,
+                           lpEnvironment,
+                           lpCurrentDirectory,
+                           lpStartupInfo,
+                           &pi))
+    {
+        ret = LAST_ERROR_CODE();
+        DEBUG_INFO("lasterror %d\n",ret);
+        SetLastError(ret);
+        return FALSE;
+    }
+
+    DEBUG_INFO("\n");
+
+    if(!InsertDlls(pi.hProcess))
+    {
+        ret = LAST_ERROR_CODE();
+        SetLastError(ret);
+        return FALSE;
+    }
+    DEBUG_INFO("\n");
+
+    if(lpProcessInformation)
+    {
+        CopyMemory(lpProcessInformation, &pi, sizeof(pi));
+    }
+
+    if(!(dwCreationFlags & CREATE_SUSPENDED))
+    {
+        ResumeThread(pi.hThread);
+    }
+    DEBUG_INFO("\n");
+    return TRUE;
+
+}
+
 
 
 static int InsertModuleFileName(HMODULE hModule)
@@ -2958,7 +3024,7 @@ static int InsertModuleFileName(HMODULE hModule)
         goto fail;
     }
 
-    DEBUG_INFO("Insert (%s:%d) succ\n",pModuleFullName,pModulePartName);
+    DEBUG_INFO("Insert (%s:%s) succ\n",pModuleFullName,pModulePartName);
 
 
 #ifdef _UNICODE
@@ -3010,10 +3076,32 @@ fail:
 
 static int DetourCreateProcessFunctions()
 {
+    PVOID OldCreatW=NULL,OldCreateA=NULL;
+
+#if 0
+    CreateProcessNext =(CreateProcessFunc_t) GetProcAddress(hModule,(LPCSTR)TEXT("CreateProcess"));
+    if(CreateProcessNext == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not get process addr for CreateProcess error(%d)\n",ret);
+        goto fail;
+    }
+#endif
+    OldCreatW = (PVOID)CreateProcessWNext;
+    DEBUG_INFO("CreateProcess Code");
+    DEBUG_BUFFER(OldCreatW,5);
+
+    OldCreateA = (PVOID)CreateProcessANext;
+    DEBUG_BUFFER(OldCreateA,5);
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourAttach((PVOID*)&CreateProcessNext,CreateProcessCallBack);
+    DetourAttach((PVOID*)&CreateProcessWNext,CreateProcessWCallBack);
+    DetourAttach((PVOID*)&CreateProcessANext,CreateProcessACallBack);
     DetourTransactionCommit();
+    DEBUG_INFO("After Detour Code");
+    DEBUG_BUFFER(OldCreatW,5);
+    DEBUG_BUFFER(OldCreateA,5);
+    DEBUG_INFO("createprocess detour\n");
     return 0;
 }
 
@@ -3070,20 +3158,20 @@ int PcmCapInjectInit(HMODULE hModule)
     ret = DetourCreateProcessFunctions();
     if(ret < 0)
     {
-        return ret;
+        return 0;
     }
 
     ret = InsertModuleFileName(hModule);
     if(ret < 0)
     {
-        return ret;
+        return 0;
     }
 
 
     ret = DetourPCMCapFunctions();
     if(ret < 0)
     {
-        return ret;
+        return 0;
     }
     DEBUG_INFO("\n");
     SetUnhandledExceptionFilter(DetourApplicationCrashHandler);

@@ -15,108 +15,134 @@ int GetModuleInsertedProcess(const char * pPartDll,unsigned int **ppPids,int * p
 #ifdef _UNICODE
     int cmpdllnamesize=0;
 #endif
-    HANDLE hSnap=NULL;
+    HANDLE hProcSnap=NULL,hModSnap=NULL;
     int ret;
-    BOOL bret;
+    BOOL bret,b2ret;
     int numget=0;
     unsigned int *pRetPids = *ppPids;
     unsigned int *pTmpPids=NULL;
     int pidretsize=*pPidsSize;
 
-    MODULEENTRY32 entry;
-    int i,j;
+    MODULEENTRY32 mentry;
+    PROCESSENTRY32 pentry;
+    int i,j,k;
 
+    DEBUG_INFO("\n");
     if(pidretsize == 0 && pRetPids)
     {
         ret = ERROR_INVALID_PARAMETER;
         goto fail;
     }
+    DEBUG_INFO("\n");
 
-    hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE32,0);
-    if(hSnap == NULL)
+    hProcSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,0);
+    if(hProcSnap == NULL)
     {
         ret = LAST_ERROR_CODE();
         ERROR_INFO("could not create module32 error(%d)\n",ret);
         goto fail;
     }
+    DEBUG_INFO("\n");
 
-    for(i = 0,entry.dwSize = sizeof(entry),bret = Module32First(hSnap,&entry); bret; i++,entry.dwSize=sizeof(entry),bret=Module32Next(hSnap,&entry))
+    pentry.dwSize =sizeof(pentry);
+
+    for(i=0,pentry.dwSize = sizeof(pentry),bret = Process32First(hProcSnap,&pentry); !bret; i++,pentry.dwSize= sizeof(pentry),bret = Process32Next(hProcSnap,&pentry))
     {
-#ifdef _UNICODE
-        ret = UnicodeToAnsi(entry.szModule,&pCmpDllName,&cmpdllnamesize);
-        if(ret < 0)
+    	DEBUG_INFO("i = %d\n",i);
+        assert(hModSnap == NULL);
+        hModSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE,pentry.th32ProcessID);
+        if(hModSnap == NULL)
         {
             ret = LAST_ERROR_CODE();
-            ERROR_INFO("could not get name at %d error(%d)\n",i,ret);
-            goto fail;
+            ERROR_INFO("could not create module32 error(%d)\n",ret);
+            continue;
         }
-#else
-        pCmpDllName = entry.szModule;
-#endif
-        if(strcmp(pCmpDllName,pPartDll)==0)
+
+        for(j=0,mentry.dwSize = sizeof(mentry),b2ret=Module32First(hModSnap,&mentry); !b2ret; j++,mentry.dwSize = sizeof(mentry),b2ret=Module32Next(hModSnap,&mentry))
         {
-            /*to check if the process id is in the array*/
-            if(numget > 0)
+#ifdef _UNICODE
+            ret = UnicodeToAnsi(mentry.szModule,&pCmpDllName,&cmpdllnamesize);
+            if(ret < 0)
             {
-                for(j=0; j<numget; j++)
+                ret = LAST_ERROR_CODE();
+                ERROR_INFO("could not get name at %d error(%d)\n",i,ret);
+                goto fail;
+            }
+#else
+            pCmpDllName = mentry.szModule;
+#endif
+            DEBUG_INFO("pCmpDllName %s pPartDll %s\n",pCmpDllName,pPartDll);
+            if(strcmp(pCmpDllName,pPartDll)==0)
+            {
+                /*to check if the process id is in the array*/
+                if(numget > 0)
                 {
-                    if(pRetPids[j] == entry.th32ProcessID)
+                    for(k=0; k<numget; k++)
                     {
-                        /*has in the array ,so we do not insert into it*/
-                        goto next_cycle;
+                        if(pRetPids[k] == pentry.th32ProcessID)
+                        {
+                            /*has in the array ,so we do not insert into it*/
+                            goto next_cycle;
+                        }
                     }
                 }
-            }
 
-            /*insert into the array*/
-            if(numget < pidretsize)
-            {
-                pRetPids[numget] = entry.th32ProcessID;
-            }
-            else
-            {
-                if(pidretsize == 0)
+                /*insert into the array*/
+                if(numget < pidretsize)
                 {
-                    assert(pRetPids == NULL);
-                    pidretsize = 4;
-                    pRetPids =(unsigned int*) calloc(sizeof(*pRetPids),pidretsize);
-                    if(pRetPids == NULL)
-                    {
-                        ret = LAST_ERROR_CODE();
-                        goto fail;
-                    }
+                    pRetPids[numget] = pentry.th32ProcessID;
                 }
                 else
                 {
-                    /*now to copy the memory*/
-                    pidretsize <<= 1;
-                    pTmpPids = (unsigned int*)calloc(sizeof(*pTmpPids),pidretsize);
-                    if(pTmpPids == NULL)
+                    if(pidretsize == 0)
                     {
-                        ret = LAST_ERROR_CODE();
-                        goto fail;
+                        assert(pRetPids == NULL);
+                        pidretsize = 4;
+                        pRetPids =(unsigned int*) calloc(sizeof(*pRetPids),pidretsize);
+                        if(pRetPids == NULL)
+                        {
+                            ret = LAST_ERROR_CODE();
+                            goto fail;
+                        }
                     }
-                    if(numget)
+                    else
                     {
-                        memcpy(pTmpPids,pRetPids,numget*sizeof(*pTmpPids));
-                    }
+                        /*now to copy the memory*/
+                        pidretsize <<= 1;
+                        pTmpPids = (unsigned int*)calloc(sizeof(*pTmpPids),pidretsize);
+                        if(pTmpPids == NULL)
+                        {
+                            ret = LAST_ERROR_CODE();
+                            goto fail;
+                        }
+                        if(numget)
+                        {
+                            memcpy(pTmpPids,pRetPids,numget*sizeof(*pTmpPids));
+                        }
 
-                    if(pRetPids && pRetPids != *ppPids)
-                    {
-                        free(pRetPids);
-                    }
-                    pRetPids = pTmpPids;
-                    pTmpPids = NULL;
+                        if(pRetPids && pRetPids != *ppPids)
+                        {
+                            free(pRetPids);
+                        }
+                        pRetPids = pTmpPids;
+                        pTmpPids = NULL;
 
+                    }
+                    pRetPids[numget] = pentry.th32ProcessID;
                 }
-                pRetPids[numget] = entry.th32ProcessID;
+                numget ++;
+                goto next_cycle;
             }
-            numget ++;
         }
 next_cycle:
-        j = j;
+        if(hModSnap)
+        {
+            CloseHandle(hModSnap);
+        }
+        hModSnap = NULL;
     }
 
+    DEBUG_INFO("scan %d process(es) error(%d)\n",i,LAST_ERROR_CODE());
 
     if(*ppPids != pRetPids && *ppPids)
     {
@@ -124,12 +150,27 @@ next_cycle:
     }
     *ppPids = pRetPids;
     *pPidsSize = pidretsize;
+    assert(pTmpPids == NULL);
+#ifdef _UNICODE
+    UnicodeToAnsi(NULL,&pCmpDllName,&cmpdllnamesize);
+#endif
+
+    if(hModSnap)
+    {
+        CloseHandle(hModSnap);
+    }
+    hModSnap = NULL;
+    if(hProcSnap)
+    {
+        CloseHandle(hProcSnap);
+    }
+    hProcSnap = NULL;
 
     return numget;
 
 fail:
-#ifdef _UNCIDOE
-    UnicodeToAnsi(NULL,&pCmpDllname,&cmpdllnamesize);
+#ifdef _UNICODE
+    UnicodeToAnsi(NULL,&pCmpDllName,&cmpdllnamesize);
 #endif
 
     if(pRetPids && pRetPids != *ppPids)
@@ -145,11 +186,16 @@ fail:
     }
     pTmpPids = NULL;
 
-    if(hSnap)
+    if(hModSnap)
     {
-        CloseHandle(hSnap);
+        CloseHandle(hModSnap);
     }
-    hSnap = NULL;
+    hModSnap = NULL;
+    if(hProcSnap)
+    {
+        CloseHandle(hProcSnap);
+    }
+    hProcSnap = NULL;
     SetLastError(ret);
     return -ret;
 }
