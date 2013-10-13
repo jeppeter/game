@@ -2570,19 +2570,161 @@ static int ClearDllNames(const char* pPartName)
     return ret;
 }
 
-static int GetDllNames(char**ppFullName,char**ppPartName)
+static int GetDllNames(int idx,char**ppFullName,char**ppPartName)
 {
+    int ret = 0;
+    unsigned int i;
+    int overflow ;
+    int fullmallocsize=1024,fullsize;
+    char* pFullName=*ppFullName;
+    char* pPartName=*ppPartName;
+
+    if(pFullName || pPartName)
+    {
+        ret = ERROR_INVALID_PARAMETER;
+        SetLastError(ret);
+        return -ret;
+    }
+
+    do
+    {
+        if(pFullName)
+        {
+            free(pFullName);
+        }
+        pFullName = NULL;
+        if(pPartName)
+        {
+            free(pPartName);
+        }
+        pPartName = NULL;
+        overflow = 0;
+        pFullName = malloc(fullmallocsize);
+        pPartName = malloc(fullmallocsize);
+        if(pFullName == NULL || pPartName == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            goto fail;
+        }
+
+        ret = 0;
+        overflow = 0;
+        EnterCriticalSection(&st_DllNameCS);
+        INSERT_DLL_NAME_ASSERT();
+        if(st_InsertDllFullNames.size() > idx)
+        {
+            fullsize = strlen(st_InsertDllFullNames[idx]);
+            if(fullsize < fullmallocsize)
+            {
+                ret = 1;
+                strncpy(pFullName,st_InsertDllFullNames[idx],fullmallocsize);
+                strncpy(pPartName,st_InsertDllPartNames[idx],fullmallocsize);
+            }
+            else
+            {
+                overflow = 1;
+                fullmallocsize = fullsize + 1;
+            }
+
+        }
+        LeaveCriticalSection(&st_DllNameCS);
+    }
+    while(overflow);
+
+    if(ret == 0)
+    {
+        if(pFullName)
+        {
+            free(pFullName);
+        }
+        pFullName = NULL;
+        if(pPartName)
+        {
+            free(pPartName);
+        }
+        pPartName = NULL;
+    }
+    else
+    {
+        *ppFullName = pFullName;
+        *ppPartName = pPartName;
+    }
+
+    return ret;
+
+fail:
+    if(pFullName)
+    {
+        free(pFullName);
+    }
+    pFullName = NULL;
+    if(pPartName)
+    {
+        free(pPartName);
+    }
+    pPartName = NULL;
+    SetLastError(ret);
+    return -ret;
 }
 
 static BOOL InsertDlls(HANDLE hProcess)
 {
     int ret;
     BOOL bret;
+    int i;
+    char* pFullName=NULL,*pPartName=NULL;
+    LPCSTR rlpDlls[2];
+    DWORD nDlls = 0;
 
 
+
+    i = 0;
+    while(1)
+    {
+        assert(pFullName == NULL && pPartName == NULL);
+        ret = GetDllNames(i,&pFullName,&pPartName);
+        if(ret < 0)
+        {
+            assert(pFullName == NULL && pPartName == NULL);
+            ERROR_INFO("Get [%d] name error(%d)\n",i,ret);
+            ret = -ret;
+            goto fail;
+        }
+        else if(ret == 0)
+        {
+            break;
+        }
+
+        rlpDlls[0] = pFullName;
+        rlpDlls[1] = pPartName;
+
+        bret = UpdateImports(hProcess,rlpDlls,1);
+        if(!bret)
+        {
+            ret = LAST_ERROR_CODE();
+            ERROR_INFO("Import Dll(%s:%s) error(%d)\n",pFullName,pPartName,ret);
+            goto fail;
+        }
+
+		free(pFullName);
+		free(pPartName);
+		pFullName = NULL;
+		pPartName = NULL;
+
+    }
 
     return TRUE;
 fail:
+    if(pFullName)
+    {
+        free(pFullName);
+    }
+    pFullName = NULL;
+    if(pPartName)
+    {
+        free(pPartName);
+    }
+    pPartName = NULL;
     SetLastError(ret);
     return FALSE;
 }
