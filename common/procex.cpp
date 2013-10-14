@@ -9,6 +9,7 @@
 #define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
 
+
 int GetModuleInsertedProcess(const char * pPartDll,unsigned int **ppPids,int * pPidsSize)
 {
     char *pCmpDllName=NULL;
@@ -44,6 +45,7 @@ int GetModuleInsertedProcess(const char * pPartDll,unsigned int **ppPids,int * p
     }
     DEBUG_INFO("\n");
 
+	memset(&pentry,0,sizeof(pentry));
     pentry.dwSize =sizeof(pentry);
 
     for(i=0,pentry.dwSize = sizeof(pentry),bret = Process32First(hProcSnap,&pentry); !bret; i++,pentry.dwSize= sizeof(pentry),bret = Process32Next(hProcSnap,&pentry))
@@ -58,6 +60,7 @@ int GetModuleInsertedProcess(const char * pPartDll,unsigned int **ppPids,int * p
             continue;
         }
 
+		memset(&mentry,0,sizeof(mentry));
         for(j=0,mentry.dwSize = sizeof(mentry),b2ret=Module32First(hModSnap,&mentry); !b2ret; j++,mentry.dwSize = sizeof(mentry),b2ret=Module32Next(hModSnap,&mentry))
         {
 #ifdef _UNICODE
