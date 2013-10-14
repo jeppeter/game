@@ -57,9 +57,10 @@ try_again:
 #else
     pCmpDllName = mentry.szModule;
 #endif
-    DEBUG_INFO("[%d]:[%d] modname %s partdll %s\n",procid,curnum,pCmpDllName,pPartDll);
+    //DEBUG_INFO("[%d]:[%d] modname %s partdll %s\n",procid,curnum,pCmpDllName,pPartDll);
     if(_stricmp(pCmpDllName,pPartDll)==0)
     {
+		DEBUG_INFO("[%d] find %s\n",procid,pPartDll);
         goto findout;
     }
 
@@ -78,9 +79,10 @@ try_again:
 #else
         pCmpDllName = mentry.szModule;
 #endif
-        DEBUG_INFO("[%d]:[%d] modname %s partdll %s\n",procid,curnum,pCmpDllName,pPartDll);
+        //DEBUG_INFO("[%d]:[%d] modname %s partdll %s\n",procid,curnum,pCmpDllName,pPartDll);
         if(_stricmp(pCmpDllName,pPartDll)==0)
         {
+			DEBUG_INFO("[%d] find %s\n",procid,pPartDll);
             goto findout;
         }
         curnum ++;

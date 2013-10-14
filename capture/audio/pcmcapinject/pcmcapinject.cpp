@@ -92,17 +92,19 @@ static WAVEFORMATEX* GetCopiedFormat()
     WAVEFORMATEX* pFormatEx=NULL;
     WAVEFORMATEX* pPtrFormatEx=NULL;
 
+	DEBUG_INFO("size %d\n",size);
     pFormatEx = (WAVEFORMATEX*)malloc(size);
     if(pFormatEx == NULL)
     {
         return NULL;
     }
     memset(pFormatEx,0,size);
-
+	DEBUG_INFO("\n");
     EnterCriticalSection(&st_StateCS);
     cpysize = sizeof(*pPtrFormatEx);
     pPtrFormatEx = (WAVEFORMATEX*) st_AudioFormat.m_Format;
     cpysize += pPtrFormatEx->cbSize;
+	DEBUG_INFO("cpsize %d\n",cpysize);
     if(cpysize < size)
     {
         memcpy(pFormatEx,pPtrFormatEx,cpysize);
@@ -1307,7 +1309,7 @@ static std::vector<WAVEFORMATEX*> st_RenderFormatArrays;
 #define RENDER_BUFFER_ASSERT()  \
 do\
 {\
-	assert(st_RenderArrays.size() == st_RenderBufferArrays.size());\
+	assert( st_RenderArrays.size() == st_RenderBufferArrays.size() );\
 	assert( st_RenderBufferArrays.size() == st_RenderFormatArrays.size());\
 }while(0)
 
@@ -1433,10 +1435,14 @@ static int InitializeRenderFormat(IAudioRenderClient* pRender)
     int findidx=-1;
     unsigned int i;
 
+	DEBUG_INFO("\n");
     pFormatEx = GetCopiedFormat();
+	DEBUG_INFO("\n");
     EnterCriticalSection(&st_RenderCS);
+	DEBUG_INFO("\n");
     RENDER_BUFFER_ASSERT();
-    for(i=0; st_RenderArrays.size(); i++)
+	DEBUG_INFO("\n");
+    for(i=0; i < st_RenderArrays.size(); i++)
     {
         if(pRender == st_RenderArrays[i])
         {
@@ -1444,15 +1450,18 @@ static int InitializeRenderFormat(IAudioRenderClient* pRender)
             break;
         }
     }
+	DEBUG_INFO("findidx %d\n",findidx);
 
     if(findidx < 0)
     {
+		DEBUG_INFO("\n");
         st_RenderArrays.push_back(pRender);
         st_RenderBufferArrays.push_back(NULL);
         st_RenderFormatArrays.push_back(pFormatEx);
         ret = 1;
     }
     LeaveCriticalSection(&st_RenderCS);
+	DEBUG_INFO("ret = %d\n",ret);
 
     if(ret == 0)
     {
