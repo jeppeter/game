@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wplay", "wplay\wplay.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cproc", "cproc\cproc.vcxproj", "{9F2D3272-F996-414F-8633-635AA265ECBD}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lproc", "lproc\lproc.vcxproj", "{006492B3-64D0-44F7-99AE-F6E4AD38AEAE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -43,6 +45,10 @@ Global
 		{9F2D3272-F996-414F-8633-635AA265ECBD}.Debug|Win32.Build.0 = Debug|Win32
 		{9F2D3272-F996-414F-8633-635AA265ECBD}.Release|Win32.ActiveCfg = Release|Win32
 		{9F2D3272-F996-414F-8633-635AA265ECBD}.Release|Win32.Build.0 = Release|Win32
+		{006492B3-64D0-44F7-99AE-F6E4AD38AEAE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{006492B3-64D0-44F7-99AE-F6E4AD38AEAE}.Debug|Win32.Build.0 = Debug|Win32
+		{006492B3-64D0-44F7-99AE-F6E4AD38AEAE}.Release|Win32.ActiveCfg = Release|Win32
+		{006492B3-64D0-44F7-99AE-F6E4AD38AEAE}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
