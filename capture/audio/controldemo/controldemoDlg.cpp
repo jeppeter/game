@@ -17,7 +17,7 @@
 #endif
 
 #pragma comment(lib,"pcmcap.lib")
-#pragma comment(lib,"common.lib")
+#pragma comment(lib,"pcmcommon.lib")
 
 #define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 

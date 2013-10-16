@@ -18,7 +18,7 @@
 #include <psapi.h>
 #include <uniansi.h>
 
-#pragma comment(lib,"common.lib")
+#pragma comment(lib,"pcmcommon.lib")
 #pragma comment(lib,"psapi.lib")
 
 #define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
