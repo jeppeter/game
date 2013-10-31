@@ -365,7 +365,7 @@ unsigned char* MapFileBuffer(HANDLE hMapFile,int size)
 int main(int argc, char* argv[])
 {
     int ret;
-	int i;
+	unsigned int i;
     HANDLE hMapFile=NULL;
     unsigned char* pMemBase=NULL;
     FILE* fp=NULL;

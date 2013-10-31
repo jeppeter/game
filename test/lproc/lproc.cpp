@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
     }
 
     ret = 0;
-out:
+
     if(pPids)
     {
         free(pPids);
