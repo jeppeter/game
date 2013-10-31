@@ -67,8 +67,8 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd,LPARAM lparam)
         sizetmphwnds = 0;
     }
 
-	pThreadIds->m_pHwnds[pThreadIds->m_NumHwnds] = hwnd;
-	pThreadIds->m_NumHwnds ++;
+    pThreadIds->m_pHwnds[pThreadIds->m_NumHwnds] = hwnd;
+    pThreadIds->m_NumHwnds ++;
 
     return TRUE;
 fail:
@@ -90,6 +90,14 @@ int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize)
     int num=0;
     HANDLE *pRetWnds=*pphWnds;
     int retsize = *pSize;
+    PROCESS_THREAD_IDS_t *pThreadIds=NULL;
+    BOOL bret;
+
+    if(retsize > 0 && pRetWnds == NULL)
+    {
+        ret = ERROR_INVALID_PARAMETER;
+        goto fail;
+    }
 
     if(hProc == NULL)
     {
@@ -102,7 +110,54 @@ int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize)
         return 0;
     }
 
+    pThreadIds = calloc(sizeof(*pThreadIds),1);
+    if(pThreadIds == NULL)
+    {
+        ret=  LAST_ERROR_CODE();
+        goto fail;
+    }
+
+    pThreadIds->m_ProcId = GetProcessId(hProc);
+    if(pThreadIds->m_ProcId == 0)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not get process id of (0x%08x) error(%d)\n",hProc,ret);
+        goto fail;
+    }
+
+    bret = EnumWindow(EnumWindowsProc,pThreadIds);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
+
     /*now first to enum process and make it ok*/
+    if(retsize < pThreadIds->m_NumHwnds)
+    {
+    	pRetWnds = pThreadIds->m_pHwnds;
+		pThreadIds->m_pHwnds = NULL;
+		retsize = pThreadIds->m_SizeHwnds;
+    }
+    else
+    {
+        if(pThreadIds->m_NumHwnds > 0)
+        {
+        	memcpy(pRetWnds,pThreadIds->m_pHwnds,pThreadIds->m_NumHwnds*sizeof(pThreadIds->m_pHwnds[0]));
+        }		
+    }
+	num = pThreadIds->m_NumHwnds;
+
+    if(pThreadIds)
+    {
+        if(pThreadIds->m_pHwnds)
+        {
+            free(pThreadIds->m_pHwnds);
+        }
+        pThreadIds->m_pHwnds = NULL;
+        free(pThreadIds);
+    }
+    pThreadIds = NULL;
 
 
     if(*pphWnds && pRetWnds != *pphWnds)
@@ -115,6 +170,18 @@ int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize)
     return num;
 fail:
     assert(ret > 0);
+
+    if(pThreadIds)
+    {
+        if(pThreadIds->m_pHwnds)
+        {
+            free(pThreadIds->m_pHwnds);
+        }
+        pThreadIds->m_pHwnds = NULL;
+        free(pThreadIds);
+    }
+    pThreadIds = NULL;
+
     if(pRetWnds && pRetWnds != *pphWnds)
     {
         free(pRetWnds);
