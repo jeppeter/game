@@ -46,7 +46,7 @@ int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize);
 *        if pWnds == NULL ,it will free *ppTopWnds
 *
 *******************************************************/
-int GetTopWindow(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize);
+int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize);
 
 
 #endif  /*__WIN_PROC_H__*/

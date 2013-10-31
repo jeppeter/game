@@ -135,18 +135,18 @@ int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize)
     /*now first to enum process and make it ok*/
     if(retsize < pThreadIds->m_NumHwnds)
     {
-    	pRetWnds = pThreadIds->m_pHwnds;
-		pThreadIds->m_pHwnds = NULL;
-		retsize = pThreadIds->m_SizeHwnds;
+        pRetWnds = pThreadIds->m_pHwnds;
+        pThreadIds->m_pHwnds = NULL;
+        retsize = pThreadIds->m_SizeHwnds;
     }
     else
     {
         if(pThreadIds->m_NumHwnds > 0)
         {
-        	memcpy(pRetWnds,pThreadIds->m_pHwnds,pThreadIds->m_NumHwnds*sizeof(pThreadIds->m_pHwnds[0]));
-        }		
+            memcpy(pRetWnds,pThreadIds->m_pHwnds,pThreadIds->m_NumHwnds*sizeof(pThreadIds->m_pHwnds[0]));
+        }
     }
-	num = pThreadIds->m_NumHwnds;
+    num = pThreadIds->m_NumHwnds;
 
     if(pThreadIds)
     {
@@ -192,4 +192,70 @@ fail:
     return -ret;
 }
 
+
+
+int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
+{
+    BOOL bret;
+    HANDLE *pRetTopWnds = *ppTopWnds;
+    int rettopsize = *pTopSize;
+    int ret;
+    int num = 0;
+    int i,j;
+    HANDLE hTopWin=NULL;
+
+    if(pWnds == NULL)
+    {
+        if(*ppTopWnds)
+        {
+            free(*ppTopWnds);
+        }
+        *ppTopWnds = NULL;
+        *pTopSize = 0;
+        return 0;
+    }
+
+    for(i = 0 ; i<wndnum; i++)
+    {
+        SetLastError(0);
+        hTopWin = GetTopWindow(pWnds[i]);
+        if(hTopWin == NULL)
+        {
+            if(GetLastError() != 0)
+            {
+                ret = LAST_ERROR_CODE();
+                ERROR_INFO("GetTopWindow[%d] 0x%08x error(%d)\n",i,pWnds[i],ret);
+                goto fail;
+            }
+			hTopWin = pWnds[i];
+        }
+
+		if (num > 0)
+			{
+			}
+		else
+			{
+				if ()
+			}
+    }
+
+    if(*ppTopWnds && *ppTopWnds != pRetTopWnds)
+    {
+        free(*ppTopWnds);
+    }
+
+    *ppTopWnds = pRetTopWnds;
+    *pTopSize = rettopsize;
+    return num;
+
+fail:
+    assert(ret > 0);
+    if(pRetTopWnds && pRetTopWnds != *ppTopWnds)
+    {
+        free(pRetTopWnds);
+    }
+    pRetTopWnds = NULL;
+    SetLastError(ret);
+    return -ret;
+}
 
