@@ -3,8 +3,126 @@
 #include <winproc.h>
 
 
-int GetProcWindHandles(HANDLE hProc,HANDLE **phWnds,int *pSize)
+#define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
+
+
+typedef struct _ProcessThreadIds
 {
+    unsigned int m_ProcId;
+    int m_SizeHwnds;
+    int m_NumHwnds;
+    HANDLE *m_pHwnds;
+} PROCESS_THREAD_IDS_t,*LPROCESS_THREAD_IDS_t;
+
+
+BOOL CALLBACK EnumWindowsProc(HWND hwnd,LPARAM lparam)
+{
+    int ret;
+    HANDLE *pTmpHwnds=NULL;
+    int sizetmphwnds;
+    PROCESS_THREAD_IDS_t *pThreadIds=(PROCESS_THREAD_IDS_t*)lparam;
+    unsigned int threadid=0,procid=0;
+
+    assert(pThreadIds);
+    assert(pThreadIds->m_ProcId);
+
+    threadid = GetWindowThreadProcessId(hwnd,&procid);
+    if(procid != pThreadIds->m_ProcId)
+    {
+        /*we just return*/
+        return TRUE;
+    }
+
+    /*
+    	now it is the windows we search ,so we should copy it to the
+    	struct
+    */
+
+    if(pThreadIds->m_SizeHwnds == 0)
+    {
+        assert(pThreadIds->m_NumHwnds == 0);
+        pThreadIds->m_SizeHwnds = 4;
+        pThreadIds->m_pHwnds = calloc(sizeof(pThreadIds->m_pHwnds[0]),pThreadIds->m_SizeHwnds);
+        if(pThreadIds->m_pHwnds == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            goto fail;
+        }
+    }
+    else if(pThreadIds->m_SizeHwnds == pThreadIds->m_NumHwnds)
+    {
+        assert(pThreadIds->m_pHwnds);
+        sizetmphwnds = pThreadIds->m_SizeHwnds << 1;
+        pTmpHwnds = calloc(sizeof(pTmpHwnds[0]),sizetmphwnds);
+        if(pTmpHwnds == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            goto fail;
+        }
+        memcpy(pTmpHwnds,pThreadIds->m_pHwnds,pThreadIds->m_SizeHwnds * sizeof(pTmpHwnds[0]));
+        free(pThreadIds->m_pHwnds);
+        pThreadIds->m_pHwnds = pTmpHwnds;
+        pTmpHwnds= NULL;
+        pThreadIds->m_SizeHwnds = sizetmphwnds;
+        sizetmphwnds = 0;
+    }
+
+	pThreadIds->m_pHwnds[pThreadIds->m_NumHwnds] = hwnd;
+	pThreadIds->m_NumHwnds ++;
+
+    return TRUE;
+fail:
+    assert(ret > 0);
+    if(pTmpHwnds)
+    {
+        free(pTmpHwnds);
+    }
+    pTmpHwnds = NULL;
+    SetLastError(ret);
+    return FALSE;
+}
+
+
+int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize)
+
+{
+    int ret;
+    int num=0;
+    HANDLE *pRetWnds=*pphWnds;
+    int retsize = *pSize;
+
+    if(hProc == NULL)
+    {
+        if(*pphWnds)
+        {
+            free(*pphWnds);
+        }
+        *pphWnds = NULL;
+        *pSize = 0;
+        return 0;
+    }
+
+    /*now first to enum process and make it ok*/
+
+
+    if(*pphWnds && pRetWnds != *pphWnds)
+    {
+        free(*pphWnds);
+    }
+    *pphWnds = pRetWnds;
+    *pSize = retsize;
+
+    return num;
+fail:
+    assert(ret > 0);
+    if(pRetWnds && pRetWnds != *pphWnds)
+    {
+        free(pRetWnds);
+    }
+    pRetWnds = NULL;
+    retsize = 0;
+    SetLastError(ret);
+    return -ret;
 }
 
 

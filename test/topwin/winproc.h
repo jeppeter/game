@@ -40,9 +40,10 @@ int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize);
 *        error code
 *
 *
-*
-*
-*
+*   remark:
+*        *ppTopWnds must be NULL or malloced buffer pointer
+*        and it will be freed when expand size
+*        if pWnds == NULL ,it will free *ppTopWnds
 *
 *******************************************************/
 int GetTopWindow(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize);
