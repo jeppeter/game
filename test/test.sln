@@ -1,6 +1,8 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "memshare", "memshare\memshare.vcxproj", "{85A0BE8F-4F80-468D-9ED1-98E7C7A4A1FF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "segfault", "segfault\segfault.vcxproj", "{A9D402E7-6B11-450A-901F-542C83221A2E}"
@@ -14,6 +16,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cproc", "cproc\cproc.vcxproj", "{9F2D3272-F996-414F-8633-635AA265ECBD}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lproc", "lproc\lproc.vcxproj", "{006492B3-64D0-44F7-99AE-F6E4AD38AEAE}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "topwin", "topwin\topwin.vcxproj", "{94B3F063-7E0D-45AA-9952-A7BFB7361513}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -49,6 +53,10 @@ Global
 		{006492B3-64D0-44F7-99AE-F6E4AD38AEAE}.Debug|Win32.Build.0 = Debug|Win32
 		{006492B3-64D0-44F7-99AE-F6E4AD38AEAE}.Release|Win32.ActiveCfg = Release|Win32
 		{006492B3-64D0-44F7-99AE-F6E4AD38AEAE}.Release|Win32.Build.0 = Release|Win32
+		{94B3F063-7E0D-45AA-9952-A7BFB7361513}.Debug|Win32.ActiveCfg = Debug|Win32
+		{94B3F063-7E0D-45AA-9952-A7BFB7361513}.Debug|Win32.Build.0 = Debug|Win32
+		{94B3F063-7E0D-45AA-9952-A7BFB7361513}.Release|Win32.ActiveCfg = Release|Win32
+		{94B3F063-7E0D-45AA-9952-A7BFB7361513}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
