@@ -1,7 +1,8 @@
 
 
 #include <winproc.h>
-
+#include <assert.h>
+#include <output_debug.h>
 
 #define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
@@ -21,7 +22,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd,LPARAM lparam)
     HANDLE *pTmpHwnds=NULL;
     int sizetmphwnds;
     PROCESS_THREAD_IDS_t *pThreadIds=(PROCESS_THREAD_IDS_t*)lparam;
-    unsigned int threadid=0,procid=0;
+    DWORD threadid=0,procid=0;
 
     assert(pThreadIds);
     assert(pThreadIds->m_ProcId);
@@ -42,7 +43,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd,LPARAM lparam)
     {
         assert(pThreadIds->m_NumHwnds == 0);
         pThreadIds->m_SizeHwnds = 4;
-        pThreadIds->m_pHwnds = calloc(sizeof(pThreadIds->m_pHwnds[0]),pThreadIds->m_SizeHwnds);
+        pThreadIds->m_pHwnds = (HANDLE*)calloc(sizeof(pThreadIds->m_pHwnds[0]),pThreadIds->m_SizeHwnds);
         if(pThreadIds->m_pHwnds == NULL)
         {
             ret = LAST_ERROR_CODE();
@@ -53,7 +54,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd,LPARAM lparam)
     {
         assert(pThreadIds->m_pHwnds);
         sizetmphwnds = pThreadIds->m_SizeHwnds << 1;
-        pTmpHwnds = calloc(sizeof(pTmpHwnds[0]),sizetmphwnds);
+        pTmpHwnds = (HANDLE*)calloc(sizeof(pTmpHwnds[0]),sizetmphwnds);
         if(pTmpHwnds == NULL)
         {
             ret = LAST_ERROR_CODE();
@@ -93,11 +94,6 @@ int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize)
     PROCESS_THREAD_IDS_t *pThreadIds=NULL;
     BOOL bret;
 
-    if(retsize > 0 && pRetWnds == NULL)
-    {
-        ret = ERROR_INVALID_PARAMETER;
-        goto fail;
-    }
 
     if(hProc == NULL)
     {
@@ -110,7 +106,13 @@ int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize)
         return 0;
     }
 
-    pThreadIds = calloc(sizeof(*pThreadIds),1);
+    if(retsize > 0 && pRetWnds == NULL)
+    {
+        ret = ERROR_INVALID_PARAMETER;
+        goto fail;
+    }
+
+    pThreadIds =(PROCESS_THREAD_IDS_t*) calloc(sizeof(*pThreadIds),1);
     if(pThreadIds == NULL)
     {
         ret=  LAST_ERROR_CODE();
@@ -125,7 +127,7 @@ int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize)
         goto fail;
     }
 
-    bret = EnumWindow(EnumWindowsProc,pThreadIds);
+    bret = EnumWindows(EnumWindowsProc,(LPARAM)pThreadIds);
     if(!bret)
     {
         ret = LAST_ERROR_CODE();
@@ -135,6 +137,7 @@ int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize)
     /*now first to enum process and make it ok*/
     if(retsize < pThreadIds->m_NumHwnds)
     {
+        assert(pThreadIds->m_pHwnds);
         pRetWnds = pThreadIds->m_pHwnds;
         pThreadIds->m_pHwnds = NULL;
         retsize = pThreadIds->m_SizeHwnds;
@@ -196,7 +199,6 @@ fail:
 
 int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
 {
-    BOOL bret;
     HANDLE *pRetTopWnds = *ppTopWnds;
     HANDLE *pTmpTopWnds=NULL;
     int rettopsize = *pTopSize,tmptopsize=0;
@@ -218,8 +220,9 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
 
     for(i = 0 ; i<wndnum; i++)
     {
+        int findidx = -1;
         SetLastError(0);
-        hTopWin = GetTopWindow(pWnds[i]);
+        hTopWin =(HANDLE) GetTopWindow((HWND)pWnds[i]);
         if(hTopWin == NULL)
         {
             if(GetLastError() != 0)
@@ -231,39 +234,51 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
             hTopWin = pWnds[i];
         }
 
-        if((num+1)>rettopsize)
+        for(j=0; j<num; j++)
         {
-            tmptopsize = rettopsize << 1;
-            if(tmptopsize == 0)
+            if(hTopWin == pRetTopWnds[j])
             {
-                tmptopsize = 4;
+                findidx = j;
+                break;
             }
-
-            pTmpTopWnds = calloc(sizeof(pTmpTopWnds[0]),tmptopsize);
-            if(pTmpTopWnds == NULL)
-            {
-                ret = LAST_ERROR_CODE();
-                goto fail;
-            }
-
-            if(num > 0)
-            {
-                assert(pRetTopWnds);
-                memcpy(pTmpTopWnds,pRetTopWnds,num * sizeof(pTmpTopWnds[0]));
-            }
-
-            if(pRetTopWnds && pRetTopWnds != *ppTopWnds)
-            {
-                free(pRetTopWnds);
-            }
-            pRetTopWnds = pTmpTopWnds;
-            pTmpTopWnds = NULL;
-            rettopsize = tmptopsize;
         }
 
-        pRetTopWnds[num] = hTopWin;
+        if(findidx < 0)
+        {
+        	/*if the top win not in the list ,so we should insert into it*/
+            if((num+1)>rettopsize)
+            {
+                tmptopsize = rettopsize << 1;
+                if(tmptopsize == 0)
+                {
+                    tmptopsize = 4;
+                }
 
-        num ++;
+                pTmpTopWnds =(HANDLE*) calloc(sizeof(pTmpTopWnds[0]),tmptopsize);
+                if(pTmpTopWnds == NULL)
+                {
+                    ret = LAST_ERROR_CODE();
+                    goto fail;
+                }
+
+                if(num > 0)
+                {
+                    assert(pRetTopWnds);
+                    memcpy(pTmpTopWnds,pRetTopWnds,num * sizeof(pTmpTopWnds[0]));
+                }
+
+                if(pRetTopWnds && pRetTopWnds != *ppTopWnds)
+                {
+                    free(pRetTopWnds);
+                }
+                pRetTopWnds = pTmpTopWnds;
+                pTmpTopWnds = NULL;
+                rettopsize = tmptopsize;
+            }
+
+            pRetTopWnds[num] = hTopWin;
+            num ++;
+        }
     }
 
     if(*ppTopWnds && *ppTopWnds != pRetTopWnds)

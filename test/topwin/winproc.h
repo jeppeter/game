@@ -25,7 +25,7 @@
 *          so make sure the 
 *
 *******************************************************/
-int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize);
+extern "C" int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize);
 
 /*******************************************************
 *  to get the windows top windows for it
@@ -46,7 +46,7 @@ int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize);
 *        if pWnds == NULL ,it will free *ppTopWnds
 *
 *******************************************************/
-int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize);
+extern "C" int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize);
 
 
 #endif  /*__WIN_PROC_H__*/

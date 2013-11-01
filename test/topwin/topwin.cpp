@@ -14,6 +14,8 @@ int main(int argc, char * argv[])
     HANDLE hProc=NULL;
     HANDLE *pWnds=NULL,*pTopWnds=NULL;
     int wndsize=0,topwndsize=0;
+    int wndnum=0,topwndnum=0;
+    int i;
 
     if(argc < 0)
     {
@@ -38,10 +40,53 @@ int main(int argc, char * argv[])
         goto out;
     }
 
-	
+    ret = GetProcWindHandles(hProc,&pWnds,&wndsize);
+    if(ret < 0)
+    {
+        ret = LAST_ERROR_CODE();
+        fprintf(stderr,"GetProcWindHandles (%d)process error(%d)\n",pid,ret);
+        goto out;
+    }
+
+    wndnum = ret;
+
+    if(wndnum > 0)
+    {
+        ret = GetTopWinds(pWnds,wndnum,&pTopWnds,&topwndsize);
+        if(ret < 0)
+        {
+            ret = LAST_ERROR_CODE();
+            fprintf(stderr,"GetTopWinds (%d)process error(%d)\n",pid,ret);
+            goto out;
+        }
+        topwndnum = ret;
+    }
+
+    fprintf(stdout,"Process(%d) windows %d",pid,wndnum);
+    for(i=0; i<wndnum; i++)
+    {
+        if((i%5)==0)
+        {
+            fprintf(stdout,"\n0x%08x\t",i);
+        }
+        fprintf(stdout," 0x%08x",pWnds[i]);
+    }
+    fprintf(stdout,"\n");
 
 
+    fprintf(stdout,"Process(%d) top window %d",pid,topwndnum);
+    for(i=0; i<topwndnum; i++)
+    {
+        if((i%5)==0)
+        {
+            fprintf(stdout,"\n0x%08x\t",i);
+        }
+        fprintf(stdout," 0x%08x",pTopWnds[i]);
+    }
+    fprintf(stdout,"\n");
 
+
+    ret = 0;
 
 out:
     GetTopWinds(NULL,0,&pTopWnds,&topwndsize);
