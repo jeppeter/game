@@ -198,7 +198,8 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
 {
     BOOL bret;
     HANDLE *pRetTopWnds = *ppTopWnds;
-    int rettopsize = *pTopSize;
+    HANDLE *pTmpTopWnds=NULL;
+    int rettopsize = *pTopSize,tmptopsize=0;
     int ret;
     int num = 0;
     int i,j;
@@ -227,22 +228,46 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
                 ERROR_INFO("GetTopWindow[%d] 0x%08x error(%d)\n",i,pWnds[i],ret);
                 goto fail;
             }
-			hTopWin = pWnds[i];
+            hTopWin = pWnds[i];
         }
 
-		if (num > 0)
-			{
-			}
-		else
-			{
-				if ()
-			}
+        if((num+1)>rettopsize)
+        {
+            tmptopsize = rettopsize << 1;
+            if(tmptopsize == 0)
+            {
+                tmptopsize = 4;
+            }
+
+            pTmpTopWnds = calloc(sizeof(pTmpTopWnds[0]),tmptopsize);
+            if(pTmpTopWnds == NULL)
+            {
+                ret = LAST_ERROR_CODE();
+                goto fail;
+            }
+
+            if(num > 0)
+            {
+                assert(pRetTopWnds);
+                memcpy(pTmpTopWnds,pRetTopWnds,num * sizeof(pTmpTopWnds[0]));
+            }
+        }
+        else
+        {
+            pRetTopWnds[num] = hTopWin;
+        }
+        num ++;
     }
 
     if(*ppTopWnds && *ppTopWnds != pRetTopWnds)
     {
         free(*ppTopWnds);
     }
+    if(pTmpTopWnds)
+    {
+        free(pTmpTopWnds);
+    }
+    pTmpTopWnds = NULL;
 
     *ppTopWnds = pRetTopWnds;
     *pTopSize = rettopsize;
@@ -255,6 +280,11 @@ fail:
         free(pRetTopWnds);
     }
     pRetTopWnds = NULL;
+    if(pTmpTopWnds)
+    {
+        free(pTmpTopWnds);
+    }
+    pTmpTopWnds = NULL;
     SetLastError(ret);
     return -ret;
 }
