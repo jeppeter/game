@@ -33,6 +33,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd,LPARAM lparam)
         /*we just return*/
         return TRUE;
     }
+    DEBUG_INFO("hwnd 0x%08x get procid %d\n",hwnd,procid);
 
     /*
     	now it is the windows we search ,so we should copy it to the
@@ -196,9 +197,14 @@ fail:
 }
 
 
-
+/*******************************************************
+*      windows algorithm is like this first to find the appwindow
+*      then find the window has the owner window of the appwindow to store the ownerwindows
+*      then find the window has the owner window of the ownerwindows 
+*******************************************************/
 int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
 {
+    BOOL bret;
     HANDLE *pRetTopWnds = *ppTopWnds;
     HANDLE *pTmpTopWnds=NULL;
     int rettopsize = *pTopSize,tmptopsize=0;
@@ -206,6 +212,7 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
     int num = 0;
     int i,j;
     HANDLE hTopWin=NULL;
+    WINDOWINFO info;
 
     if(pWnds == NULL)
     {
@@ -222,6 +229,19 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
     {
         int findidx = -1;
         SetLastError(0);
+
+        info.cbSize = sizeof(info);
+        bret = GetWindowInfo((HWND)pWnds[i],&info);
+        if(bret)
+        {
+            DEBUG_INFO("[%d]0x%08x stype 0x%08x exstyle 0x%08x atomtype 0x%08x\n",i,
+                       pWnds[i],info.dwStyle,info.dwExStyle,info.atomWindowType);
+        }
+        else
+        {
+            ret = LAST_ERROR_CODE();
+            DEBUG_INFO("[%d]0x%08x could not get info error(%d)\n",i,pWnds[i],ret);
+        }
         hTopWin =(HANDLE) GetTopWindow((HWND)pWnds[i]);
         if(hTopWin == NULL)
         {
@@ -231,7 +251,7 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
                 ERROR_INFO("GetTopWindow[%d] 0x%08x error(%d)\n",i,pWnds[i],ret);
                 goto fail;
             }
-            hTopWin = pWnds[i];
+            continue;
         }
 
         for(j=0; j<num; j++)
@@ -245,7 +265,7 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
 
         if(findidx < 0)
         {
-        	/*if the top win not in the list ,so we should insert into it*/
+            /*if the top win not in the list ,so we should insert into it*/
             if((num+1)>rettopsize)
             {
                 tmptopsize = rettopsize << 1;

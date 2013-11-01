@@ -17,7 +17,7 @@ int main(int argc, char * argv[])
     int wndnum=0,topwndnum=0;
     int i;
 
-    if(argc < 0)
+    if(argc < 2)
     {
         fprintf(stderr,"%s pid\n",argv[0]);
         ret = ERROR_INVALID_PARAMETER;
