@@ -251,11 +251,18 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
                 assert(pRetTopWnds);
                 memcpy(pTmpTopWnds,pRetTopWnds,num * sizeof(pTmpTopWnds[0]));
             }
+
+            if(pRetTopWnds && pRetTopWnds != *ppTopWnds)
+            {
+                free(pRetTopWnds);
+            }
+            pRetTopWnds = pTmpTopWnds;
+            pTmpTopWnds = NULL;
+            rettopsize = tmptopsize;
         }
-        else
-        {
-            pRetTopWnds[num] = hTopWin;
-        }
+
+        pRetTopWnds[num] = hTopWin;
+
         num ++;
     }
 
