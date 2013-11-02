@@ -49,5 +49,18 @@ extern "C" int GetProcWindHandles(HANDLE hProc,HWND **pphWnds,int *pSize);
 extern "C" int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize);
 
 
+/*******************************************************
+*  input :
+*      hwnd for window to test
+*
+*  output:
+*      0 for not 1 for fullscreen
+*
+*  remark :
+*      if fail ,just return 0
+*******************************************************/
+extern "C" int IsWndFullScreen(HWND hwnd);
+
+
 #endif  /*__WIN_PROC_H__*/
 

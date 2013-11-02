@@ -85,6 +85,20 @@ int main(int argc, char * argv[])
     }
     fprintf(stdout,"\n");
 
+    while(1)
+    {
+        Sleep(1000);
+        for(i=0; i<topwndnum; i++)
+        {
+            ret = IsWndFullScreen(pTopWnds[i]);
+            if(ret > 0)
+            {
+                ret = 0;
+                goto out;
+            }
+        }
+    }
+
 
     ret = 0;
 

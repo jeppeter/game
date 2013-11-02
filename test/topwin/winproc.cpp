@@ -197,6 +197,16 @@ fail:
 }
 
 
+#define DEBUG_OWNWNDS() \
+do\
+{\
+    for(k=0; k<ownwndnum; k++)\
+    {\
+        DEBUG_INFO("[%d] ownwnd 0x%08x\n",k,pOwnWnds[k]);\
+    }\
+}\
+while(0)
+
 /*******************************************************
 *      windows algorithm is like this first to find the appwindow
 *      then find the window has the owner window of the appwindow to store the ownerwindows
@@ -217,6 +227,7 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
     HWND hOwnWin=NULL;
     WINDOWINFO info;
     std::vector<HWND> hOwnVecs;
+    std::vector<DWORD> hWinExStyleVecs;
     HWND hAppWnd = NULL;
     int mustrm=0;
 
@@ -245,14 +256,37 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
         bret = GetWindowInfo(pWnds[i],&info);
         if(!bret)
         {
+            hWinExStyleVecs.push_back(0);
             continue;
         }
+
+        hWinExStyleVecs.push_back(info.dwExStyle);
 
         /*now to get the app windows*/
         if(info.dwExStyle & WS_EX_APPWINDOW)
         {
-            hAppWnd = pWnds[i];
-            break;
+            if(hAppWnd == NULL)
+            {
+                hAppWnd = pWnds[i];
+            }
+            else
+            {
+                ERROR_INFO("[%d] wnd 0x%08x will replace appwnd 0x%08x\n",i,pWnds[i],hAppWnd);
+                hAppWnd = pWnds[i];
+            }
+        }
+    }
+
+    if(hAppWnd == NULL)
+    {
+        for(i=0; i <wndnum; i++)
+        {
+            /*we should find the windows that has the window edge*/
+            if(hWinExStyleVecs[i] & WS_EX_WINDOWEDGE)
+            {
+                hAppWnd = pWnds[i];
+                break;
+            }
         }
     }
 
@@ -300,20 +334,21 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
     /*now we should test for the owned wnds*/
     do
     {
+        //DEBUG_OWNWNDS();
         ownedwndnum = 0;
         rmnum = 0;
         memset(pRemoveWnds,0,sizeof(pRemoveWnds[0])*rmsize);
-		memset(pOwnedWnds,0,);
+        memset(pOwnedWnds,0,sizeof(pOwnedWnds[0])*ownedwndsize);
         for(i=0; i<wndnum; i++)
         {
             for(j=0; j<ownwndnum; j++)
             {
-                DEBUG_INFO("hOwnVecs[%d] 0x%08x pOwnWnds[%d] 0x%08x\n",i,hOwnVecs[i],
-                           j,pOwnWnds[j]);
-                if(hOwnVecs[i] == pOwnWnds[j] && hOwnVecs[i])
+                //DEBUG_INFO("hOwnVecs[%d] 0x%08x pOwnWnds[%d] 0x%08x\n",i,hOwnVecs[i],
+                //           j,pOwnWnds[j]);
+                if(hOwnVecs[i] == pOwnWnds[j] && hOwnVecs[i] && hWinExStyleVecs[i] != 0)
                 {
-                    DEBUG_INFO("Set[%d] 0x%08x\n",ownedwndnum,pWnds[i]);
-					assert(ownedwndnum < ownedwndsize);
+                    //DEBUG_INFO("Set[%d] 0x%08x\n",ownedwndnum,pWnds[i]);
+                    assert(ownedwndnum < ownedwndsize);
                     pOwnedWnds[ownedwndnum] = pWnds[i];
                     ownedwndnum ++;
 
@@ -344,10 +379,11 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
 
                     if(frmidx < 0)
                     {
-                    	assert(rmnum < rmsize);
-                        pRemoveWnds[rmnum] = pOwnedWnds[j];
+                        assert(rmnum < rmsize);
+                        pRemoveWnds[rmnum] = pOwnWnds[j];
                         rmnum ++;
                     }
+                    break;
                 }
             }
         }
@@ -355,6 +391,7 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
         if(ownedwndnum > 0)
         {
             /*we should use */
+            //DEBUG_OWNWNDS();
             for(i = 0; i< ownwndnum; i++)
             {
                 mustrm = 0;
@@ -382,7 +419,7 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
     }
     while(ownedwndnum > 0);
 
-    DEBUG_INFO("ownwndnum %d\n",ownwndnum);
+    //DEBUG_INFO("ownwndnum %d\n",ownwndnum);
     num = ownwndnum;
     if(ownwndnum > 0)
     {
@@ -470,5 +507,77 @@ fail:
     pRemoveWnds=NULL;
     SetLastError(ret);
     return -ret;
+}
+
+
+int IsWndFullScreen(HWND hwnd)
+{
+    WINDOWPLACEMENT wplace;
+    BOOL bret;
+    int ret;
+    HWND hdeskwnd=NULL;
+    RECT deskrect;
+
+    wplace.length = sizeof(wplace);
+    bret = GetWindowPlacement(hwnd,&wplace);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("0x%08x get placement error(%d)\n",hwnd,ret);
+        goto fail;
+    }
+
+    hdeskwnd = GetDesktopWindow();
+    if(hdeskwnd  == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not get desktop windows error(%d)\n",ret);
+        goto fail;
+    }
+
+    bret = GetWindowRect(hdeskwnd,&deskrect);
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
+
+    DEBUG_INFO("hwnd 0x%08x showcmd 0x%08x maxposition (0x%08x:0x%08x) normal rect 0x%08x:0x%08x => 0x%08x:0x%08x deskrect 0x%08x:0x%08x => 0x%08x:0x%08x\n",
+               hwnd,wplace.showCmd,
+               wplace.ptMaxPosition.x,
+               wplace.ptMaxPosition.y,
+               wplace.rcNormalPosition.left,
+               wplace.rcNormalPosition.top,
+               wplace.rcNormalPosition.right,
+               wplace.rcNormalPosition.bottom,
+               deskrect.left,
+               deskrect.top,
+               deskrect.right,
+               deskrect.bottom);
+
+    if(wplace.showCmd != SW_SHOWNORMAL)
+    {
+        goto not_out;
+    }
+
+    if(wplace.rcNormalPosition.left != deskrect.left ||
+            wplace.rcNormalPosition.top != deskrect.top ||
+            wplace.rcNormalPosition.right != deskrect.right ||
+            wplace.rcNormalPosition.bottom != deskrect.bottom)
+    {
+        goto not_out;
+    }
+
+
+    SetLastError(0);
+    return 1;
+
+not_out:
+    SetLastError(0);
+    return 0;
+
+fail:
+    SetLastError(ret);
+    return 0;
 }
 
