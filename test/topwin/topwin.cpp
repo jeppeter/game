@@ -12,7 +12,7 @@ int main(int argc, char * argv[])
     int ret;
     int pid=0;
     HANDLE hProc=NULL;
-    HANDLE *pWnds=NULL,*pTopWnds=NULL;
+    HWND *pWnds=NULL,*pTopWnds=NULL;
     int wndsize=0,topwndsize=0;
     int wndnum=0,topwndnum=0;
     int i;

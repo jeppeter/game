@@ -3,6 +3,7 @@
 #include <winproc.h>
 #include <assert.h>
 #include <output_debug.h>
+#include <vector>
 
 #define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
@@ -12,14 +13,14 @@ typedef struct _ProcessThreadIds
     unsigned int m_ProcId;
     int m_SizeHwnds;
     int m_NumHwnds;
-    HANDLE *m_pHwnds;
+    HWND *m_pHwnds;
 } PROCESS_THREAD_IDS_t,*LPROCESS_THREAD_IDS_t;
 
 
 BOOL CALLBACK EnumWindowsProc(HWND hwnd,LPARAM lparam)
 {
     int ret;
-    HANDLE *pTmpHwnds=NULL;
+    HWND *pTmpHwnds=NULL;
     int sizetmphwnds;
     PROCESS_THREAD_IDS_t *pThreadIds=(PROCESS_THREAD_IDS_t*)lparam;
     DWORD threadid=0,procid=0;
@@ -44,7 +45,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd,LPARAM lparam)
     {
         assert(pThreadIds->m_NumHwnds == 0);
         pThreadIds->m_SizeHwnds = 4;
-        pThreadIds->m_pHwnds = (HANDLE*)calloc(sizeof(pThreadIds->m_pHwnds[0]),pThreadIds->m_SizeHwnds);
+        pThreadIds->m_pHwnds = (HWND*)calloc(sizeof(pThreadIds->m_pHwnds[0]),pThreadIds->m_SizeHwnds);
         if(pThreadIds->m_pHwnds == NULL)
         {
             ret = LAST_ERROR_CODE();
@@ -55,7 +56,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd,LPARAM lparam)
     {
         assert(pThreadIds->m_pHwnds);
         sizetmphwnds = pThreadIds->m_SizeHwnds << 1;
-        pTmpHwnds = (HANDLE*)calloc(sizeof(pTmpHwnds[0]),sizetmphwnds);
+        pTmpHwnds = (HWND*)calloc(sizeof(pTmpHwnds[0]),sizetmphwnds);
         if(pTmpHwnds == NULL)
         {
             ret = LAST_ERROR_CODE();
@@ -85,12 +86,11 @@ fail:
 }
 
 
-int GetProcWindHandles(HANDLE hProc,HANDLE **pphWnds,int *pSize)
-
+int GetProcWindHandles(HANDLE hProc,HWND **pphWnds,int *pSize)
 {
     int ret;
     int num=0;
-    HANDLE *pRetWnds=*pphWnds;
+    HWND *pRetWnds=*pphWnds;
     int retsize = *pSize;
     PROCESS_THREAD_IDS_t *pThreadIds=NULL;
     BOOL bret;
@@ -202,21 +202,23 @@ fail:
 *      then find the window has the owner window of the appwindow to store the ownerwindows
 *      then find the window has the owner window of the ownerwindows
 *******************************************************/
-int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
+int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
 {
     BOOL bret;
-    HANDLE *pRetTopWnds = *ppTopWnds;
-    HANDLE *pOwnWnds=NULL,*pOwnedWnds=NULL,*pTmpWnds=NULL;
-    int ownwndnum=0,ownedwndnum=0,tmpwndsize=0;
-    int ownwndsize=0,ownedwndsize=0;
+    HWND *pRetTopWnds = *ppTopWnds;
+    HWND *pOwnWnds=NULL,*pOwnedWnds=NULL,*pTmpWnds=NULL,*pRemoveWnds=NULL;
+    int ownwndnum=0,ownedwndnum=0,tmpwndsize=0,rmnum=0;
+    int ownwndsize=0,ownedwndsize=0,rmsize=0;
     int rettopsize = *pTopSize,tmptopsize=0;
+    int frmidx=-1;
     int ret;
     int num = 0;
-    int i,j;
+    int i,j,k;
     HWND hOwnWin=NULL;
     WINDOWINFO info;
     std::vector<HWND> hOwnVecs;
     HWND hAppWnd = NULL;
+    int mustrm=0;
 
     if(pWnds == NULL)
     {
@@ -234,12 +236,13 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
         /*to get the GetWindow GW_OWNER ,for the windows*/
         hOwnWin = GetWindow(pWnds[i],GW_OWNER);
         hOwnVecs.push_back(hOwnWin);
+        DEBUG_INFO("[%d] hwnd 0x%08x owned by 0x%08x\n",i,pWnds[i],hOwnWin);
     }
 
     for(i=0; i<wndnum; i++)
     {
         info.cbSize = sizeof(info);
-        bret = GetWindowInfo((HWND)pWnds[i],&info);
+        bret = GetWindowInfo(pWnds[i],&info);
         if(!bret)
         {
             continue;
@@ -248,7 +251,7 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
         /*now to get the app windows*/
         if(info.dwExStyle & WS_EX_APPWINDOW)
         {
-            hAppWnd = (HWND)pWnds[i];
+            hAppWnd = pWnds[i];
             break;
         }
     }
@@ -262,7 +265,7 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
     if(pOwnWnds == NULL)
     {
         ownwndsize = wndnum;
-        pOwnWnds = calloc(sizeof(pOwnWnds[0]),ownwndsize);
+        pOwnWnds =(HWND*) calloc(sizeof(pOwnWnds[0]),ownwndsize);
         if(pOwnWnds == NULL)
         {
             ret = LAST_ERROR_CODE();
@@ -273,8 +276,18 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
     if(pOwnedWnds == NULL)
     {
         ownedwndsize = wndnum;
-        pOwnedWnds = calloc(sizeof(pOwnedWnds[0]),ownedwndsize);
+        pOwnedWnds =(HWND*) calloc(sizeof(pOwnedWnds[0]),ownedwndsize);
         if(pOwnedWnds == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            goto fail;
+        }
+    }
+    if(pRemoveWnds == NULL)
+    {
+        rmsize = wndnum;
+        pRemoveWnds = (HWND*) calloc(sizeof(pRemoveWnds[0]),rmsize);
+        if(pRemoveWnds == NULL)
         {
             ret = LAST_ERROR_CODE();
             goto fail;
@@ -288,36 +301,95 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
     do
     {
         ownedwndnum = 0;
+        rmnum = 0;
+        memset(pRemoveWnds,0,sizeof(pRemoveWnds[0])*rmsize);
+		memset(pOwnedWnds,0,);
         for(i=0; i<wndnum; i++)
         {
             for(j=0; j<ownwndnum; j++)
             {
-                if(hOwnVecs[j] == pOwnWnds[i])
+                DEBUG_INFO("hOwnVecs[%d] 0x%08x pOwnWnds[%d] 0x%08x\n",i,hOwnVecs[i],
+                           j,pOwnWnds[j]);
+                if(hOwnVecs[i] == pOwnWnds[j] && hOwnVecs[i])
                 {
-                    pOwnedWnds[ownedwndnum] = pWnds[j];
+                    DEBUG_INFO("Set[%d] 0x%08x\n",ownedwndnum,pWnds[i]);
+					assert(ownedwndnum < ownedwndsize);
+                    pOwnedWnds[ownedwndnum] = pWnds[i];
                     ownedwndnum ++;
-                    break;
+
+                    /***********************************************
+                                 if we find the ownwnds ,so replace it from the owned window, just like this one
+                                 a <= b
+                                 a <= c
+                                 b <= e
+                                 d <= f
+
+                                 it will at last for
+                                 first step
+                                      a d
+                                second
+                                      b c d
+                                third
+                                      e c f
+                                ***********************************************/
+                    frmidx = -1;
+                    for(k=0; k<rmnum; k++)
+                    {
+                        if(pRemoveWnds[k] == pOwnWnds[j])
+                        {
+                            frmidx = k;
+                            break;
+                        }
+                    }
+
+                    if(frmidx < 0)
+                    {
+                    	assert(rmnum < rmsize);
+                        pRemoveWnds[rmnum] = pOwnedWnds[j];
+                        rmnum ++;
+                    }
                 }
             }
         }
 
         if(ownedwndnum > 0)
         {
+            /*we should use */
+            for(i = 0; i< ownwndnum; i++)
+            {
+                mustrm = 0;
+                for(j=0; j<rmnum; j++)
+                {
+                    if(pOwnWnds[i] == pRemoveWnds[j])
+                    {
+                        mustrm = 1;
+                        break;
+                    }
+                }
+
+                if(mustrm == 0)
+                {
+                    pOwnedWnds[ownedwndnum] = pOwnWnds[i];
+                    ownedwndnum ++;
+                }
+            }
             memset(pOwnWnds,0,sizeof(pOwnWnds[0])*ownwndsize);
             memcpy(pOwnWnds,pOwnedWnds,sizeof(pOwnWnds[0])*ownedwndnum);
             ownwndnum = ownedwndnum;
+            memset(pOwnedWnds,0,sizeof(pOwnedWnds[0])*ownedwndsize);
         }
 
     }
     while(ownedwndnum > 0);
 
+    DEBUG_INFO("ownwndnum %d\n",ownwndnum);
     num = ownwndnum;
     if(ownwndnum > 0)
     {
         if(ownwndnum > rettopsize)
         {
             rettopsize = ownwndnum;
-            pRetTopWnds = calloc(sizeof(*pRetTopWnds),rettopsize);
+            pRetTopWnds =(HWND*) calloc(sizeof(*pRetTopWnds),rettopsize);
             if(pRetTopWnds == NULL)
             {
                 ret = LAST_ERROR_CODE();
@@ -352,6 +424,12 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
     }
     pTmpWnds = NULL;
 
+    if(pRemoveWnds)
+    {
+        free(pRemoveWnds);
+    }
+    pRemoveWnds=NULL;
+
 
     if(*ppTopWnds && *ppTopWnds != pRetTopWnds)
     {
@@ -384,6 +462,12 @@ fail:
         free(pTmpWnds);
     }
     pTmpWnds = NULL;
+
+    if(pRemoveWnds)
+    {
+        free(pRemoveWnds);
+    }
+    pRemoveWnds=NULL;
     SetLastError(ret);
     return -ret;
 }
