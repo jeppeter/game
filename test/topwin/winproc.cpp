@@ -206,8 +206,8 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
 {
     BOOL bret;
     HANDLE *pRetTopWnds = *ppTopWnds;
-    HANDLE *pOwnWnds=NULL,*pOwnedWnds=NULL;
-    int ownwndnum=0,ownedwndnum=0;
+    HANDLE *pOwnWnds=NULL,*pOwnedWnds=NULL,*pTmpWnds=NULL;
+    int ownwndnum=0,ownedwndnum=0,tmpwndsize=0;
     int ownwndsize=0,ownedwndsize=0;
     int rettopsize = *pTopSize,tmptopsize=0;
     int ret;
@@ -261,7 +261,7 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
 
     if(pOwnWnds == NULL)
     {
-        ownwndsize = 4;
+        ownwndsize = wndnum;
         pOwnWnds = calloc(sizeof(pOwnWnds[0]),ownwndsize);
         if(pOwnWnds == NULL)
         {
@@ -270,28 +270,93 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
         }
     }
 
-	if (pOwnedWnds == NULL)
-		{
-			
-		}
+    if(pOwnedWnds == NULL)
+    {
+        ownedwndsize = wndnum;
+        pOwnedWnds = calloc(sizeof(pOwnedWnds[0]),ownedwndsize);
+        if(pOwnedWnds == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            goto fail;
+        }
+    }
 
+    /*to set the root*/
+    ownwndnum = 1;
+    pOwnWnds[0] = hAppWnd;
     /*now we should test for the owned wnds*/
     do
     {
+        ownedwndnum = 0;
+        for(i=0; i<wndnum; i++)
+        {
+            for(j=0; j<ownwndnum; j++)
+            {
+                if(hOwnVecs[j] == pOwnWnds[i])
+                {
+                    pOwnedWnds[ownedwndnum] = pWnds[j];
+                    ownedwndnum ++;
+                    break;
+                }
+            }
+        }
+
+        if(ownedwndnum > 0)
+        {
+            memset(pOwnWnds,0,sizeof(pOwnWnds[0])*ownwndsize);
+            memcpy(pOwnWnds,pOwnedWnds,sizeof(pOwnWnds[0])*ownedwndnum);
+            ownwndnum = ownedwndnum;
+        }
 
     }
     while(ownedwndnum > 0);
+
+    num = ownwndnum;
+    if(ownwndnum > 0)
+    {
+        if(ownwndnum > rettopsize)
+        {
+            rettopsize = ownwndnum;
+            pRetTopWnds = calloc(sizeof(*pRetTopWnds),rettopsize);
+            if(pRetTopWnds == NULL)
+            {
+                ret = LAST_ERROR_CODE();
+                goto fail;
+            }
+        }
+
+        memset(pRetTopWnds,0,sizeof(pRetTopWnds[0])*rettopsize);
+        memcpy(pRetTopWnds,pOwnWnds,sizeof(pOwnWnds[0])*ownwndnum);
+    }
+    else if(pRetTopWnds)
+    {
+        if(rettopsize > 0)
+        {
+            memset(pRetTopWnds,0,sizeof(pRetTopWnds[0])*rettopsize);
+        }
+    }
+
+    if(pOwnWnds)
+    {
+        free(pOwnWnds);
+    }
+    pOwnWnds = NULL;
+    if(pOwnedWnds)
+    {
+        free(pOwnedWnds);
+    }
+    pOwnedWnds = NULL;
+    if(pTmpWnds)
+    {
+        free(pTmpWnds);
+    }
+    pTmpWnds = NULL;
 
 
     if(*ppTopWnds && *ppTopWnds != pRetTopWnds)
     {
         free(*ppTopWnds);
     }
-    if(pTmpTopWnds)
-    {
-        free(pTmpTopWnds);
-    }
-    pTmpTopWnds = NULL;
 
     *ppTopWnds = pRetTopWnds;
     *pTopSize = rettopsize;
@@ -314,6 +379,11 @@ fail:
         free(pOwnedWnds);
     }
     pOwnedWnds = NULL;
+    if(pTmpWnds)
+    {
+        free(pTmpWnds);
+    }
+    pTmpWnds = NULL;
     SetLastError(ret);
     return -ret;
 }
