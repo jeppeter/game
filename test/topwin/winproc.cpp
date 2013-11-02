@@ -200,19 +200,23 @@ fail:
 /*******************************************************
 *      windows algorithm is like this first to find the appwindow
 *      then find the window has the owner window of the appwindow to store the ownerwindows
-*      then find the window has the owner window of the ownerwindows 
+*      then find the window has the owner window of the ownerwindows
 *******************************************************/
 int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
 {
     BOOL bret;
     HANDLE *pRetTopWnds = *ppTopWnds;
-    HANDLE *pTmpTopWnds=NULL;
+    HANDLE *pOwnWnds=NULL,*pOwnedWnds=NULL;
+    int ownwndnum=0,ownedwndnum=0;
+    int ownwndsize=0,ownedwndsize=0;
     int rettopsize = *pTopSize,tmptopsize=0;
     int ret;
     int num = 0;
     int i,j;
-    HANDLE hTopWin=NULL;
+    HWND hOwnWin=NULL;
     WINDOWINFO info;
+    std::vector<HWND> hOwnVecs;
+    HWND hAppWnd = NULL;
 
     if(pWnds == NULL)
     {
@@ -225,81 +229,59 @@ int GetTopWinds(HANDLE *pWnds,int wndnum,HANDLE **ppTopWnds,int *pTopSize)
         return 0;
     }
 
-    for(i = 0 ; i<wndnum; i++)
+    for(i=0; i<wndnum; i++)
     {
-        int findidx = -1;
-        SetLastError(0);
+        /*to get the GetWindow GW_OWNER ,for the windows*/
+        hOwnWin = GetWindow(pWnds[i],GW_OWNER);
+        hOwnVecs.push_back(hOwnWin);
+    }
 
+    for(i=0; i<wndnum; i++)
+    {
         info.cbSize = sizeof(info);
         bret = GetWindowInfo((HWND)pWnds[i],&info);
-        if(bret)
+        if(!bret)
         {
-            DEBUG_INFO("[%d]0x%08x stype 0x%08x exstyle 0x%08x atomtype 0x%08x\n",i,
-                       pWnds[i],info.dwStyle,info.dwExStyle,info.atomWindowType);
-        }
-        else
-        {
-            ret = LAST_ERROR_CODE();
-            DEBUG_INFO("[%d]0x%08x could not get info error(%d)\n",i,pWnds[i],ret);
-        }
-        hTopWin =(HANDLE) GetTopWindow((HWND)pWnds[i]);
-        if(hTopWin == NULL)
-        {
-            if(GetLastError() != 0)
-            {
-                ret = LAST_ERROR_CODE();
-                ERROR_INFO("GetTopWindow[%d] 0x%08x error(%d)\n",i,pWnds[i],ret);
-                goto fail;
-            }
             continue;
         }
 
-        for(j=0; j<num; j++)
+        /*now to get the app windows*/
+        if(info.dwExStyle & WS_EX_APPWINDOW)
         {
-            if(hTopWin == pRetTopWnds[j])
-            {
-                findidx = j;
-                break;
-            }
-        }
-
-        if(findidx < 0)
-        {
-            /*if the top win not in the list ,so we should insert into it*/
-            if((num+1)>rettopsize)
-            {
-                tmptopsize = rettopsize << 1;
-                if(tmptopsize == 0)
-                {
-                    tmptopsize = 4;
-                }
-
-                pTmpTopWnds =(HANDLE*) calloc(sizeof(pTmpTopWnds[0]),tmptopsize);
-                if(pTmpTopWnds == NULL)
-                {
-                    ret = LAST_ERROR_CODE();
-                    goto fail;
-                }
-
-                if(num > 0)
-                {
-                    assert(pRetTopWnds);
-                    memcpy(pTmpTopWnds,pRetTopWnds,num * sizeof(pTmpTopWnds[0]));
-                }
-
-                if(pRetTopWnds && pRetTopWnds != *ppTopWnds)
-                {
-                    free(pRetTopWnds);
-                }
-                pRetTopWnds = pTmpTopWnds;
-                pTmpTopWnds = NULL;
-                rettopsize = tmptopsize;
-            }
-
-            pRetTopWnds[num] = hTopWin;
-            num ++;
+            hAppWnd = (HWND)pWnds[i];
+            break;
         }
     }
+
+    if(hAppWnd == NULL)
+    {
+        ERROR_INFO("could not find the appwindows\n");
+        return 0;
+    }
+
+    if(pOwnWnds == NULL)
+    {
+        ownwndsize = 4;
+        pOwnWnds = calloc(sizeof(pOwnWnds[0]),ownwndsize);
+        if(pOwnWnds == NULL)
+        {
+            ret = LAST_ERROR_CODE();
+            goto fail;
+        }
+    }
+
+	if (pOwnedWnds == NULL)
+		{
+			
+		}
+
+    /*now we should test for the owned wnds*/
+    do
+    {
+
+    }
+    while(ownedwndnum > 0);
+
 
     if(*ppTopWnds && *ppTopWnds != pRetTopWnds)
     {
@@ -322,11 +304,16 @@ fail:
         free(pRetTopWnds);
     }
     pRetTopWnds = NULL;
-    if(pTmpTopWnds)
+    if(pOwnWnds)
     {
-        free(pTmpTopWnds);
+        free(pOwnWnds);
     }
-    pTmpTopWnds = NULL;
+    pOwnWnds = NULL;
+    if(pOwnedWnds)
+    {
+        free(pOwnedWnds);
+    }
+    pOwnedWnds = NULL;
     SetLastError(ret);
     return -ret;
 }
