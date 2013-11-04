@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <output_debug.h>
 #include <vector>
+#include <capture.h>
+#include <Olectl.h>
 
 #define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
@@ -34,7 +36,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd,LPARAM lparam)
         /*we just return*/
         return TRUE;
     }
-    DEBUG_INFO("hwnd 0x%08x get procid %d\n",hwnd,procid);
+    //DEBUG_INFO("hwnd 0x%08x get procid %d\n",hwnd,procid);
 
     /*
     	now it is the windows we search ,so we should copy it to the
@@ -227,7 +229,7 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
     HWND hOwnWin=NULL;
     WINDOWINFO info;
     std::vector<HWND> hOwnVecs;
-    std::vector<DWORD> hWinExStyleVecs;
+    std::vector<DWORD> hWinStyleVecs;
     HWND hAppWnd = NULL;
     int mustrm=0;
 
@@ -242,6 +244,7 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
         return 0;
     }
 
+    DEBUG_INFO("\n");
     for(i=0; i<wndnum; i++)
     {
         /*to get the GetWindow GW_OWNER ,for the windows*/
@@ -250,17 +253,19 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
         DEBUG_INFO("[%d] hwnd 0x%08x owned by 0x%08x\n",i,pWnds[i],hOwnWin);
     }
 
+    DEBUG_INFO("\n");
+
     for(i=0; i<wndnum; i++)
     {
         info.cbSize = sizeof(info);
         bret = GetWindowInfo(pWnds[i],&info);
         if(!bret)
         {
-            hWinExStyleVecs.push_back(0);
+            hWinStyleVecs.push_back(0);
             continue;
         }
 
-        hWinExStyleVecs.push_back(info.dwExStyle);
+        hWinStyleVecs.push_back(info.dwStyle);
 
         /*now to get the app windows*/
         if(info.dwExStyle & WS_EX_APPWINDOW)
@@ -282,7 +287,7 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
         for(i=0; i <wndnum; i++)
         {
             /*we should find the windows that has the window edge*/
-            if(hWinExStyleVecs[i] & WS_EX_WINDOWEDGE)
+            if(hWinStyleVecs[i] & WS_SYSMENU)
             {
                 hAppWnd = pWnds[i];
                 break;
@@ -295,6 +300,7 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
         ERROR_INFO("could not find the appwindows\n");
         return 0;
     }
+    DEBUG_INFO("hAppWnd (0x%08x)\n",hAppWnd);
 
     if(pOwnWnds == NULL)
     {
@@ -317,6 +323,8 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
             goto fail;
         }
     }
+
+    DEBUG_INFO("\n");
     if(pRemoveWnds == NULL)
     {
         rmsize = wndnum;
@@ -327,6 +335,7 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
             goto fail;
         }
     }
+    DEBUG_INFO("\n");
 
     /*to set the root*/
     ownwndnum = 1;
@@ -345,8 +354,9 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
             {
                 //DEBUG_INFO("hOwnVecs[%d] 0x%08x pOwnWnds[%d] 0x%08x\n",i,hOwnVecs[i],
                 //           j,pOwnWnds[j]);
-                if(hOwnVecs[i] == pOwnWnds[j] && hOwnVecs[i] && hWinExStyleVecs[i] != 0)
+                if(hOwnVecs[i] == pOwnWnds[j] && hOwnVecs[i] && (hWinStyleVecs[i] & WS_SYSMENU))
                 {
+                	/*we get the window from the WS_SYSMENU for it will be the main window or the modal window*/
                     //DEBUG_INFO("Set[%d] 0x%08x\n",ownedwndnum,pWnds[i]);
                     assert(ownedwndnum < ownedwndsize);
                     pOwnedWnds[ownedwndnum] = pWnds[i];
@@ -418,6 +428,7 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
 
     }
     while(ownedwndnum > 0);
+    DEBUG_INFO("\n");
 
     //DEBUG_INFO("ownwndnum %d\n",ownwndnum);
     num = ownwndnum;
@@ -444,6 +455,7 @@ int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize)
             memset(pRetTopWnds,0,sizeof(pRetTopWnds[0])*rettopsize);
         }
     }
+    DEBUG_INFO("\n");
 
     if(pOwnWnds)
     {
@@ -579,5 +591,162 @@ not_out:
 fail:
     SetLastError(ret);
     return 0;
+}
+
+
+
+HBITMAP __CaptureWindow(HWND hWnd)
+{
+    if(!hWnd)
+        return NULL;
+
+    HDC hdc;
+    RECT rect;
+    hdc = GetWindowDC(hWnd);
+    GetWindowRect(hWnd, &rect);
+
+    if(!hdc)
+        return NULL;
+
+    HDC hMemDC = CreateCompatibleDC(hdc);
+    if(hMemDC == NULL)
+        return NULL;
+
+    SIZE size;
+    size.cx = rect.right - rect.left;
+    if(rect.right < rect.left)
+        size.cx = -size.cx;
+    size.cy = rect.bottom - rect.top;
+    if(rect.bottom < rect.top)
+        size.cy = -size.cy;
+
+    HBITMAP hDDBmp = CreateCompatibleBitmap(hdc, size.cx, size.cy);
+    if(hDDBmp == NULL)
+    {
+        DeleteDC(hMemDC);
+        ReleaseDC(hWnd, hdc);
+        return NULL;
+    }
+
+    HBITMAP hOldBmp = static_cast<HBITMAP>(SelectObject(hMemDC, hDDBmp));
+    BitBlt(hMemDC, 0, 0, size.cx, size.cy, hdc, 0, 0, SRCCOPY);
+    SelectObject(hMemDC, hOldBmp);
+    DeleteDC(hMemDC);
+    ReleaseDC(hWnd, hdc);
+
+    HBITMAP hBmp = static_cast<HBITMAP>(CopyImage(hDDBmp,
+                                        IMAGE_BITMAP,
+                                        0,
+                                        0,
+                                        LR_CREATEDIBSECTION));
+
+
+    DeleteObject(hDDBmp);
+
+    return hBmp;
+}
+
+
+int GetWindowBmpBuffer(HWND hwnd,uint8_t *pData,int iLen,int* pFormat,int* pWidth,int* pHeight)
+{
+    HBITMAP hbmp=NULL;
+    int ret;
+    int getlen=0;
+    PICTDESC pd;
+    BOOL    result = TRUE;
+    HRESULT hr ;
+    LPSTREAM pStream=NULL;
+    HGLOBAL hMem = NULL;
+    LPVOID lpData=NULL;
+    // create the IPicture object
+    LPPICTURE pPicture=NULL;
+    DEBUG_INFO("hwnd 0x%08x\n",hwnd);
+
+    hbmp = __CaptureWindow(hwnd);
+    if(hbmp == NULL)
+    {
+        ret =LAST_ERROR_CODE();
+        ERROR_INFO("GetBmp error(%d)\n",ret);
+        goto fail;
+    }
+
+    pd.cbSizeofstruct = sizeof(PICTDESC);
+    pd.picType = PICTYPE_BITMAP;
+    pd.bmp.hbitmap = hbmp;
+    pd.bmp.hpal = NULL;
+
+    hr =  OleCreatePictureIndirect(&pd,
+                                   IID_IPicture,
+                                   false,
+                                   reinterpret_cast<void**>(&pPicture)
+                                  );
+
+    if(FAILED(hr))
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not get picture 0x%08x error(%d)\n",hr,ret);
+        goto fail;
+    }
+
+    // create an IStream object
+    hr = CreateStreamOnHGlobal(NULL, true, &pStream);
+    if(FAILED(hr))
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not get stream 0x%08x error(%d)\n",hr,ret);
+        goto fail;
+    }
+    // write the picture to the stream
+    hr = pPicture->SaveAsFile(pStream, true, (LONG*)&getlen);
+    if(FAILED(hr))
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not Save file 0x%08x error(%d)\n",hr,ret);
+        goto fail;
+    }
+    GetHGlobalFromStream(pStream, &hMem);
+    lpData = GlobalLock(hMem);
+    memcpy(pData,lpData,getlen);
+    GlobalUnlock(hMem);
+
+    if(pStream)
+    {
+        pStream->Release();
+    }
+    pStream = NULL;
+    if(pPicture)
+    {
+        pPicture->Release();
+    }
+    pPicture = NULL;
+
+    if(hbmp)
+    {
+        DeleteObject(hbmp);
+    }
+    hbmp = NULL;
+
+    return getlen;
+
+fail:
+
+    if(pStream)
+    {
+        pStream->Release();
+    }
+    pStream = NULL;
+    if(pPicture)
+    {
+        pPicture->Release();
+    }
+    pPicture = NULL;
+
+    if(hbmp)
+    {
+        DeleteObject(hbmp);
+    }
+    hbmp = NULL;
+    SetLastError(ret);
+    return -ret;
 }
 

@@ -4,6 +4,12 @@
 #define __WIN_PROC_H__
 
 #include <Windows.h>
+#include <cap_common.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 
 /*******************************************************
@@ -22,10 +28,10 @@
 *  remark :
 *          *pphWnds must be malloc and free used ,not other allocate
 *          and if hProc ==NULL ,it will free *pphWnds return 0
-*          so make sure the 
+*          so make sure the
 *
 *******************************************************/
-extern "C" int GetProcWindHandles(HANDLE hProc,HWND **pphWnds,int *pSize);
+int GetProcWindHandles(HANDLE hProc,HWND **pphWnds,int *pSize);
 
 /*******************************************************
 *  to get the windows top windows for it
@@ -36,7 +42,7 @@ extern "C" int GetProcWindHandles(HANDLE hProc,HWND **pphWnds,int *pSize);
 *        pTopSize   *ppTopWnds size
 *  output :
 *        return number stored in the *ppTopWnds
-*        otherwise negative error code ,and get the GetLastError() to find the 
+*        otherwise negative error code ,and get the GetLastError() to find the
 *        error code
 *
 *
@@ -46,7 +52,7 @@ extern "C" int GetProcWindHandles(HANDLE hProc,HWND **pphWnds,int *pSize);
 *        if pWnds == NULL ,it will free *ppTopWnds
 *
 *******************************************************/
-extern "C" int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize);
+int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize);
 
 
 /*******************************************************
@@ -60,6 +66,32 @@ extern "C" int GetTopWinds(HWND *pWnds,int wndnum,HWND **ppTopWnds,int *pTopSize
 *      if fail ,just return 0
 *******************************************************/
 extern "C" int IsWndFullScreen(HWND hwnd);
+
+/*******************************************************
+*
+*  input:
+*      hwnd  the windows to get the buffer
+*      pData  the buffer to get the bitmap for the buffer
+*      iLen length of the data
+*      pFormat  format stored of data
+*      pWidth  width of the pData of bmp
+*      pHeight height of the pData of bmp
+*
+*
+*  output:
+*       return the filled length of the pData if success
+*       otherwise negative error code
+*
+*  remark :
+*      for pData for it ,and it will fill in it
+*  
+*******************************************************/
+extern "C" int GetWindowBmpBuffer(HWND hwnd,uint8_t *pData,int iLen,int* pFormat,int* pWidth,int* pHeight);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 
 #endif  /*__WIN_PROC_H__*/
