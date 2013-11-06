@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lproc", "lproc\lproc.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "topwin", "topwin\topwin.vcxproj", "{94B3F063-7E0D-45AA-9952-A7BFB7361513}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dllbase", "dllbase\dllbase.vcxproj", "{89D5A60A-6BB2-4A6F-9591-2B2FBFD2205B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -57,6 +59,10 @@ Global
 		{94B3F063-7E0D-45AA-9952-A7BFB7361513}.Debug|Win32.Build.0 = Debug|Win32
 		{94B3F063-7E0D-45AA-9952-A7BFB7361513}.Release|Win32.ActiveCfg = Release|Win32
 		{94B3F063-7E0D-45AA-9952-A7BFB7361513}.Release|Win32.Build.0 = Release|Win32
+		{89D5A60A-6BB2-4A6F-9591-2B2FBFD2205B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{89D5A60A-6BB2-4A6F-9591-2B2FBFD2205B}.Debug|Win32.Build.0 = Debug|Win32
+		{89D5A60A-6BB2-4A6F-9591-2B2FBFD2205B}.Release|Win32.ActiveCfg = Release|Win32
+		{89D5A60A-6BB2-4A6F-9591-2B2FBFD2205B}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
