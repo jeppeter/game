@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "topwin", "topwin\topwin.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dllbase", "dllbase\dllbase.vcxproj", "{89D5A60A-6BB2-4A6F-9591-2B2FBFD2205B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pecheck", "pecheck\pecheck.vcxproj", "{5C6656A2-BE57-4A11-BBA4-10DC08096F61}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -63,6 +65,10 @@ Global
 		{89D5A60A-6BB2-4A6F-9591-2B2FBFD2205B}.Debug|Win32.Build.0 = Debug|Win32
 		{89D5A60A-6BB2-4A6F-9591-2B2FBFD2205B}.Release|Win32.ActiveCfg = Release|Win32
 		{89D5A60A-6BB2-4A6F-9591-2B2FBFD2205B}.Release|Win32.Build.0 = Release|Win32
+		{5C6656A2-BE57-4A11-BBA4-10DC08096F61}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5C6656A2-BE57-4A11-BBA4-10DC08096F61}.Debug|Win32.Build.0 = Debug|Win32
+		{5C6656A2-BE57-4A11-BBA4-10DC08096F61}.Release|Win32.ActiveCfg = Release|Win32
+		{5C6656A2-BE57-4A11-BBA4-10DC08096F61}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
