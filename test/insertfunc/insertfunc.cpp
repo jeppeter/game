@@ -106,28 +106,28 @@ fail:
     return NULL;
 }
 
-void ParseParam(int argc,char* argv[])
-{
-    int ret;
-    int i;
 
-    for(i=1; i<argc; i++)
-    {
-    }
+BOOL UpdateImports(HANDLE hProc,char* pDllNames[],int dllnum)
+{
 }
+
+
 
 int main(int argc,char * argv[])
 {
     int ret;
     char* pCommandLine=NULL;
     HANDLE hProc=NULL;
-    if(argc < 2)
+	char *pDllName=NULL;
+    if(argc < 3)
     {
-        fprintf(stderr,"%s cmd ...\n",argv[0]);
+        fprintf(stderr,"%s dll cmd ...\n",argv[0]);
         exit(3);
     }
 
-    pCommandLine = FormatCommandLine(argc-1,&(argv[1]));
+	pDllName = argv[1];
+
+    pCommandLine = FormatCommandLine(argc-2,&(argv[2]));
     if(pCommandLine == NULL)
     {
         ERROR_INFO("can not make command line\n");
@@ -141,7 +141,7 @@ int main(int argc,char * argv[])
         goto out;
     }
 
-    /*now we should insert dll*/
+    /*now we should make the command*/
 
 
 out:
