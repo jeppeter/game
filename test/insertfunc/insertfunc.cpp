@@ -107,9 +107,6 @@ fail:
 }
 
 
-BOOL UpdateImports(HANDLE hProc,char* pDllNames[],int dllnum)
-{
-}
 
 
 
