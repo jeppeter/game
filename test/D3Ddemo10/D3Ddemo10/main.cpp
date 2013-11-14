@@ -256,7 +256,7 @@ HRESULT Direct3D_Init(HWND hwnd,HINSTANCE hInstance)
 	 //--------------------------------------------------------------------------------------
 	// 创建DirectInput接口和设备
 	DirectInput8Create(hInstance, 0x0800, IID_IDirectInput8, (void**)&g_pDirectInput, NULL);
-	g_pDirectInput->CreateDevice(GUID_SysKeyboard, &g_pMouseDevice, NULL);
+	//g_pDirectInput->CreateDevice(GUID_SysKeyboard, &g_pMouseDevice, NULL);
 
 	// 设置数据格式和协作级别
 	g_pDirectInput->CreateDevice(GUID_SysMouse, &g_pMouseDevice, NULL);
