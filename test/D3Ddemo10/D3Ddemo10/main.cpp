@@ -31,7 +31,7 @@
 #include <time.h>
 #include <dinput.h>                 // 使用DirectInput必须包含的头文件，注意这里没有8
 #include "resource.h"
-
+#include "output_debug.h"
 
 
 
@@ -176,6 +176,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         Direct3D_CleanUp();     //调用Direct3D_CleanUp函数，清理COM接口对象
         PostQuitMessage(0);		//向系统表明有个线程有终止请求。用来响应WM_DESTROY消息
         break;						//跳出该switch语句
+    case WM_COMMAND:
+        DEBUG_INFO("message %d wParam 0x%08x lParam 0x%08x\n",message,wParam,lParam);
+        switch(wParam)
+        {
+        case ID_MESSAGE_COMMAND:
+            MessageBox(hwnd,TEXT("Call Message"),TEXT("Notify"),MB_OK);
+            break;
+        }
+        break;
 
     default:						//若上述case条件都不符合，则执行该default语句
         return DefWindowProc(hwnd, message, wParam, lParam);		//调用缺省的窗口过程来为应用程序没有处理的窗口消息提供缺省的处理。
