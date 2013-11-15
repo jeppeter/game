@@ -30,6 +30,7 @@
 #include <tchar.h>
 #include <time.h> 
 #include <dinput.h>                 // 使用DirectInput必须包含的头文件，注意这里没有8
+#include "resource.h"
 
 
 
@@ -91,6 +92,7 @@ BOOL Device_Read(IDirectInputDevice8 *pDIDevice, void* pBuffer, long lSize) ;
 //*****************************************************************************************
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nShowCmd)
 {
+	HMENU hMenu=NULL;
 
 	//开始设计一个完整的窗口类
 	WNDCLASSEX wndClass = { 0 };				//用WINDCLASSEX定义了一个窗口类，即用wndClass实例化了WINDCLASSEX，用于之后窗口的各项初始化    
@@ -108,11 +110,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
 
 	if( !RegisterClassEx( &wndClass ) )				//设计完窗口后，需要对窗口类进行注册，这样才能创建该类型的窗口
 		return -1;		
+	hMenu = ::LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MAIN_MENU));
+	if (hMenu == NULL)
+		{
+			return -3;
+		}
 
 	HWND hwnd = CreateWindow( _T("ForTheDreamOfGameDevelop"),WINDOW_TITLE,			//喜闻乐见的创建窗口函数CreateWindow
 		WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, SCREEN_WIDTH,
-		SCREEN_HEIGHT, NULL, NULL, hInstance, NULL );
-
+		SCREEN_HEIGHT, NULL, hMenu, hInstance, NULL );
 
 	//Direct3D资源的初始化，调用失败用messagebox予以显示
 	if (!(S_OK==Direct3D_Init (hwnd,hInstance)))
