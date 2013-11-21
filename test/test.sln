@@ -25,6 +25,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pecheck", "pecheck\pecheck.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "insertfunc", "insertfunc\insertfunc.vcxproj", "{179F0860-730B-4AB2-BE78-D86452ABB4B0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dikmaptest", "dikmaptest\dikmaptest.vcxproj", "{938A7759-2849-4EED-9BAB-3C2086670518}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -75,6 +77,10 @@ Global
 		{179F0860-730B-4AB2-BE78-D86452ABB4B0}.Debug|Win32.Build.0 = Debug|Win32
 		{179F0860-730B-4AB2-BE78-D86452ABB4B0}.Release|Win32.ActiveCfg = Release|Win32
 		{179F0860-730B-4AB2-BE78-D86452ABB4B0}.Release|Win32.Build.0 = Release|Win32
+		{938A7759-2849-4EED-9BAB-3C2086670518}.Debug|Win32.ActiveCfg = Debug|Win32
+		{938A7759-2849-4EED-9BAB-3C2086670518}.Debug|Win32.Build.0 = Debug|Win32
+		{938A7759-2849-4EED-9BAB-3C2086670518}.Release|Win32.ActiveCfg = Release|Win32
+		{938A7759-2849-4EED-9BAB-3C2086670518}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
