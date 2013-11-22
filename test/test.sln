@@ -27,6 +27,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "insertfunc", "insertfunc\in
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dikmaptest", "dikmaptest\dikmaptest.vcxproj", "{938A7759-2849-4EED-9BAB-3C2086670518}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tvec", "tvec\tvec.vcxproj", "{0FFD6964-B7B5-44D4-B58E-D7A77C281FB9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -81,6 +83,10 @@ Global
 		{938A7759-2849-4EED-9BAB-3C2086670518}.Debug|Win32.Build.0 = Debug|Win32
 		{938A7759-2849-4EED-9BAB-3C2086670518}.Release|Win32.ActiveCfg = Release|Win32
 		{938A7759-2849-4EED-9BAB-3C2086670518}.Release|Win32.Build.0 = Release|Win32
+		{0FFD6964-B7B5-44D4-B58E-D7A77C281FB9}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0FFD6964-B7B5-44D4-B58E-D7A77C281FB9}.Debug|Win32.Build.0 = Debug|Win32
+		{0FFD6964-B7B5-44D4-B58E-D7A77C281FB9}.Release|Win32.ActiveCfg = Release|Win32
+		{0FFD6964-B7B5-44D4-B58E-D7A77C281FB9}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
