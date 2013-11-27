@@ -1,14 +1,17 @@
-// rawinput.cpp : 定义应用程序的入口点。
-//
 
 #include "stdafx.h"
 #include "rawinput.h"
+#include "output_debug.h"
+#include <stdint.h>
+#include <assert.h>
 
 #define MAX_LOADSTRING 100
 
 HINSTANCE hInst;
 TCHAR szTitle[MAX_LOADSTRING];
 TCHAR szWindowClass[MAX_LOADSTRING];
+
+#define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
 
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
@@ -18,10 +21,15 @@ INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 int GetAllRawInputInfos(HWND hwnd)
 {
     RAWINPUTDEVICE *pRegisterDevices=NULL;
+    RAWINPUTDEVICELIST *pRawInputList=NULL;
     int ret;
-	BOOL bret;
+    BOOL bret;
+    UINT i,uret,ulistnum;
+    UINT ucbsize,ucbmaxsize=0;
+    void* pData=NULL;
+    RID_DEVICE_INFO *pInfo=NULL;
 
-    pRegisterDevices = calloc(sizeof(*pRegisterDevices),2);
+    pRegisterDevices =(RAWINPUTDEVICE*) calloc(sizeof(*pRegisterDevices),2);
     if(pRegisterDevices == NULL)
     {
         ret = LAST_ERROR_CODE();
@@ -33,24 +41,166 @@ int GetAllRawInputInfos(HWND hwnd)
     pRegisterDevices[0].dwFlags = RIDEV_CAPTUREMOUSE;
     pRegisterDevices[0].hwndTarget = NULL;
 
-	pRegisterDevices[1].usUsagePage = 0x1;
-	pRegisterDevices[1].usUsage = 0x2;  /*for mouse*/
-	pRegisterDevices[1].dwFlags = RIDEV_INPUTSINK;
-	pRegisterDevices[1].hwndTarget = NULL;
+    pRegisterDevices[1].usUsagePage = 0x1;
+    pRegisterDevices[1].usUsage = 0x2;  /*for mouse*/
+    pRegisterDevices[1].dwFlags = RIDEV_INPUTSINK;
+    pRegisterDevices[1].hwndTarget = NULL;
 
-	bret = RegisterRawInputDevices(pRegisterDevices,2,sizeof(*pRegisterDevices));
-	if (!bret)
-		{
-			ret = LAST_ERROR_CODE();
-			ERROR_INFO("");
-			goto fail;
-		}
+    bret = RegisterRawInputDevices(pRegisterDevices,1,sizeof(*pRegisterDevices));
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("Could not RegisterDevices Error(%d)\n",ret);
+        goto fail;
+    }
+
+    ulistnum = 0;
+    bret = GetRawInputDeviceList(NULL,&ulistnum,sizeof(*pRawInputList));
+    ret = LAST_ERROR_CODE();
+    DEBUG_INFO("GetRawInputDeviceList Error(%d) ulistnum(%d)\n",ret,ulistnum);
+    pRawInputList = (RAWINPUTDEVICELIST*)calloc(sizeof(*pRawInputList),ulistnum);
+    if(pRawInputList == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
+
+    bret = GetRawInputDeviceList(pRawInputList,&ulistnum,sizeof(*pRawInputList));
+    if(!bret)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("GetRawInputDeviceList Error(%d) ulistnum(%d)\n",ret,ulistnum);
+        goto fail;
+    }
+
+    assert(pData == NULL);
+    assert(ucbmaxsize == 0);
+    for(i=0; i<ulistnum; i++)
+    {
+        DEBUG_INFO("[%d] hDevice(0x%08x) dwType %d\n",i,pRawInputList[i].hDevice,pRawInputList[i].dwType);
+#if 0
+		while(1)
+        {
+            ucbsize = ucbmaxsize;
+            uret = GetRawInputDeviceInfoA(pRawInputList[i].hDevice,RIDI_DEVICENAME,pData,&ucbsize);
+            if(uret != 0 && uret != (UINT)-1)
+            {
+                break;
+            }
+
+            if(ucbsize <= ucbmaxsize)
+            {
+                ret = LAST_ERROR_CODE();
+                ERROR_INFO("[%d] hDevice(0x%08x) GetName Error(%d)\n",i,pRawInputList[i].hDevice,ret);
+                goto fail;
+            }
+
+            if(pData)
+            {
+                free(pData);
+            }
+            pData = NULL;
+            ucbmaxsize = ucbsize;
+            pData = calloc(1,ucbmaxsize);
+            if(pData == NULL)
+            {
+                ret = LAST_ERROR_CODE();
+                goto fail;
+            }
+        }
+
+        DEBUG_INFO("ucbmaxsize %d hDevice (0x%08x) Name (%s)\n",ucbmaxsize,pRawInputList[i].hDevice,pData);
+#endif
+        while(1)
+        {
+            ucbsize = ucbmaxsize;
+            uret = GetRawInputDeviceInfoW(pRawInputList[i].hDevice,RIDI_DEVICEINFO,pData,&ucbsize);
+            if(uret != 0 && uret != (UINT)-1)
+            {
+                break;
+            }
+
+            if(ucbsize <= ucbmaxsize)
+            {
+                ret = LAST_ERROR_CODE();
+                ERROR_INFO("[%d] hDevice(0x%08x) (ucbsize %d ucbmaxsize %d) GetInfo Error(%d)\n",i,pRawInputList[i].hDevice
+					,ucbsize,ucbmaxsize,ret);
+                goto next_cycle;
+            }
+
+            if(pData)
+            {
+                free(pData);
+            }
+            pData = NULL;
+            ucbmaxsize = ucbsize << 1;
+            pData = calloc(1,ucbmaxsize);
+            if(pData == NULL)
+            {
+                ret = LAST_ERROR_CODE();
+                goto fail;
+            }
+        }
+
+        pInfo = (RID_DEVICE_INFO*)pData;
+        if(pInfo->dwType == RIM_TYPEMOUSE)
+        {
+            DEBUG_INFO("Mouse dwId %d dwNumberOfButtons %d dwSampleRate %d fHasHorizontalWheel %d\n",
+                       pInfo->mouse.dwId,pInfo->mouse.dwNumberOfButtons,pInfo->mouse.dwSampleRate,pInfo->mouse.fHasHorizontalWheel);
+        }
+        else if(pInfo->dwType == RIM_TYPEKEYBOARD)
+        {
+            DEBUG_INFO("Keyboard dwType %d dwSubType %d dwKeyboardMode %d dwNumberOfFunctionKeys %d dwNumberOfIndicators %d dwNumberOfKeysTotal %d\n",pInfo->keyboard.dwType,pInfo->keyboard.dwSubType,
+                       pInfo->keyboard.dwKeyboardMode,
+                       pInfo->keyboard.dwNumberOfFunctionKeys,
+                       pInfo->keyboard.dwNumberOfIndicators,
+                       pInfo->keyboard.dwNumberOfKeysTotal);
+        }
+        else if(pInfo->dwType == RIM_TYPEHID)
+        {
+            DEBUG_INFO("HID dwVendorId 0x%08x dwProductId 0x%08x dwVersionNumber 0x%08x usUsagePage %d usUsage %d\n",pInfo->hid.dwVendorId,
+                       pInfo->hid.dwProductId,pInfo->hid.dwVersionNumber,
+                       pInfo->hid.usUsagePage,pInfo->hid.usUsage);
+        }
+        else
+        {
+            DEBUG_BUFFER_FMT(((uint8_t*)pInfo+4),pInfo->cbSize-4,"Unkown Type %d",pInfo->dwType);
+        }
+
+	next_cycle:
+		i = i;
+    }
 
 
+    if(pData)
+    {
+        free(pData);
+    }
+    pData = NULL;
+    if(pRawInputList)
+    {
+        free(pRawInputList);
+    }
+    pRawInputList = NULL;
+    if(pRegisterDevices)
+    {
+        free(pRegisterDevices);
+    }
+    pRegisterDevices = NULL;
     SetLastError(0);
     return 0;
 fail:
     assert(ret > 0);
+    if(pData)
+    {
+        free(pData);
+    }
+    pData = NULL;
+    if(pRawInputList)
+    {
+        free(pRawInputList);
+    }
+    pRawInputList = NULL;
     if(pRegisterDevices)
     {
         free(pRegisterDevices);
@@ -69,16 +219,16 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
 
-    // TODO:  在此放置代码。
+    // TODO:  
     MSG msg;
     HACCEL hAccelTable;
 
-    // 初始化全局字符串
+    //
     LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadString(hInstance, IDC_RAWINPUT, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
-    // 执行应用程序初始化:
+    //
     if(!InitInstance(hInstance, nCmdShow))
     {
         return FALSE;
@@ -86,7 +236,6 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
     hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_RAWINPUT));
 
-    // 主消息循环:
     while(GetMessage(&msg, NULL, 0, 0))
     {
         if(!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
@@ -101,11 +250,6 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 
 
-//
-//  函数:  MyRegisterClass()
-//
-//  目的:  注册窗口类。
-//
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
     WNDCLASSEX wcex;
@@ -127,21 +271,11 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassEx(&wcex);
 }
 
-//
-//   函数:  InitInstance(HINSTANCE, int)
-//
-//   目的:  保存实例句柄并创建主窗口
-//
-//   注释:
-//
-//        在此函数中，我们在全局变量中保存实例句柄并
-//        创建和显示主程序窗口。
-//
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     HWND hWnd;
 
-    hInst = hInstance; // 将实例句柄存储在全局变量中
+    hInst = hInstance; //
 
     hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
                         CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
@@ -151,22 +285,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
         return FALSE;
     }
 
+	GetAllRawInputInfos(hWnd);
+
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
     return TRUE;
 }
 
-//
-//  函数:  WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  目的:    处理主窗口的消息。
-//
-//  WM_COMMAND	- 处理应用程序菜单
-//  WM_PAINT	- 绘制主窗口
-//  WM_DESTROY	- 发送退出消息并返回
-//
-//
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     int wmId, wmEvent;
@@ -178,7 +304,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         wmId    = LOWORD(wParam);
         wmEvent = HIWORD(wParam);
-        // 分析菜单选择:
         switch(wmId)
         {
         case IDM_ABOUT:
@@ -193,7 +318,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_PAINT:
         hdc = BeginPaint(hWnd, &ps);
-        // TODO:  在此添加任意绘图代码...
+        // TODO:
         EndPaint(hWnd, &ps);
         break;
     case WM_DESTROY:
