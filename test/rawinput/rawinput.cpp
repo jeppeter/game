@@ -78,8 +78,7 @@ int GetAllRawInputInfos(HWND hwnd)
     for(i=0; i<ulistnum; i++)
     {
         DEBUG_INFO("[%d] hDevice(0x%08x) dwType %d\n",i,pRawInputList[i].hDevice,pRawInputList[i].dwType);
-#if 0
-		while(1)
+        while(1)
         {
             ucbsize = ucbmaxsize;
             uret = GetRawInputDeviceInfoA(pRawInputList[i].hDevice,RIDI_DEVICENAME,pData,&ucbsize);
@@ -110,10 +109,13 @@ int GetAllRawInputInfos(HWND hwnd)
         }
 
         DEBUG_INFO("ucbmaxsize %d hDevice (0x%08x) Name (%s)\n",ucbmaxsize,pRawInputList[i].hDevice,pData);
-#endif
         while(1)
         {
             ucbsize = ucbmaxsize;
+            if(ucbsize >= sizeof(*pInfo))
+            {
+                ucbsize = sizeof(*pInfo);
+            }
             uret = GetRawInputDeviceInfoW(pRawInputList[i].hDevice,RIDI_DEVICEINFO,pData,&ucbsize);
             if(uret != 0 && uret != (UINT)-1)
             {
@@ -124,7 +126,7 @@ int GetAllRawInputInfos(HWND hwnd)
             {
                 ret = LAST_ERROR_CODE();
                 ERROR_INFO("[%d] hDevice(0x%08x) (ucbsize %d ucbmaxsize %d) GetInfo Error(%d)\n",i,pRawInputList[i].hDevice
-					,ucbsize,ucbmaxsize,ret);
+                           ,ucbsize,ucbmaxsize,ret);
                 goto next_cycle;
             }
 
@@ -167,8 +169,8 @@ int GetAllRawInputInfos(HWND hwnd)
             DEBUG_BUFFER_FMT(((uint8_t*)pInfo+4),pInfo->cbSize-4,"Unkown Type %d",pInfo->dwType);
         }
 
-	next_cycle:
-		i = i;
+next_cycle:
+        i = i;
     }
 
 
@@ -219,7 +221,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
 
-    // TODO:  
+    // TODO:
     MSG msg;
     HACCEL hAccelTable;
 
@@ -285,7 +287,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
         return FALSE;
     }
 
-	GetAllRawInputInfos(hWnd);
+    GetAllRawInputInfos(hWnd);
 
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
