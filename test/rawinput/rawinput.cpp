@@ -4,6 +4,7 @@
 #include "output_debug.h"
 #include <stdint.h>
 #include <assert.h>
+#include <Windowsx.h>
 
 #define MAX_LOADSTRING 100
 
@@ -276,6 +277,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     HWND hWnd;
+	RECT rRect={0};
 
     hInst = hInstance; //
 
@@ -288,7 +290,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     }
 
     GetAllRawInputInfos(hWnd);
-
+	MoveWindow(hWnd,100,100,1000,800,TRUE);
+	GetWindowRect(hWnd,&rRect);
+	DEBUG_INFO("rRect.left %d rRect.top %d rRect.right %d rRect.bottom %d\n",
+		rRect.left,rRect.top,rRect.right,rRect.bottom);
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
@@ -300,6 +305,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     int wmId, wmEvent;
     PAINTSTRUCT ps;
     HDC hdc;
+    static UINT mousetick=0;
+    UINT curtick=0;
 
     switch(message)
     {
@@ -316,6 +323,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
+        }
+        break;
+
+    case WM_MOUSEMOVE:
+        curtick = GetTickCount();
+        if((curtick - mousetick)>50)
+        {
+            UINT xpos,ypos;
+            xpos = GET_X_LPARAM(lParam);
+            ypos = GET_Y_LPARAM(lParam);
+            DEBUG_INFO("lParam 0x%08x X %d Y %d\n",lParam,xpos,ypos);
+            mousetick = curtick;
         }
         break;
     case WM_PAINT:
