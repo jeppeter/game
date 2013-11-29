@@ -76,25 +76,25 @@ typedef enum IO_KEYBOARD_CODE
     KEYBOARD_CODE_F10,
     KEYBOARD_CODE_F11,
     KEYBOARD_CODE_F12,                                    /*70*/
-    KEYBOARD_CODE_NUMLOCK,
-    KEYBOARD_CODE_SCROLL,
-    KEYBOARD_CODE_NUM_7,
-    KEYBOARD_CODE_NUM_8,
-    KEYBOARD_CODE_NUM_9,                                  /*75*/
-    KEYBOARD_CODE_SUBTRACT,         /*-*/
-    KEYBOARD_CODE_NUM_4,
-    KEYBOARD_CODE_NUM_5,
-    KEYBOARD_CODE_NUM_6,
-    KEYBOARD_CODE_NUM_ADD,                                /*80*/
-    KEYBOARD_CODE_NUM_1,
-    KEYBOARD_CODE_NUM_2,
-    KEYBOARD_CODE_NUM_3,
-    KEYBOARD_CODE_NUM_0,
-    KEYBOARD_CODE_DECIMAL,          /* . on numeric keypad *//*85*/
-    KEYBOARD_CODE_OEM_102,          /* <> or \| on RT 102-key keyboard (Non-U.S.) */
     KEYBOARD_CODE_F13,
     KEYBOARD_CODE_F14,
     KEYBOARD_CODE_F15,
+    KEYBOARD_CODE_NUMLOCK,
+    KEYBOARD_CODE_SCROLL,                                 /*75*/
+    KEYBOARD_CODE_SUBTRACT,         /*-*/
+    KEYBOARD_CODE_NUM_0,
+    KEYBOARD_CODE_NUM_1,
+    KEYBOARD_CODE_NUM_2,
+    KEYBOARD_CODE_NUM_3,                                  /*80*/
+    KEYBOARD_CODE_NUM_4,
+    KEYBOARD_CODE_NUM_5,
+    KEYBOARD_CODE_NUM_6,
+    KEYBOARD_CODE_NUM_7,
+    KEYBOARD_CODE_NUM_8,                                  /*85*/
+    KEYBOARD_CODE_NUM_9,
+    KEYBOARD_CODE_NUM_ADD,
+    KEYBOARD_CODE_DECIMAL,          /* . on numeric keypad */
+    KEYBOARD_CODE_OEM_102,          /* <> or \| on RT 102-key keyboard (Non-U.S.) */
     KEYBOARD_CODE_KANA,             /* (Japanese keyboard)            */    /*90*/
     KEYBOARD_CODE_ABNT_C1,          /* /? on Brazilian keyboard */
     KEYBOARD_CODE_CONVERT,          /* (Japanese keyboard)            */
@@ -382,10 +382,10 @@ static int st_CodeMapDik[256] =
     DIK_LMENU         ,DIK_SPACE          ,DIK_CAPITAL        ,DIK_F1             ,DIK_F2             ,  /*60*/
     DIK_F3            ,DIK_F4             ,DIK_F5             ,DIK_F6             ,DIK_F7             ,  /*65*/
     DIK_F8            ,DIK_F9             ,DIK_F10            ,DIK_F11            ,DIK_F12            ,  /*70*/
-    DIK_NUMLOCK       ,DIK_SCROLL         ,DIK_NUMPAD7        ,DIK_NUMPAD8        ,DIK_NUMPAD9        ,  /*75*/
-    DIK_SUBTRACT      ,DIK_NUMPAD4        ,DIK_NUMPAD5        ,DIK_NUMPAD6        ,DIK_ADD            ,  /*80*/
-    DIK_NUMPAD1       ,DIK_NUMPAD2        ,DIK_NUMPAD3        ,DIK_NUMPAD0        ,DIK_DECIMAL        ,  /*85*/
-    DIK_OEM_102       ,DIK_F13            ,DIK_F14            ,DIK_F15            ,DIK_KANA           ,  /*90*/
+    DIK_F13           ,DIK_F14            ,DIK_F15            ,DIK_NUMLOCK        ,DIK_SCROLL         ,  /*75*/
+    DIK_SUBTRACT      ,DIK_NUMPAD0        ,DIK_NUMPAD1        ,DIK_NUMPAD2        ,DIK_NUMPAD3        ,  /*80*/
+    DIK_NUMPAD4       ,DIK_NUMPAD5        ,DIK_NUMPAD6        ,DIK_NUMPAD7        ,DIK_NUMPAD8        ,  /*85*/
+    DIK_NUMPAD9       ,DIK_ADD            ,DIK_DECIMAL        ,DIK_OEM_102        ,DIK_KANA           ,  /*90*/
     DIK_ABNT_C1       ,DIK_CONVERT        ,DIK_NOCONVERT      ,DIK_YEN            ,DIK_ABNT_C2        ,  /*95*/
     DIK_NUMPADEQUALS  ,DIK_PREVTRACK      ,DIK_AT             ,DIK_COLON          ,DIK_UNDERLINE      ,  /*100*/
     DIK_KANJI         ,DIK_STOP           ,DIK_AX             ,DIK_UNLABELED      ,DIK_NEXTTRACK      ,  /*105*/
