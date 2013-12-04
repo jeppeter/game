@@ -139,10 +139,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
     MSG msg = { 0 };  //初始化msg
     while(msg.message != WM_QUIT)			//使用while循环
     {
+        int debug=0;
         if(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))       //查看应用程序消息队列，有消息时将队列中的消息派发出去。
         {
+            if(msg.message == 0x12 || msg.message == 0xc03e)
+            {
+                DEBUG_INFO("msg 0x%08x:%d\n",msg.message,msg.message);
+                debug = 1;
+            }
             TranslateMessage(&msg);		//将虚拟键消息转换为字符消息
             DispatchMessage(&msg);		//该函数分发一个消息给窗口程序。
+            if(debug)
+            {
+                DEBUG_INFO("msg 0x%08x:%d\n",msg.message,msg.message);
+            }
         }
         else
         {
@@ -325,6 +335,7 @@ HRESULT Direct3D_Init(HWND hwnd,HINSTANCE hInstance)
 
     // 设置数据格式和协作级别
     g_pDirectInput->CreateDevice(GUID_SysMouse, &g_pMouseDevice, NULL);
+    DEBUG_INFO("g_pMouseDevice 0x%p\n",g_pMouseDevice);
     g_pMouseDevice->SetDataFormat(&c_dfDIMouse);
 
     //获取设备控制权
@@ -668,7 +679,9 @@ void Direct3D_CleanUp()
     SAFE_RELEASE(g_pMesh)
     SAFE_RELEASE(g_pTextFPS)
     SAFE_RELEASE(g_pd3dDevice)
+    DEBUG_INFO("g_pMouseDevice 0x%p\n",g_pMouseDevice);
     SAFE_RELEASE(g_pMouseDevice)
+    DEBUG_INFO("g_pMouseDevice 0x%p\n",g_pMouseDevice);
     SAFE_RELEASE(g_pKeyboardDevice)
 }
 
