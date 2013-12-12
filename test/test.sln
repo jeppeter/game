@@ -33,6 +33,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vk", "vk\vk.vcxproj", "{A12
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rawinput", "rawinput\rawinput.vcxproj", "{E50ECC80-FF08-4DDF-A06B-D999F3CE73FE}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "keymessage", "keymessage\keymessage.vcxproj", "{970C3EC8-3C36-4816-8B5B-9476EEDE1581}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -99,6 +101,10 @@ Global
 		{E50ECC80-FF08-4DDF-A06B-D999F3CE73FE}.Debug|Win32.Build.0 = Debug|Win32
 		{E50ECC80-FF08-4DDF-A06B-D999F3CE73FE}.Release|Win32.ActiveCfg = Release|Win32
 		{E50ECC80-FF08-4DDF-A06B-D999F3CE73FE}.Release|Win32.Build.0 = Release|Win32
+		{970C3EC8-3C36-4816-8B5B-9476EEDE1581}.Debug|Win32.ActiveCfg = Debug|Win32
+		{970C3EC8-3C36-4816-8B5B-9476EEDE1581}.Debug|Win32.Build.0 = Debug|Win32
+		{970C3EC8-3C36-4816-8B5B-9476EEDE1581}.Release|Win32.ActiveCfg = Release|Win32
+		{970C3EC8-3C36-4816-8B5B-9476EEDE1581}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
