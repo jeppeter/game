@@ -1014,6 +1014,360 @@ int ShiftCharTrans(int vk)
 	}
 	return ret;
 }
+int ShiftCapsCharTrans(int vk)
+{
+	int ret=MAP_CHAR_NULL;
+	switch(vk)
+	{
+		case 32:
+			ret=32;
+			break;
+		case 67:
+			ret=99;
+			break;
+		case 90:
+			ret=122;
+			break;
+		case 71:
+			ret=103;
+			break;
+		case 70:
+			ret=102;
+			break;
+		case 188:
+			ret=60;
+			break;
+		case 68:
+			ret=100;
+			break;
+		case 80:
+			ret=112;
+			break;
+		case 88:
+			ret=120;
+			break;
+		case 72:
+			ret=104;
+			break;
+		case 186:
+			ret=58;
+			break;
+		case 222:
+			ret=34;
+			break;
+		case 82:
+			ret=114;
+			break;
+		case 55:
+			ret=38;
+			break;
+		case 74:
+			ret=106;
+			break;
+		case 84:
+			ret=116;
+			break;
+		case 27:
+			ret=27;
+			break;
+		case 190:
+			ret=62;
+			break;
+		case 75:
+			ret=107;
+			break;
+		case 83:
+			ret=115;
+			break;
+		case 57:
+			ret=40;
+			break;
+		case 192:
+			ret=126;
+			break;
+		case 220:
+			ret=124;
+			break;
+		case 109:
+			ret=45;
+			break;
+		case 69:
+			ret=101;
+			break;
+		case 191:
+			ret=63;
+			break;
+		case 49:
+			ret=33;
+			break;
+		case 89:
+			ret=121;
+			break;
+		case 187:
+			ret=43;
+			break;
+		case 189:
+			ret=95;
+			break;
+		case 53:
+			ret=37;
+			break;
+		case 78:
+			ret=110;
+			break;
+		case 107:
+			ret=43;
+			break;
+		case 48:
+			ret=41;
+			break;
+		case 79:
+			ret=111;
+			break;
+		case 87:
+			ret=119;
+			break;
+		case 77:
+			ret=109;
+			break;
+		case 106:
+			ret=42;
+			break;
+		case 219:
+			ret=123;
+			break;
+		case 13:
+			ret=13;
+			break;
+		case 65:
+			ret=97;
+			break;
+		case 50:
+			ret=64;
+			break;
+		case 221:
+			ret=125;
+			break;
+		case 85:
+			ret=117;
+			break;
+		case 111:
+			ret=47;
+			break;
+		case 9:
+			ret=9;
+			break;
+		case 51:
+			ret=35;
+			break;
+		case 8:
+			ret=8;
+			break;
+		case 52:
+			ret=36;
+			break;
+		case 81:
+			ret=113;
+			break;
+		case 56:
+			ret=42;
+			break;
+		case 66:
+			ret=98;
+			break;
+		case 73:
+			ret=105;
+			break;
+		case 86:
+			ret=118;
+			break;
+		case 76:
+			ret=108;
+			break;
+		case 54:
+			ret=94;
+			break;
+	}
+	return ret;
+}
+
+int ShiftCapsCharTrans(int vk)
+{
+	int ret=MAP_CHAR_NULL;
+	switch(vk)
+	{
+		case 32:
+			ret=32;
+			break;
+		case 67:
+			ret=99;
+			break;
+		case 90:
+			ret=122;
+			break;
+		case 71:
+			ret=103;
+			break;
+		case 70:
+			ret=102;
+			break;
+		case 188:
+			ret=60;
+			break;
+		case 68:
+			ret=100;
+			break;
+		case 80:
+			ret=112;
+			break;
+		case 88:
+			ret=120;
+			break;
+		case 72:
+			ret=104;
+			break;
+		case 186:
+			ret=58;
+			break;
+		case 222:
+			ret=34;
+			break;
+		case 82:
+			ret=114;
+			break;
+		case 55:
+			ret=38;
+			break;
+		case 74:
+			ret=106;
+			break;
+		case 84:
+			ret=116;
+			break;
+		case 27:
+			ret=27;
+			break;
+		case 190:
+			ret=62;
+			break;
+		case 75:
+			ret=107;
+			break;
+		case 83:
+			ret=115;
+			break;
+		case 57:
+			ret=40;
+			break;
+		case 192:
+			ret=126;
+			break;
+		case 220:
+			ret=124;
+			break;
+		case 109:
+			ret=45;
+			break;
+		case 69:
+			ret=101;
+			break;
+		case 191:
+			ret=63;
+			break;
+		case 49:
+			ret=33;
+			break;
+		case 89:
+			ret=121;
+			break;
+		case 187:
+			ret=43;
+			break;
+		case 189:
+			ret=95;
+			break;
+		case 53:
+			ret=37;
+			break;
+		case 78:
+			ret=110;
+			break;
+		case 107:
+			ret=43;
+			break;
+		case 48:
+			ret=41;
+			break;
+		case 79:
+			ret=111;
+			break;
+		case 87:
+			ret=119;
+			break;
+		case 77:
+			ret=109;
+			break;
+		case 106:
+			ret=42;
+			break;
+		case 219:
+			ret=123;
+			break;
+		case 13:
+			ret=13;
+			break;
+		case 65:
+			ret=97;
+			break;
+		case 50:
+			ret=64;
+			break;
+		case 221:
+			ret=125;
+			break;
+		case 85:
+			ret=117;
+			break;
+		case 111:
+			ret=47;
+			break;
+		case 9:
+			ret=9;
+			break;
+		case 51:
+			ret=35;
+			break;
+		case 8:
+			ret=8;
+			break;
+		case 52:
+			ret=36;
+			break;
+		case 81:
+			ret=113;
+			break;
+		case 56:
+			ret=42;
+			break;
+		case 66:
+			ret=98;
+			break;
+		case 73:
+			ret=105;
+			break;
+		case 86:
+			ret=118;
+			break;
+		case 76:
+			ret=108;
+			break;
+		case 54:
+			ret=94;
+			break;
+	}
+	return ret;
+}
+
 
 
 typedef enum IO_KEYBOARD_CODE
@@ -2383,6 +2737,16 @@ int main(int argc,char* argv[])
         if(caseret != vecret)
         {
             fprintf(stderr,"shiftchar[%d] caseret(0x%x:%d) vecret(0x%x:%d)\n",i,caseret,caseret,vecret,vecret);
+        }
+    }
+
+    for(i=0; i<256; i++)
+    {
+        caseret = ShiftCapsCharTrans(i);
+        vecret = st_ShiftCapsChar[i];
+        if(caseret != vecret)
+        {
+            fprintf(stderr,"shiftcapschar[%d] caseret(0x%x:%d) vecret(0x%x:%d)\n",i,caseret,caseret,vecret,vecret);
         }
     }
 
