@@ -4,6 +4,390 @@
 #include "stdafx.h"
 
 
+#define  MAP_CHAR_NULL           0
+
+#define  MAP_CHAR_CTRL_A         0x01
+#define  MAP_CHAR_CTRL_B         0x02
+#define  MAP_CHAR_CTRL_C         0x03
+#define  MAP_CHAR_CTRL_D         0x04
+#define  MAP_CHAR_CTRL_E         0x05
+#define  MAP_CHAR_CTRL_F         0x06
+#define  MAP_CHAR_CTRL_G         0x07
+#define  MAP_CHAR_CTRL_H         0x08
+#define  MAP_CHAR_CTRL_I         0x09
+#define  MAP_CHAR_CTRL_J         0x0a
+#define  MAP_CHAR_CTRL_K         0x0b
+#define  MAP_CHAR_CTRL_L         0x0c
+#define  MAP_CHAR_CTRL_M         0x0d
+#define  MAP_CHAR_CTRL_N         0x0e
+#define  MAP_CHAR_CTRL_O         0x0f
+#define  MAP_CHAR_CTRL_P         0x10
+#define  MAP_CHAR_CTRL_Q         0x11
+#define  MAP_CHAR_CTRL_R         0x12
+#define  MAP_CHAR_CTRL_S         0x13
+#define  MAP_CHAR_CTRL_T         0x14
+#define  MAP_CHAR_CTRL_U         0x15
+#define  MAP_CHAR_CTRL_V         0x16
+#define  MAP_CHAR_CTRL_W         0x17
+#define  MAP_CHAR_CTRL_X         0x18
+#define  MAP_CHAR_CTRL_Y         0x19
+#define  MAP_CHAR_CTRL_Z         0x1a
+
+#define  MAP_CHAR_BACKSPACE      0x08
+#define  MAP_CHAR_TAB            0x09
+#define  MAP_CHAR_LINEFEED       0x0a
+
+#define  MAP_CHAR_ENTER          0x0d
+
+#define  MAP_CHAR_ESCAPE         0x1b
+#define  MAP_CHAR_CTRL_LBRACKET  0x1b
+#define  MAP_CHAR_CTRL_SLASH     0x1c
+#define  MAP_CHAR_CTRL_RBRACKET  0x1d
+
+#define  MAP_CHAR_SPACE          0x20
+#define  MAP_CHAR_EMOTION        0x21
+#define  MAP_CHAR_DOUBLE_QUOTE   0x22
+#define  MAP_CHAR_NUMSIGN        0x23
+#define  MAP_CHAR_DOLLAR         0x24
+#define  MAP_CHAR_PERCENT        0x25
+#define  MAP_CHAR_AMPERSAND      0x26
+#define  MAP_CHAR_SINGLE_QUOTE   0x27
+
+#define  MAP_CHAR_LPAREN         0x28
+#define  MAP_CHAR_RPAREN         0x29
+
+#define  MAP_CHAR_NUMPAD_STAR    0x2a
+#define  MAP_CHAR_NUMPAD_PLUS    0x2b
+#define  MAP_CHAR_COMMA          0x2c
+#define  MAP_CHAR_NUMPAD_MINUS   0x2d
+#define  MAP_CHAR_MINUS          0x2d
+#define  MAP_CHAR_DOT            0x2e
+#define  MAP_CHAR_NUMPAD_SLASH   0x2f
+
+
+
+#define  MAP_CHAR_0              0x30
+#define  MAP_CHAR_1              0x31
+#define  MAP_CHAR_2              0x32
+#define  MAP_CHAR_3              0x33
+#define  MAP_CHAR_4              0x34
+#define  MAP_CHAR_5              0x35
+#define  MAP_CHAR_6              0x36
+#define  MAP_CHAR_7              0x37
+#define  MAP_CHAR_8              0x38
+#define  MAP_CHAR_9              0x39
+
+#define  MAP_CHAR_COLON          0x3a
+#define  MAP_CHAR_SEMICOLON      0x3b
+#define  MAP_CHAR_LESS           0x3c
+#define  MAP_CHAR_EQUAL          0x3d
+#define  MAP_CHAR_GREATER        0x3e
+#define  MAP_CHAR_QUESTION       0x3f
+
+#define  MAP_CHAR_ATSYMBOL       0x40
+
+
+#define  MAP_CHAR_A              0x41
+#define  MAP_CHAR_B              0x42
+#define  MAP_CHAR_C              0x43
+#define  MAP_CHAR_D              0x44
+#define  MAP_CHAR_E              0x45
+#define  MAP_CHAR_F              0x46
+#define  MAP_CHAR_G              0x47
+#define  MAP_CHAR_H              0x48
+#define  MAP_CHAR_I              0x49
+#define  MAP_CHAR_J              0x4a
+#define  MAP_CHAR_K              0x4b
+#define  MAP_CHAR_L              0x4c
+#define  MAP_CHAR_M              0x4d
+#define  MAP_CHAR_N              0x4e
+#define  MAP_CHAR_O              0x4f
+#define  MAP_CHAR_P              0x50
+#define  MAP_CHAR_Q              0x51
+#define  MAP_CHAR_R              0x52
+#define  MAP_CHAR_S              0x53
+#define  MAP_CHAR_T              0x54
+#define  MAP_CHAR_U              0x55
+#define  MAP_CHAR_V              0x56
+#define  MAP_CHAR_W              0x57
+#define  MAP_CHAR_X              0x58
+#define  MAP_CHAR_Y              0x59
+#define  MAP_CHAR_Z              0x5a
+
+#define  MAP_CHAR_LBRACKET       0x5b
+#define  MAP_CHAR_BACKSLASH      0x5c
+#define  MAP_CHAR_RBRACKET       0x5d
+#define  MAP_CHAR_CARET          0x5e
+#define  MAP_CHAR_UNDERSCORE     0x5f
+#define  MAP_CHAR_APOSTROPHY     0x60
+
+#define  MAP_CHAR_a              0x61
+#define  MAP_CHAR_b              0x62
+#define  MAP_CHAR_c              0x63
+#define  MAP_CHAR_d              0x64
+#define  MAP_CHAR_e              0x65
+#define  MAP_CHAR_f              0x66
+#define  MAP_CHAR_g              0x67
+#define  MAP_CHAR_h              0x68
+#define  MAP_CHAR_i              0x69
+#define  MAP_CHAR_j              0x6a
+#define  MAP_CHAR_k              0x6b
+#define  MAP_CHAR_l              0x6c
+#define  MAP_CHAR_m              0x6d
+#define  MAP_CHAR_n              0x6e
+#define  MAP_CHAR_o              0x6f
+#define  MAP_CHAR_p              0x70
+#define  MAP_CHAR_q              0x71
+#define  MAP_CHAR_r              0x72
+#define  MAP_CHAR_s              0x73
+#define  MAP_CHAR_t              0x74
+#define  MAP_CHAR_u              0x75
+#define  MAP_CHAR_v              0x76
+#define  MAP_CHAR_w              0x77
+#define  MAP_CHAR_x              0x78
+#define  MAP_CHAR_y              0x79
+#define  MAP_CHAR_z              0x7a
+#define  MAP_CHAR_LBRACE         0x7b
+#define  MAP_CHAR_VERT_BAR       0x7c
+#define  MAP_CHAR_RBRACE         0x7d
+
+#define  MAP_CHAR_TILDE          0x7e
+#define  MAP_CHAR_CTRL_BACKSPACE 0x7f
+
+
+static unsigned char st_CapsChar[256] =
+{
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL        ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,            /*5*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL        ,MAP_CHAR_NULL          ,MAP_CHAR_BACKSPACE     ,MAP_CHAR_TAB           ,            /*10*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL        ,MAP_CHAR_NULL          ,MAP_CHAR_ENTER         ,MAP_CHAR_NULL          ,            /*15*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL 	      ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*20*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL 	      ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*25*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL        ,MAP_CHAR_ESCAPE        ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,            /*30*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL        ,MAP_CHAR_SPACE         ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,            /*35*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL	      ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*40*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL 	      ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*45*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL        ,MAP_CHAR_NULL          ,MAP_CHAR_0             ,MAP_CHAR_1             ,            /*50*/
+    MAP_CHAR_2          ,MAP_CHAR_3           ,MAP_CHAR_4             ,MAP_CHAR_5             ,MAP_CHAR_6             ,            /*55*/
+    MAP_CHAR_7          ,MAP_CHAR_8           ,MAP_CHAR_9             ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,            /*60*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL        ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,            /*65*/
+    MAP_CHAR_A          ,MAP_CHAR_B           ,MAP_CHAR_C             ,MAP_CHAR_D             ,MAP_CHAR_E             ,            /*70*/
+    MAP_CHAR_F          ,MAP_CHAR_G           ,MAP_CHAR_H             ,MAP_CHAR_I             ,MAP_CHAR_J             ,            /*75*/
+    MAP_CHAR_K          ,MAP_CHAR_L           ,MAP_CHAR_M             ,MAP_CHAR_N             ,MAP_CHAR_O             ,            /*80*/
+    MAP_CHAR_P          ,MAP_CHAR_Q           ,MAP_CHAR_R             ,MAP_CHAR_S             ,MAP_CHAR_T             ,            /*85*/
+    MAP_CHAR_U          ,MAP_CHAR_V           ,MAP_CHAR_W             ,MAP_CHAR_X             ,MAP_CHAR_Y             ,            /*90*/
+    MAP_CHAR_Z          ,MAP_CHAR_NULL        ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,            /*95*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL 	      ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*100*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL 	      ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*105*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NUMPAD_STAR ,MAP_CHAR_NUMPAD_PLUS   ,MAP_CHAR_NULL          ,MAP_CHAR_NUMPAD_MINUS  ,            /*110*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NUMPAD_SLASH,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,            /*115*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*120*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*125*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*130*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*135*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*140*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*145*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*150*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*155*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*160*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*165*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*170*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*175*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*180*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*185*/
+    MAP_CHAR_NULL       ,MAP_CHAR_SEMICOLON   ,MAP_CHAR_EQUAL         ,MAP_CHAR_COMMA         ,MAP_CHAR_MINUS         ,            /*190*/
+    MAP_CHAR_DOT        ,MAP_CHAR_NUMPAD_SLASH,MAP_CHAR_APOSTROPHY    ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,            /*195*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*200*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*205*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*210*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*215*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_LBRACKET	  , 		   /*220*/
+    MAP_CHAR_BACKSLASH  ,MAP_CHAR_RBRACKET    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*225*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL    	  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*230*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*235*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*240*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*245*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*250*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*255*/
+    MAP_CHAR_NULL
+};
+
+int CapsCharTrans(int vk)
+{
+	int ret=MAP_CHAR_NULL;
+	switch(vk)
+	{
+		case 67:
+			ret=67;
+			break;
+		case 32:
+			ret=32;
+			break;
+		case 90:
+			ret=90;
+			break;
+		case 71:
+			ret=71;
+			break;
+		case 70:
+			ret=70;
+			break;
+		case 188:
+			ret=44;
+			break;
+		case 68:
+			ret=68;
+			break;
+		case 80:
+			ret=80;
+			break;
+		case 88:
+			ret=88;
+			break;
+		case 72:
+			ret=72;
+			break;
+		case 186:
+			ret=59;
+			break;
+		case 82:
+			ret=82;
+			break;
+		case 55:
+			ret=55;
+			break;
+		case 27:
+			ret=27;
+			break;
+		case 74:
+			ret=74;
+			break;
+		case 84:
+			ret=84;
+			break;
+		case 190:
+			ret=46;
+			break;
+		case 75:
+			ret=75;
+			break;
+		case 83:
+			ret=83;
+			break;
+		case 57:
+			ret=57;
+			break;
+		case 192:
+			ret=96;
+			break;
+		case 220:
+			ret=92;
+			break;
+		case 109:
+			ret=45;
+			break;
+		case 69:
+			ret=69;
+			break;
+		case 191:
+			ret=47;
+			break;
+		case 49:
+			ret=49;
+			break;
+		case 89:
+			ret=89;
+			break;
+		case 187:
+			ret=61;
+			break;
+		case 189:
+			ret=45;
+			break;
+		case 53:
+			ret=53;
+			break;
+		case 78:
+			ret=78;
+			break;
+		case 107:
+			ret=43;
+			break;
+		case 48:
+			ret=48;
+			break;
+		case 79:
+			ret=79;
+			break;
+		case 87:
+			ret=87;
+			break;
+		case 77:
+			ret=77;
+			break;
+		case 106:
+			ret=42;
+			break;
+		case 219:
+			ret=91;
+			break;
+		case 13:
+			ret=13;
+			break;
+		case 65:
+			ret=65;
+			break;
+		case 50:
+			ret=50;
+			break;
+		case 221:
+			ret=93;
+			break;
+		case 85:
+			ret=85;
+			break;
+		case 111:
+			ret=47;
+			break;
+		case 9:
+			ret=9;
+			break;
+		case 51:
+			ret=51;
+			break;
+		case 81:
+			ret=81;
+			break;
+		case 8:
+			ret=8;
+			break;
+		case 52:
+			ret=52;
+			break;
+		case 56:
+			ret=56;
+			break;
+		case 66:
+			ret=66;
+			break;
+		case 73:
+			ret=73;
+			break;
+		case 86:
+			ret=86;
+			break;
+		case 76:
+			ret=76;
+			break;
+		case 54:
+			ret=54;
+			break;
+	}
+	return ret;
+}
+
+
+
+
 typedef enum IO_KEYBOARD_CODE
 {
     KEYBOARD_CODE_A = 0,
@@ -1331,6 +1715,16 @@ int main(int argc,char* argv[])
         if(caseret != vecret)
         {
             fprintf(stderr,"MapCode[%d] caseret(0x%x:%d) vecret(0x%x:%d)\n",i,caseret,caseret,vecret,vecret);
+        }
+    }
+
+    for(i=0; i<256; i++)
+    {
+        caseret = CapsCharTrans(i);
+        vecret = st_CapsChar[i];
+        if(caseret != vecret)
+        {
+            fprintf(stderr,"capschar[%d] caseret(0x%x:%d) vecret(0x%x:%d)\n",i,caseret,caseret,vecret,vecret);
         }
     }
     return 0;
