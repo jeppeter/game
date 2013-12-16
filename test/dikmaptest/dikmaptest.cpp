@@ -1014,182 +1014,63 @@ int ShiftCharTrans(int vk)
 	}
 	return ret;
 }
-int ShiftCapsCharTrans(int vk)
+
+
+static unsigned char st_ShiftCapsChar[256] =
 {
-	int ret=MAP_CHAR_NULL;
-	switch(vk)
-	{
-		case 32:
-			ret=32;
-			break;
-		case 67:
-			ret=99;
-			break;
-		case 90:
-			ret=122;
-			break;
-		case 71:
-			ret=103;
-			break;
-		case 70:
-			ret=102;
-			break;
-		case 188:
-			ret=60;
-			break;
-		case 68:
-			ret=100;
-			break;
-		case 80:
-			ret=112;
-			break;
-		case 88:
-			ret=120;
-			break;
-		case 72:
-			ret=104;
-			break;
-		case 186:
-			ret=58;
-			break;
-		case 222:
-			ret=34;
-			break;
-		case 82:
-			ret=114;
-			break;
-		case 55:
-			ret=38;
-			break;
-		case 74:
-			ret=106;
-			break;
-		case 84:
-			ret=116;
-			break;
-		case 27:
-			ret=27;
-			break;
-		case 190:
-			ret=62;
-			break;
-		case 75:
-			ret=107;
-			break;
-		case 83:
-			ret=115;
-			break;
-		case 57:
-			ret=40;
-			break;
-		case 192:
-			ret=126;
-			break;
-		case 220:
-			ret=124;
-			break;
-		case 109:
-			ret=45;
-			break;
-		case 69:
-			ret=101;
-			break;
-		case 191:
-			ret=63;
-			break;
-		case 49:
-			ret=33;
-			break;
-		case 89:
-			ret=121;
-			break;
-		case 187:
-			ret=43;
-			break;
-		case 189:
-			ret=95;
-			break;
-		case 53:
-			ret=37;
-			break;
-		case 78:
-			ret=110;
-			break;
-		case 107:
-			ret=43;
-			break;
-		case 48:
-			ret=41;
-			break;
-		case 79:
-			ret=111;
-			break;
-		case 87:
-			ret=119;
-			break;
-		case 77:
-			ret=109;
-			break;
-		case 106:
-			ret=42;
-			break;
-		case 219:
-			ret=123;
-			break;
-		case 13:
-			ret=13;
-			break;
-		case 65:
-			ret=97;
-			break;
-		case 50:
-			ret=64;
-			break;
-		case 221:
-			ret=125;
-			break;
-		case 85:
-			ret=117;
-			break;
-		case 111:
-			ret=47;
-			break;
-		case 9:
-			ret=9;
-			break;
-		case 51:
-			ret=35;
-			break;
-		case 8:
-			ret=8;
-			break;
-		case 52:
-			ret=36;
-			break;
-		case 81:
-			ret=113;
-			break;
-		case 56:
-			ret=42;
-			break;
-		case 66:
-			ret=98;
-			break;
-		case 73:
-			ret=105;
-			break;
-		case 86:
-			ret=118;
-			break;
-		case 76:
-			ret=108;
-			break;
-		case 54:
-			ret=94;
-			break;
-	}
-	return ret;
-}
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*5*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL          ,MAP_CHAR_NULL        ,MAP_CHAR_BACKSPACE     ,MAP_CHAR_TAB           ,            /*10*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL          ,MAP_CHAR_NULL        ,MAP_CHAR_ENTER         ,MAP_CHAR_NULL		  , 		   /*15*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*20*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*25*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL          ,MAP_CHAR_ESCAPE      ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*30*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL          ,MAP_CHAR_SPACE       ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*35*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL  	  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*40*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL  	  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*45*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL          ,MAP_CHAR_NULL        ,MAP_CHAR_RPAREN        ,MAP_CHAR_EMOTION       ,            /*50*/
+    MAP_CHAR_ATSYMBOL   ,MAP_CHAR_NUMSIGN       ,MAP_CHAR_DOLLAR      ,MAP_CHAR_PERCENT       ,MAP_CHAR_CARET         ,            /*55*/
+    MAP_CHAR_AMPERSAND  ,MAP_CHAR_NUMPAD_STAR   ,MAP_CHAR_LPAREN      ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*60*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*65*/
+    MAP_CHAR_a          ,MAP_CHAR_b             ,MAP_CHAR_c           ,MAP_CHAR_d             ,MAP_CHAR_e             ,            /*70*/
+    MAP_CHAR_f			,MAP_CHAR_g 			,MAP_CHAR_h 		  ,MAP_CHAR_i			  ,MAP_CHAR_j			  , 		   /*75*/
+    MAP_CHAR_k			,MAP_CHAR_l 			,MAP_CHAR_m 		  ,MAP_CHAR_n			  ,MAP_CHAR_o			  , 		   /*80*/
+    MAP_CHAR_p			,MAP_CHAR_q 			,MAP_CHAR_r 		  ,MAP_CHAR_s			  ,MAP_CHAR_t			  , 		   /*85*/
+    MAP_CHAR_u			,MAP_CHAR_v 			,MAP_CHAR_w 		  ,MAP_CHAR_x			  ,MAP_CHAR_y			  , 		   /*90*/
+    MAP_CHAR_z          ,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*95*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*100*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*105*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NUMPAD_STAR   ,MAP_CHAR_NUMPAD_PLUS ,MAP_CHAR_NULL          ,MAP_CHAR_NUMPAD_MINUS  ,            /*110*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NUMPAD_SLASH  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*115*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*120*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*125*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*130*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*135*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*140*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*145*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*150*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*155*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*160*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*165*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*170*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*175*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*180*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*185*/
+    MAP_CHAR_NULL       ,MAP_CHAR_COLON         ,MAP_CHAR_NUMPAD_PLUS ,MAP_CHAR_LESS          ,MAP_CHAR_UNDERSCORE    ,            /*190*/
+    MAP_CHAR_GREATER    ,MAP_CHAR_QUESTION      ,MAP_CHAR_TILDE       ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*195*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*200*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*205*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*210*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*215*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_LBRACE  	  , 		   /*220*/
+    MAP_CHAR_VERT_BAR   ,MAP_CHAR_RBRACE        ,MAP_CHAR_DOUBLE_QUOTE,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*225*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*230*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*235*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*240*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*245*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*250*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*255*/
+    MAP_CHAR_NULL
+};
 
 int ShiftCapsCharTrans(int vk)
 {
