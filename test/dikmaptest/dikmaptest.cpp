@@ -213,179 +213,573 @@ static unsigned char st_CapsChar[256] =
 
 int CapsCharTrans(int vk)
 {
-	int ret=MAP_CHAR_NULL;
-	switch(vk)
-	{
-		case 67:
-			ret=67;
-			break;
-		case 32:
-			ret=32;
-			break;
-		case 90:
-			ret=90;
-			break;
-		case 71:
-			ret=71;
-			break;
-		case 70:
-			ret=70;
-			break;
-		case 188:
-			ret=44;
-			break;
-		case 68:
-			ret=68;
-			break;
-		case 80:
-			ret=80;
-			break;
-		case 88:
-			ret=88;
-			break;
-		case 72:
-			ret=72;
-			break;
-		case 186:
-			ret=59;
-			break;
-		case 82:
-			ret=82;
-			break;
-		case 55:
-			ret=55;
-			break;
-		case 27:
-			ret=27;
-			break;
-		case 74:
-			ret=74;
-			break;
-		case 84:
-			ret=84;
-			break;
-		case 190:
-			ret=46;
-			break;
-		case 75:
-			ret=75;
-			break;
-		case 83:
-			ret=83;
-			break;
-		case 57:
-			ret=57;
-			break;
-		case 192:
-			ret=96;
-			break;
-		case 220:
-			ret=92;
-			break;
-		case 109:
-			ret=45;
-			break;
-		case 69:
-			ret=69;
-			break;
-		case 191:
-			ret=47;
-			break;
-		case 49:
-			ret=49;
-			break;
-		case 89:
-			ret=89;
-			break;
-		case 187:
-			ret=61;
-			break;
-		case 189:
-			ret=45;
-			break;
-		case 53:
-			ret=53;
-			break;
-		case 78:
-			ret=78;
-			break;
-		case 107:
-			ret=43;
-			break;
-		case 48:
-			ret=48;
-			break;
-		case 79:
-			ret=79;
-			break;
-		case 87:
-			ret=87;
-			break;
-		case 77:
-			ret=77;
-			break;
-		case 106:
-			ret=42;
-			break;
-		case 219:
-			ret=91;
-			break;
-		case 13:
-			ret=13;
-			break;
-		case 65:
-			ret=65;
-			break;
-		case 50:
-			ret=50;
-			break;
-		case 221:
-			ret=93;
-			break;
-		case 85:
-			ret=85;
-			break;
-		case 111:
-			ret=47;
-			break;
-		case 9:
-			ret=9;
-			break;
-		case 51:
-			ret=51;
-			break;
-		case 81:
-			ret=81;
-			break;
-		case 8:
-			ret=8;
-			break;
-		case 52:
-			ret=52;
-			break;
-		case 56:
-			ret=56;
-			break;
-		case 66:
-			ret=66;
-			break;
-		case 73:
-			ret=73;
-			break;
-		case 86:
-			ret=86;
-			break;
-		case 76:
-			ret=76;
-			break;
-		case 54:
-			ret=54;
-			break;
-	}
-	return ret;
+    int ret=MAP_CHAR_NULL;
+    switch(vk)
+    {
+    case 67:
+        ret=67;
+        break;
+    case 32:
+        ret=32;
+        break;
+    case 90:
+        ret=90;
+        break;
+    case 71:
+        ret=71;
+        break;
+    case 70:
+        ret=70;
+        break;
+    case 188:
+        ret=44;
+        break;
+    case 68:
+        ret=68;
+        break;
+    case 80:
+        ret=80;
+        break;
+    case 88:
+        ret=88;
+        break;
+    case 72:
+        ret=72;
+        break;
+    case 186:
+        ret=59;
+        break;
+    case 82:
+        ret=82;
+        break;
+    case 55:
+        ret=55;
+        break;
+    case 27:
+        ret=27;
+        break;
+    case 74:
+        ret=74;
+        break;
+    case 84:
+        ret=84;
+        break;
+    case 190:
+        ret=46;
+        break;
+    case 75:
+        ret=75;
+        break;
+    case 83:
+        ret=83;
+        break;
+    case 57:
+        ret=57;
+        break;
+    case 192:
+        ret=96;
+        break;
+    case 220:
+        ret=92;
+        break;
+    case 109:
+        ret=45;
+        break;
+    case 69:
+        ret=69;
+        break;
+    case 191:
+        ret=47;
+        break;
+    case 49:
+        ret=49;
+        break;
+    case 89:
+        ret=89;
+        break;
+    case 187:
+        ret=61;
+        break;
+    case 189:
+        ret=45;
+        break;
+    case 53:
+        ret=53;
+        break;
+    case 78:
+        ret=78;
+        break;
+    case 107:
+        ret=43;
+        break;
+    case 48:
+        ret=48;
+        break;
+    case 79:
+        ret=79;
+        break;
+    case 87:
+        ret=87;
+        break;
+    case 77:
+        ret=77;
+        break;
+    case 106:
+        ret=42;
+        break;
+    case 219:
+        ret=91;
+        break;
+    case 13:
+        ret=13;
+        break;
+    case 65:
+        ret=65;
+        break;
+    case 50:
+        ret=50;
+        break;
+    case 221:
+        ret=93;
+        break;
+    case 85:
+        ret=85;
+        break;
+    case 111:
+        ret=47;
+        break;
+    case 9:
+        ret=9;
+        break;
+    case 51:
+        ret=51;
+        break;
+    case 81:
+        ret=81;
+        break;
+    case 8:
+        ret=8;
+        break;
+    case 52:
+        ret=52;
+        break;
+    case 56:
+        ret=56;
+        break;
+    case 66:
+        ret=66;
+        break;
+    case 73:
+        ret=73;
+        break;
+    case 86:
+        ret=86;
+        break;
+    case 76:
+        ret=76;
+        break;
+    case 54:
+        ret=54;
+        break;
+    }
+    return ret;
 }
 
 
+static unsigned char st_NormChar[256] =
+{
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL        ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,MAP_CHAR_NULL          ,            /*5*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL        ,MAP_CHAR_NULL          ,MAP_CHAR_BACKSPACE     ,MAP_CHAR_TAB           ,            /*10*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_ENTER		  ,MAP_CHAR_NULL		  , 		   /*15*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*20*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*25*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_ESCAPE		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*30*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_SPACE		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*35*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*40*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*45*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_0			  ,MAP_CHAR_1			  , 		   /*50*/
+    MAP_CHAR_2			,MAP_CHAR_3 		  ,MAP_CHAR_4			  ,MAP_CHAR_5			  ,MAP_CHAR_6			  , 		   /*55*/
+    MAP_CHAR_7			,MAP_CHAR_8 		  ,MAP_CHAR_9			  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*60*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*65*/
+    MAP_CHAR_a          ,MAP_CHAR_b           ,MAP_CHAR_c             ,MAP_CHAR_d             ,MAP_CHAR_e             ,            /*70*/
+    MAP_CHAR_f			,MAP_CHAR_g 		  ,MAP_CHAR_h			  ,MAP_CHAR_i			  ,MAP_CHAR_j			  , 		   /*75*/
+    MAP_CHAR_k			,MAP_CHAR_l 		  ,MAP_CHAR_m			  ,MAP_CHAR_n			  ,MAP_CHAR_o			  , 		   /*80*/
+    MAP_CHAR_p			,MAP_CHAR_q 		  ,MAP_CHAR_r			  ,MAP_CHAR_s			  ,MAP_CHAR_t			  , 		   /*85*/
+    MAP_CHAR_u			,MAP_CHAR_v 		  ,MAP_CHAR_w			  ,MAP_CHAR_x			  ,MAP_CHAR_y			  , 		   /*90*/
+    MAP_CHAR_z          ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*95*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL    	  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*100*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*105*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NUMPAD_STAR ,MAP_CHAR_NUMPAD_PLUS   ,MAP_CHAR_NULL          ,MAP_CHAR_NUMPAD_MINUS  ,            /*110*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NUMPAD_SLASH,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*115*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*120*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*125*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*130*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*135*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*140*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*145*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*150*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*155*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*160*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*165*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*170*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*175*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*180*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*185*/
+    MAP_CHAR_NULL       ,MAP_CHAR_SEMICOLON   ,MAP_CHAR_EQUAL         ,MAP_CHAR_COMMA         ,MAP_CHAR_MINUS         ,            /*190*/
+    MAP_CHAR_DOT        ,MAP_CHAR_NUMPAD_SLASH,MAP_CHAR_APOSTROPHY    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*195*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*200*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*205*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*210*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*215*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_LBRACKET	  , 		   /*220*/
+    MAP_CHAR_BACKSLASH  ,MAP_CHAR_RBRACKET    ,MAP_CHAR_SINGLE_QUOTE  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*225*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*230*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*235*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*240*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*245*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*250*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*255*/
+    MAP_CHAR_NULL
+};
+
+int NormCharTrans(int vk)
+{
+    int ret=MAP_CHAR_NULL;
+    switch(vk)
+    {
+    case 32:
+        ret=32;
+        break;
+    case 67:
+        ret=99;
+        break;
+    case 90:
+        ret=122;
+        break;
+    case 71:
+        ret=103;
+        break;
+    case 70:
+        ret=102;
+        break;
+    case 188:
+        ret=44;
+        break;
+    case 68:
+        ret=100;
+        break;
+    case 80:
+        ret=112;
+        break;
+    case 88:
+        ret=120;
+        break;
+    case 72:
+        ret=104;
+        break;
+    case 186:
+        ret=59;
+        break;
+    case 222:
+        ret=39;
+        break;
+    case 82:
+        ret=114;
+        break;
+    case 55:
+        ret=55;
+        break;
+    case 27:
+        ret=27;
+        break;
+    case 74:
+        ret=106;
+        break;
+    case 84:
+        ret=116;
+        break;
+    case 190:
+        ret=46;
+        break;
+    case 75:
+        ret=107;
+        break;
+    case 83:
+        ret=115;
+        break;
+    case 57:
+        ret=57;
+        break;
+    case 192:
+        ret=96;
+        break;
+    case 220:
+        ret=92;
+        break;
+    case 109:
+        ret=45;
+        break;
+    case 69:
+        ret=101;
+        break;
+    case 191:
+        ret=47;
+        break;
+    case 49:
+        ret=49;
+        break;
+    case 89:
+        ret=121;
+        break;
+    case 187:
+        ret=61;
+        break;
+    case 189:
+        ret=45;
+        break;
+    case 53:
+        ret=53;
+        break;
+    case 78:
+        ret=110;
+        break;
+    case 107:
+        ret=43;
+        break;
+    case 48:
+        ret=48;
+        break;
+    case 79:
+        ret=111;
+        break;
+    case 87:
+        ret=119;
+        break;
+    case 77:
+        ret=109;
+        break;
+    case 106:
+        ret=42;
+        break;
+    case 219:
+        ret=91;
+        break;
+    case 13:
+        ret=13;
+        break;
+    case 65:
+        ret=97;
+        break;
+    case 50:
+        ret=50;
+        break;
+    case 221:
+        ret=93;
+        break;
+    case 85:
+        ret=117;
+        break;
+    case 111:
+        ret=47;
+        break;
+    case 9:
+        ret=9;
+        break;
+    case 51:
+        ret=51;
+        break;
+    case 81:
+        ret=113;
+        break;
+    case 8:
+        ret=8;
+        break;
+    case 52:
+        ret=52;
+        break;
+    case 56:
+        ret=56;
+        break;
+    case 66:
+        ret=98;
+        break;
+    case 73:
+        ret=105;
+        break;
+    case 86:
+        ret=118;
+        break;
+    case 76:
+        ret=108;
+        break;
+    case 54:
+        ret=54;
+        break;
+    }
+    return ret;
+}
+
+
+static unsigned char st_CtrlChar[256] =
+{
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_CTRL_C        ,MAP_CHAR_NULL		  , 		   /*5*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL          ,MAP_CHAR_NULL        ,MAP_CHAR_CTRL_BACKSPACE,MAP_CHAR_NULL          ,            /*10*/
+    MAP_CHAR_NULL       ,MAP_CHAR_NULL          ,MAP_CHAR_NULL        ,MAP_CHAR_LINEFEED      ,MAP_CHAR_NULL          ,            /*15*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL    	  ,MAP_CHAR_NULL		  , 		   /*20*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*25*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*30*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*35*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*40*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*45*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*50*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*55*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*60*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*65*/
+    MAP_CHAR_CTRL_A     ,MAP_CHAR_CTRL_B        ,MAP_CHAR_CTRL_C      ,MAP_CHAR_CTRL_D        ,MAP_CHAR_CTRL_E        ,            /*70*/
+    MAP_CHAR_CTRL_F 	,MAP_CHAR_CTRL_G	    ,MAP_CHAR_CTRL_H      ,MAP_CHAR_CTRL_I		  ,MAP_CHAR_CTRL_J		  , 		   /*75*/
+    MAP_CHAR_CTRL_K 	,MAP_CHAR_CTRL_L	    ,MAP_CHAR_CTRL_M      ,MAP_CHAR_CTRL_N		  ,MAP_CHAR_CTRL_O		  , 		   /*80*/
+    MAP_CHAR_CTRL_P 	,MAP_CHAR_CTRL_Q	    ,MAP_CHAR_CTRL_R      ,MAP_CHAR_CTRL_S		  ,MAP_CHAR_CTRL_T		  , 		   /*85*/
+    MAP_CHAR_CTRL_U 	,MAP_CHAR_CTRL_V	    ,MAP_CHAR_CTRL_W      ,MAP_CHAR_CTRL_X		  ,MAP_CHAR_CTRL_Y		  , 		   /*90*/
+    MAP_CHAR_CTRL_Z     ,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*95*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*100*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*105*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*110*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*115*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*120*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*125*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*130*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*135*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*140*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*145*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*150*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*155*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*160*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*165*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*170*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*175*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*180*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*185*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*190*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*195*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*200*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*205*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*210*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*215*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL		    ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_CTRL_LBRACKET , 		   /*220*/
+    MAP_CHAR_CTRL_SLASH ,MAP_CHAR_CTRL_RBRACKET ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*225*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*230*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*235*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*240*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*245*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*250*/
+    MAP_CHAR_NULL		,MAP_CHAR_NULL			,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  ,MAP_CHAR_NULL		  , 		   /*255*/
+    MAP_CHAR_NULL
+};
+
+int CtrlCharTrans(int vk)
+{
+    int ret=MAP_CHAR_NULL;
+    switch(vk)
+    {
+    case 67:
+        ret=3;
+        break;
+    case 90:
+        ret=26;
+        break;
+    case 71:
+        ret=7;
+        break;
+    case 70:
+        ret=6;
+        break;
+    case 68:
+        ret=4;
+        break;
+    case 80:
+        ret=16;
+        break;
+    case 88:
+        ret=24;
+        break;
+    case 72:
+        ret=8;
+        break;
+    case 82:
+        ret=18;
+        break;
+    case 74:
+        ret=10;
+        break;
+    case 84:
+        ret=20;
+        break;
+    case 75:
+        ret=11;
+        break;
+    case 83:
+        ret=19;
+        break;
+    case 220:
+        ret=28;
+        break;
+    case 69:
+        ret=5;
+        break;
+    case 89:
+        ret=25;
+        break;
+    case 78:
+        ret=14;
+        break;
+    case 79:
+        ret=15;
+        break;
+    case 87:
+        ret=23;
+        break;
+    case 77:
+        ret=13;
+        break;
+    case 219:
+        ret=27;
+        break;
+    case 13:
+        ret=10;
+        break;
+    case 65:
+        ret=1;
+        break;
+    case 221:
+        ret=29;
+        break;
+    case 85:
+        ret=21;
+        break;
+    case 3:
+        ret=3;
+        break;
+    case 8:
+        ret=127;
+        break;
+    case 81:
+        ret=17;
+        break;
+    case 73:
+        ret=9;
+        break;
+    case 66:
+        ret=2;
+        break;
+    case 76:
+        ret=12;
+        break;
+    case 86:
+        ret=22;
+        break;
+    }
+    return ret;
+}
 
 
 typedef enum IO_KEYBOARD_CODE
@@ -1727,6 +2121,18 @@ int main(int argc,char* argv[])
             fprintf(stderr,"capschar[%d] caseret(0x%x:%d) vecret(0x%x:%d)\n",i,caseret,caseret,vecret,vecret);
         }
     }
+
+    for(i=0; i<256; i++)
+    {
+        caseret = NormCharTrans(i);
+        vecret = st_NormChar[i];
+        if(caseret != vecret)
+        {
+            fprintf(stderr,"normchar[%d] caseret(0x%x:%d) vecret(0x%x:%d)\n",i,caseret,caseret,vecret,vecret);
+        }
+    }
+
+
     return 0;
 }
 
