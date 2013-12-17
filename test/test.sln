@@ -35,6 +35,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rawinput", "rawinput\rawinp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "keymessage", "keymessage\keymessage.vcxproj", "{970C3EC8-3C36-4816-8B5B-9476EEDE1581}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Arrow", "ArrowSource\Arrow.vcxproj", "{BF141F3B-47A4-4048-88CA-0B5E84C7ADCC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -105,6 +107,10 @@ Global
 		{970C3EC8-3C36-4816-8B5B-9476EEDE1581}.Debug|Win32.Build.0 = Debug|Win32
 		{970C3EC8-3C36-4816-8B5B-9476EEDE1581}.Release|Win32.ActiveCfg = Release|Win32
 		{970C3EC8-3C36-4816-8B5B-9476EEDE1581}.Release|Win32.Build.0 = Release|Win32
+		{BF141F3B-47A4-4048-88CA-0B5E84C7ADCC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BF141F3B-47A4-4048-88CA-0B5E84C7ADCC}.Debug|Win32.Build.0 = Debug|Win32
+		{BF141F3B-47A4-4048-88CA-0B5E84C7ADCC}.Release|Win32.ActiveCfg = Release|Win32
+		{BF141F3B-47A4-4048-88CA-0B5E84C7ADCC}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
