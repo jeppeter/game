@@ -42,13 +42,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>.\Debug\</OutDir>
-    <IntDir>.\Debug\</IntDir>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>.\Release\</OutDir>
-    <IntDir>.\Release\</IntDir>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -89,7 +89,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <OutputFile>.\Debug\Arrow.exe</OutputFile>
+      <OutputFile>$(SolutionDir)$(Configuration)\Arrow.exe</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -127,7 +127,7 @@
     <Link>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <SubSystem>Windows</SubSystem>
-      <OutputFile>.\Release\Arrow.exe</OutputFile>
+      <OutputFile>$(SolutionDir)$(Configuration)\Arrow.exe</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -136,11 +136,19 @@
     <ClCompile Include="ArrowView.cpp" />
     <ClCompile Include="HyperLink.cpp" />
     <ClCompile Include="MainFrm.cpp" />
+    <ClCompile Include="output_debug.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="uniansi.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

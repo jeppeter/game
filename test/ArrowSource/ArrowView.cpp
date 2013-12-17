@@ -21,6 +21,7 @@
 
 #include "ArrowDoc.h"
 #include "ArrowView.h"
+#include "output_debug.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -130,6 +131,7 @@ void DrawArrow(CDC *pdc,CPoint m_One, CPoint m_Two)
 
 void CArrowView::OnLButtonDown(UINT nFlags, CPoint point) 
 {
+	DEBUG_INFO("Left Button Down\n");
 	m_Drag = true;// for mouse drag check
 	PointOrigin = point;// value when mouse drag starts
 	CView::OnLButtonDown(nFlags, point);
@@ -137,6 +139,7 @@ void CArrowView::OnLButtonDown(UINT nFlags, CPoint point)
 
 void CArrowView::OnLButtonUp(UINT nFlags, CPoint point) 
 {
+	DEBUG_INFO("Left Button Up\n");
 	m_Drag = false;// for mouse drag check
 	MotionFix=0;
 	CView::OnLButtonUp(nFlags, point);
@@ -148,6 +151,7 @@ void CArrowView::OnMouseMove(UINT nFlags, CPoint point)
 	// only draw arrow if drag mode and different points
 	if (m_Drag && PointOrigin!=point )
 	{
+		DEBUG_INFO("Mouse Point (%d:%d)\n",point.x,point.y);
 		CClientDC ClientDC (this);
 		ClientDC.SetROP2(R2_NOT);
 
