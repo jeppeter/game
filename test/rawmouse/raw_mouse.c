@@ -150,7 +150,8 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 	char *psName;
 
 	char buffer[80];
-  
+
+	DEBUG_INFO("\n");  
 	// Return 0 if rawinput is not available
 	HMODULE user32 = LoadLibrary(TEXT("user32.dll"));
 	if (!user32) return 0;
@@ -166,16 +167,19 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 	excluded_sysmouse_devices_count = 0;
 	nraw_mouse_count = 0;
 
+	DEBUG_INFO("\n");  
 	if (bHasBeenInitialized) {
 	ERROR_INFO("WARNING: rawmouse init called after initialization already completed.");
 		bHasBeenInitialized = 1;
 		return 0;
 	}
 
+	DEBUG_INFO("\n");  
 	include_sys_mouse = in_include_sys_mouse;
 	include_rdp_mouse = in_include_rdp_mouse;
 	include_individual_mice = in_include_individual_mice;
 
+	DEBUG_INFO("\n");  
 	// 1st call to GetRawInputDeviceList: Pass NULL to get the number of devices.
 	if (/* GetRawInputDeviceList */ (*_GRIDL)(NULL, &nInputDevices, sizeof(RAWINPUTDEVICELIST)) != 0) {
 		ERROR_INFO("ERROR: Unable to count raw input devices.\n");
@@ -187,6 +191,7 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 		ERROR_INFO("ERROR: Unable to allocate memory for raw input device list.\n");
 		return 0;
 	}
+	DEBUG_INFO("\n");  
 
 	// 2nd call to GetRawInputDeviceList: Pass the pointer to our DeviceList and GetRawInputDeviceList() will fill the array
 	if (/* GetRawInputDeviceList */ (*_GRIDL)(pRawInputDeviceList, &nInputDevices, sizeof(RAWINPUTDEVICELIST)) == -1)  {
@@ -194,6 +199,7 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 		return 0;
 	}
 
+	DEBUG_INFO("\n");  
 	// Loop through all devices and count the mice
 	for (i = 0; i < nInputDevices; i++) {
 		if (pRawInputDeviceList[i].dwType == RIM_TYPEMOUSE) {
@@ -228,6 +234,7 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 		}
 	}
 
+	DEBUG_INFO("\n");  
 	if (include_sys_mouse)
 		nraw_mouse_count++;
 
@@ -237,6 +244,7 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 		return 0;
 	}
 
+	DEBUG_INFO("\n");  
 	// Define the sys mouse
 	if (include_sys_mouse) {
 		raw_mice[RAW_SYS_MOUSE].device_handle = 0;
@@ -249,6 +257,7 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 		currentmouse++;
 	}
 
+	DEBUG_INFO("\n");  
 	// Loop through all devices and set the device handles and initialize the mouse values
 	for (i = 0; i < nInputDevices; i++) {
 		if (pRawInputDeviceList[i].dwType == RIM_TYPEMOUSE) {
@@ -287,6 +296,7 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 	// free the RAWINPUTDEVICELIST
 	free(pRawInputDeviceList);
 
+	DEBUG_INFO("\n");  
 	for (i = 0; i < nraw_mouse_count; i++) {
 		for (j = 0; j < MAX_RAW_MOUSE_BUTTONS; j++) {
 			raw_mice[i].buttonpressed[j] = 0;
@@ -298,6 +308,7 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 		}
 	}
 
+	DEBUG_INFO("\n");  
 	nraw_mouse_count -= excluded_sysmouse_devices_count;
 	// finally, register to recieve raw input WM_INPUT messages
 	if (!register_raw_mouse()) {
@@ -305,6 +316,7 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 		return 0;
 	}
 
+	DEBUG_INFO("\n");  
 	bHasBeenInitialized = 1;
 	return 1;  
 }
