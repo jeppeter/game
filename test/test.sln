@@ -37,7 +37,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "keymessage", "keymessage\ke
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Arrow", "ArrowSource\Arrow.vcxproj", "{BF141F3B-47A4-4048-88CA-0B5E84C7ADCC}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kl", "klogger\kl.vcxproj", "{D274AB44-F390-4411-B4E4-A54B7B14D680}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "klogger", "klogger\kl.vcxproj", "{D274AB44-F390-4411-B4E4-A54B7B14D680}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "listrawinput", "listrawinput\testrawmouseWin32App.vcxproj", "{FB9275B8-7F0E-4F16-9D6E-6FE18D4DAA16}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -117,6 +119,10 @@ Global
 		{D274AB44-F390-4411-B4E4-A54B7B14D680}.Debug|Win32.Build.0 = Debug|Win32
 		{D274AB44-F390-4411-B4E4-A54B7B14D680}.Release|Win32.ActiveCfg = Release|Win32
 		{D274AB44-F390-4411-B4E4-A54B7B14D680}.Release|Win32.Build.0 = Release|Win32
+		{FB9275B8-7F0E-4F16-9D6E-6FE18D4DAA16}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FB9275B8-7F0E-4F16-9D6E-6FE18D4DAA16}.Debug|Win32.Build.0 = Debug|Win32
+		{FB9275B8-7F0E-4F16-9D6E-6FE18D4DAA16}.Release|Win32.ActiveCfg = Release|Win32
+		{FB9275B8-7F0E-4F16-9D6E-6FE18D4DAA16}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
