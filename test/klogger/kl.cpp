@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <strsafe.h>
 #include <time.h>
+#include "output_debug.h"
 
 // prototype
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -90,7 +91,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam)
 			PRAWINPUT raw=(PRAWINPUT)lpb;
 			UINT Event;
 			
-			StringCchPrintf(szOutput,STRSAFE_MAX_CCH,TEXT(" Kbd: make=%04x Flags:%04x Reserved:%04x ExtraInformation:%08x, msg=%04x VK=%04x \n"), 
+			DEBUG_INFO(" Kbd: make=%04x Flags:%04x Reserved:%04x ExtraInformation:%08x, msg=%04x VK=%04x \n", 
 			raw->data.keyboard.MakeCode, 
 			raw->data.keyboard.Flags, 
 			raw->data.keyboard.Reserved, 
