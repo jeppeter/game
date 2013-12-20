@@ -23,11 +23,13 @@ extern "C" {
 #define  ERROR_INFO(fmt,...) do{;}while(0)
 #endif
 #endif
-#define  DEBUG_BUFFER(ptr,blen) DebugBuffer(__FILE__,__LINE__,(unsigned char*)ptr,blen)
+
+#define  DEBUG_BUFFER(ptr,blen) DebugBufferFmt(__FILE__,__LINE__,(unsigned char*)ptr,blen,NULL)
+#define  DEBUG_BUFFER_FMT(ptr,blen,...) DebugBufferFmt(__FILE__,__LINE__,(unsigned char*)ptr,blen,__VA_ARGS__)
 
 
 extern "C" void DebugOutString(const char* file,int lineno,const char* fmt,...);
-extern "C" void DebugBuffer(const char* file,int lineno,unsigned char* pBuffer,int buflen);
+void DebugBufferFmt(const char* file,int lineno,unsigned char* pBuffer,int buflen,const char* fmt,...);
 
 #ifdef __cplusplus
 }

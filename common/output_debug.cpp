@@ -52,7 +52,7 @@ extern "C" void DebugOutString(const char* file,int lineno,const char* fmt,...)
     return ;
 }
 
-extern "C" void DebugBuffer(const char* file,int lineno,unsigned char* pBuffer,int buflen)
+extern "C" void DebugBufferFmt(const char* file,int lineno,unsigned char* pBuffer,int buflen,const char* fmt,...)
 {
     int fmtlen=2000;
     char*pLine=NULL,*pCur;
@@ -67,17 +67,26 @@ extern "C" void DebugBuffer(const char* file,int lineno,unsigned char* pBuffer,i
     pCur += ret;
     formedlen += ret;
 
-    for (i=0; i<buflen; i++)
+    if(fmt)
     {
-        if ((formedlen +100)>fmtlen)
+        va_list ap;
+        va_start(ap,fmt);
+        ret = _vsnprintf_s(pCur,fmtlen-formedlen,formedlen-formedlen - 1,fmt,ap);
+        pCur += ret;
+        formedlen += ret;
+    }
+
+    for(i=0; i<buflen; i++)
+    {
+        if((formedlen +100)>fmtlen)
         {
             InnerDebug(pLine);
             pCur = pLine;
             formedlen = 0;
         }
-        if ((i%16)==0)
+        if((i%16)==0)
         {
-        	ret = _snprintf_s(pCur,fmtlen-formedlen,fmtlen-formedlen-1,"\n");
+            ret = _snprintf_s(pCur,fmtlen-formedlen,fmtlen-formedlen-1,"\n");
             InnerDebug(pLine);
             pCur = pLine;
             formedlen = 0;
@@ -91,16 +100,16 @@ extern "C" void DebugBuffer(const char* file,int lineno,unsigned char* pBuffer,i
         formedlen += ret;
     }
 
-    if (formedlen > 0)
+    if(formedlen > 0)
     {
         InnerDebug(pLine);
         pCur = pLine;
         formedlen = 0;
     }
 
-	delete [] pLine;
-	pLine = NULL;
-	return ;
+    delete [] pLine;
+    pLine = NULL;
+    return ;
 }
 
 
