@@ -167,7 +167,7 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 	nraw_mouse_count = 0;
 
 	if (bHasBeenInitialized) {
-	fprintf(stderr, "WARNING: rawmouse init called after initialization already completed.");
+	ERROR_INFO("WARNING: rawmouse init called after initialization already completed.");
 		bHasBeenInitialized = 1;
 		return 0;
 	}
@@ -178,21 +178,19 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 
 	// 1st call to GetRawInputDeviceList: Pass NULL to get the number of devices.
 	if (/* GetRawInputDeviceList */ (*_GRIDL)(NULL, &nInputDevices, sizeof(RAWINPUTDEVICELIST)) != 0) {
-		fprintf(stderr, "ERROR: Unable to count raw input devices.\n");
 		ERROR_INFO("ERROR: Unable to count raw input devices.\n");
 		return 0;
 	}
 
 	// Allocate the array to hold the DeviceList
 	if ((pRawInputDeviceList = malloc(sizeof(RAWINPUTDEVICELIST) * nInputDevices)) == NULL) {
-		fprintf(stderr, "ERROR: Unable to allocate memory for raw input device list.\n");
 		ERROR_INFO("ERROR: Unable to allocate memory for raw input device list.\n");
 		return 0;
 	}
 
 	// 2nd call to GetRawInputDeviceList: Pass the pointer to our DeviceList and GetRawInputDeviceList() will fill the array
 	if (/* GetRawInputDeviceList */ (*_GRIDL)(pRawInputDeviceList, &nInputDevices, sizeof(RAWINPUTDEVICELIST)) == -1)  {
-		fprintf(stderr, "ERROR: Unable to get raw input device list.\n");
+		ERROR_INFO("ERROR: Unable to get raw input device list.\n");
 		return 0;
 	}
 
@@ -203,19 +201,19 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 
 			// 1st call to GetRawInputDeviceInfo: Pass NULL to get the size of the device name 
 		        if (/* GetRawInputDeviceInfo */ (*_GRIDIA)(pRawInputDeviceList[i].hDevice, RIDI_DEVICENAME, NULL, &nSize) != 0) {
-				fprintf(stderr, "ERROR: Unable to get size of raw input device name.\n");
+				ERROR_INFO("ERROR: Unable to get size of raw input device name.\n");
 				return 0;
 			}
 				
 			// Allocate the array to hold the name
 			if ((psName = (char *)malloc(sizeof(TCHAR) * nSize)) == NULL)  {
-				fprintf(stderr, "ERROR: Unable to allocate memory for device name.\n");
+				ERROR_INFO( "ERROR: Unable to allocate memory for device name.\n");
 				return 0;
 			}
 
 			// 2nd call to GetRawInputDeviceInfo: Pass our pointer to get the device name
 			if ((int)/* GetRawInputDeviceInfo */ (*_GRIDIA)(pRawInputDeviceList[i].hDevice, RIDI_DEVICENAME, psName, &nSize) < 0)  {
-				fprintf(stderr, "ERROR: Unable to get raw input device name.\n");
+				ERROR_INFO( "ERROR: Unable to get raw input device name.\n");
 				return 0;
 			} 
 
@@ -235,7 +233,7 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 
 	// Allocate the array for the raw mice
 	if ((raw_mice = malloc(sizeof(RAW_MOUSE) * nraw_mouse_count)) == NULL)  {
-		fprintf(stderr, "ERROR: Unable to allocate memory for raw input mice.\n");
+		ERROR_INFO( "ERROR: Unable to allocate memory for raw input mice.\n");
 		return 0;
 	}
 
@@ -256,19 +254,19 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 		if (pRawInputDeviceList[i].dwType == RIM_TYPEMOUSE) {
 			// 1st call to GetRawInputDeviceInfo: Pass NULL to get the size of the device name 
 		        if (/* GetRawInputDeviceInfo */ (*_GRIDIA)(pRawInputDeviceList[i].hDevice, RIDI_DEVICENAME, NULL, &nSize) != 0)  {
-				fprintf(stderr, "ERROR: Unable to get size of raw input device name (2).\n");
+				ERROR_INFO( "ERROR: Unable to get size of raw input device name (2).\n");
 				return 0;
 			}
 			
 			// Allocate the array to hold the name
 			if ((psName = (char *)malloc(sizeof(TCHAR) * nSize)) == NULL) {
-				fprintf(stderr, "ERROR: Unable to allocate memory for raw input device name (2).\n");
+				ERROR_INFO( "ERROR: Unable to allocate memory for raw input device name (2).\n");
 				return 0;
 			}
 		  
 			// 2nd call to GetRawInputDeviceInfo: Pass our pointer to get the device name
 			if ((int)/* GetRawInputDeviceInfo */ (*_GRIDIA)(pRawInputDeviceList[i].hDevice, RIDI_DEVICENAME, psName, &nSize) < 0) {
-				fprintf(stderr, "ERROR: Unable to get raw input device name (2).\n");
+				ERROR_INFO( "ERROR: Unable to get raw input device name (2).\n");
 				return 0;
 			} 
 
@@ -303,7 +301,7 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 	nraw_mouse_count -= excluded_sysmouse_devices_count;
 	// finally, register to recieve raw input WM_INPUT messages
 	if (!register_raw_mouse()) {
-		fprintf(stderr, "ERROR: Unable to register raw input (2).\n");
+		ERROR_INFO( "ERROR: Unable to register raw input (2).\n");
 		return 0;
 	}
 
@@ -484,18 +482,18 @@ BOOL add_to_raw_mouse_x_and_y(HANDLE in_device_handle)
 	int dwSize;
 
 	if (/* GetRawInputData */(*_GRID)((HRAWINPUT)in_device_handle, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER)) == -1) {
-		fprintf(stderr, "ERROR: Unable to add to get size of raw input header.\n");
+		ERROR_INFO( "ERROR: Unable to add to get size of raw input header.\n");
 		return 0;
 	}
 
 	lpb = (LPBYTE)malloc(sizeof(LPBYTE) * dwSize);
 	if (lpb == NULL) {
-		fprintf(stderr, "ERROR: Unable to allocate memory for raw input header.\n");
+		ERROR_INFO( "ERROR: Unable to allocate memory for raw input header.\n");
 		return 0;
 	} 
   
 	if (/* GetRawInputData */(*_GRID)((HRAWINPUT)in_device_handle, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize ) {
-		fprintf(stderr, "ERROR: Unable to add to get raw input header.\n");
+		ERROR_INFO( "ERROR: Unable to add to get raw input header.\n");
 		return 0;
 	} 
 
