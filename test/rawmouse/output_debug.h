@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define WINXP_VER  1
+#define WIN7_VER  1
 
 #ifdef WIN7_VER
 #define  DEBUG_INFO(fmt,...) DebugOutString(__FILE__,__LINE__,fmt,__VA_ARGS__)
@@ -28,7 +28,7 @@ extern "C" {
 #define  DEBUG_BUFFER_FMT(ptr,blen,...) DebugBufferFmt(__FILE__,__LINE__,(unsigned char*)ptr,blen,__VA_ARGS__)
 
 
-extern "C" void DebugOutString(const char* file,int lineno,const char* fmt,...);
+void DebugOutString(const char* file,int lineno,const char* fmt,...);
 void DebugBufferFmt(const char* file,int lineno,unsigned char* pBuffer,int buflen,const char* fmt,...);
 
 #ifdef __cplusplus

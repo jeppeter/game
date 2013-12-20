@@ -14,6 +14,7 @@
 #include <stdio.h>
 
 #include "raw_mouse.h"
+#include "output_debug.h"
 
 //============================================================
 //	Dynamically linked functions from rawinput
@@ -178,12 +179,14 @@ BOOL init_raw_mouse(BOOL in_include_sys_mouse, BOOL in_include_rdp_mouse, BOOL i
 	// 1st call to GetRawInputDeviceList: Pass NULL to get the number of devices.
 	if (/* GetRawInputDeviceList */ (*_GRIDL)(NULL, &nInputDevices, sizeof(RAWINPUTDEVICELIST)) != 0) {
 		fprintf(stderr, "ERROR: Unable to count raw input devices.\n");
+		ERROR_INFO("ERROR: Unable to count raw input devices.\n");
 		return 0;
 	}
 
 	// Allocate the array to hold the DeviceList
 	if ((pRawInputDeviceList = malloc(sizeof(RAWINPUTDEVICELIST) * nInputDevices)) == NULL) {
 		fprintf(stderr, "ERROR: Unable to allocate memory for raw input device list.\n");
+		ERROR_INFO("ERROR: Unable to allocate memory for raw input device list.\n");
 		return 0;
 	}
 
