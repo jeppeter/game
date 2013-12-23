@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "keymessage.h"
 #include "output_debug.h"
+#include <memory>
 
 #define MAX_LOADSTRING 100
 
@@ -54,8 +55,8 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
             {
                 int mapchar;
                 mapchar = MapVirtualKey(msg.wParam,MAPVK_VK_TO_CHAR);
-                DEBUG_INFO("message (0x%08x:%d) wParam(0x%08x:%d) lParam(0x%08x:%d) mapchar(0x%08x:%d)\n",
-                           msg.message,msg.message,msg.wParam,msg.wParam,msg.lParam,msg.lParam,mapchar,mapchar);
+                //DEBUG_INFO("message (0x%08x:%d) wParam(0x%08x:%d) lParam(0x%08x:%d) mapchar(0x%08x:%d)\n",
+                //           msg.message,msg.message,msg.wParam,msg.wParam,msg.lParam,msg.lParam,mapchar,mapchar);
             }
 
             if(!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
@@ -147,9 +148,44 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     int wmId, wmEvent;
     PAINTSTRUCT ps;
     HDC hdc;
+    RAWINPUTDEVICE rid;
+    UINT dwSize;
+    std::auto_ptr<BYTE> lpByte2(new BYTE[20]);
+    LPBYTE lpByte;
+    PRAWINPUT raw;
 
     switch(message)
     {
+    case WM_CREATE:
+        // register interest in raw data
+        rid.dwFlags=RIDEV_NOLEGACY|RIDEV_INPUTSINK;	// ignore legacy messages and receive system wide keystrokes
+        rid.usUsagePage=1;							// raw keyboard data only
+        rid.usUsage=6;
+        rid.hwndTarget=hWnd;
+        RegisterRawInputDevices(&rid,1,sizeof(rid));
+        break;
+    case WM_INPUT:
+        if(GetRawInputData((HRAWINPUT)lParam,RID_INPUT,NULL,&dwSize,sizeof(RAWINPUTHEADER))==-1)
+        {
+            break;
+        }
+        lpByte2.reset(new BYTE[dwSize]);
+        lpByte = lpByte2.get();
+        if(GetRawInputData((HRAWINPUT)lParam,RID_INPUT,lpByte,&dwSize,sizeof(RAWINPUTHEADER))!=dwSize)
+        {
+            break;
+        }
+        raw=(PRAWINPUT)lpByte;
+        DEBUG_INFO(" Kbd: make=%04x Flags:%04x Reserved:%04x ExtraInformation:%08x, msg=%04x VK=%04x \n",
+                   raw->data.keyboard.MakeCode,
+                   raw->data.keyboard.Flags,
+                   raw->data.keyboard.Reserved,
+                   raw->data.keyboard.ExtraInformation,
+                   raw->data.keyboard.Message,
+                   raw->data.keyboard.VKey);
+
+
+        break;
     case WM_COMMAND:
         wmId    = LOWORD(wParam);
         wmEvent = HIWORD(wParam);

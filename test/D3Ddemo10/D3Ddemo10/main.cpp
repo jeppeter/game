@@ -67,6 +67,7 @@ LPDIRECTINPUTDEVICE8    g_pMouseDevice      = NULL;
 DIMOUSESTATE            g_diMouseState      = {0};
 LPDIRECTINPUTDEVICE8    g_pKeyboardDevice   = NULL;
 char                    g_pKeyStateBuffer[256] = {0};
+char                    g_pLastKeyStateBuffer[256]= {0};
 D3DXMATRIX      g_matWorld;   //世界矩阵
 
 LPD3DXMESH          g_pMesh     = NULL; // 网格的对象
@@ -142,17 +143,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
         int debug=0;
         if(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))       //查看应用程序消息队列，有消息时将队列中的消息派发出去。
         {
-            if(msg.message == 0x12 || msg.message == 0xc03e)
-            {
-                DEBUG_INFO("msg 0x%08x:%d\n",msg.message,msg.message);
-                debug = 1;
-            }
             TranslateMessage(&msg);		//将虚拟键消息转换为字符消息
             DispatchMessage(&msg);		//该函数分发一个消息给窗口程序。
-            if(debug)
-            {
-                DEBUG_INFO("msg 0x%08x:%d\n",msg.message,msg.message);
-            }
         }
         else
         {
@@ -335,7 +327,7 @@ HRESULT Direct3D_Init(HWND hwnd,HINSTANCE hInstance)
 
     // 设置数据格式和协作级别
     g_pDirectInput->CreateDevice(GUID_SysMouse, &g_pMouseDevice, NULL);
-    DEBUG_INFO("g_pMouseDevice 0x%p\n",g_pMouseDevice);
+    //DEBUG_INFO("g_pMouseDevice 0x%p\n",g_pMouseDevice);
     g_pMouseDevice->SetDataFormat(&c_dfDIMouse);
 
     //获取设备控制权
@@ -458,6 +450,21 @@ void Matrix_Set()
 }
 
 
+static void CompareBuffer(void)
+{
+    UINT i;
+
+    for(i=0; i<sizeof(g_pKeyStateBuffer); i++)
+    {
+        if(g_pKeyStateBuffer[i] != g_pLastKeyStateBuffer[i])
+        {
+            DEBUG_INFO("[%d] diff 0x%02x => 0x%02x\n",i,g_pLastKeyStateBuffer[i],g_pKeyStateBuffer[i]);
+        }
+    }
+
+	CopyMemory(g_pLastKeyStateBuffer,g_pKeyStateBuffer,sizeof(g_pKeyStateBuffer));
+}
+
 void				Direct3D_Update(HWND hwnd)
 {
     // 获取键盘消息并给予设置相应的填充模式
@@ -473,6 +480,7 @@ void				Direct3D_Update(HWND hwnd)
     // 读取键盘输入
     ::ZeroMemory(g_pKeyStateBuffer, sizeof(g_pKeyStateBuffer));
     Device_Read(g_pKeyboardDevice, (LPVOID)g_pKeyStateBuffer, sizeof(g_pKeyStateBuffer));
+	CompareBuffer();
 
 
     // 按住鼠标左键并拖动，为平移操作
