@@ -12,6 +12,7 @@
 HINSTANCE hInst;								// 当前实例
 TCHAR szTitle[MAX_LOADSTRING];					// 标题栏文本
 TCHAR szWindowClass[MAX_LOADSTRING];			// 主窗口类名
+UCHAR g_LastKeyboardState[256] = {0};
 
 // 此代码模块中包含的函数的前向声明:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
@@ -150,9 +151,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     HDC hdc;
     RAWINPUTDEVICE rid;
     UINT dwSize;
-    std::auto_ptr<BYTE> lpByte2(new BYTE[20]);
-    LPBYTE lpByte;
+    std::auto_ptr<BYTE> lpByte2(new BYTE[20]),lpKeyboardState2(new BYTE[256]);
+    LPBYTE lpByte,lpKeyboardState=lpKeyboardState2.get();
     PRAWINPUT raw;
+    SHORT shiftstate,ctrlstate,menustate,lwinstate,rwinstate;
+    SHORT ashiftstate,actrlstate,amenustate;
+    ULONG tickcount;
+    BOOL bret;
+    UINT i;
 
     switch(message)
     {
@@ -165,10 +171,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         RegisterRawInputDevices(&rid,1,sizeof(rid));
         break;
     case WM_INPUT:
+        shiftstate = ::GetKeyState(VK_SHIFT);
+        ctrlstate = ::GetKeyState(VK_CONTROL);
+        menustate = ::GetKeyState(VK_MENU);
+        lwinstate = ::GetKeyState(VK_LWIN);
+        rwinstate = ::GetKeyState(VK_RWIN);
+        ashiftstate = ::GetAsyncKeyState(VK_SHIFT);
+        actrlstate = ::GetAsyncKeyState(VK_CONTROL);
+        amenustate = ::GetAsyncKeyState(VK_MENU);
+
+		ZeroMemory(lpKeyboardState,256);
+        bret = GetKeyboardState(lpKeyboardState);
+        if(bret)
+        {
+            for(i=0; i<256; i++)
+            {
+                if(lpKeyboardState[i] != g_LastKeyboardState[i])
+                {
+                    DEBUG_INFO("Before[%d] state(0x%02x) != laststate(0x%02x)\n",i,lpKeyboardState[i],g_LastKeyboardState[i]);
+                }
+            }
+
+			DEBUG_INFO("g_LastKeyboardState 0x%p lpKeyboardState 0x%p",g_LastKeyboardState,lpKeyboardState);
+			CopyMemory(g_LastKeyboardState,lpKeyboardState,sizeof(g_LastKeyboardState));
+			DEBUG_INFO("g_LastKeyboardState 0x%p lpKeyboardState 0x%p",g_LastKeyboardState,lpKeyboardState);
+        }
+
+
+        //DEBUG_INFO("BeforeGet shiftstate 0x%04x ctrlstate 0x%04x menustate 0x%04x lwinstate 0x%04x rwinstate 0x%04x\n",
+        //           shiftstate,ctrlstate,menustate,lwinstate,rwinstate);
+        //DEBUG_INFO("BeforeGet ashiftstate 0x%04x actrlstate 0x%04x amenustate 0x%04x\n",
+        //           ashiftstate,actrlstate,amenustate);
         if(GetRawInputData((HRAWINPUT)lParam,RID_INPUT,NULL,&dwSize,sizeof(RAWINPUTHEADER))==-1)
         {
             break;
         }
+
         lpByte2.reset(new BYTE[dwSize]);
         lpByte = lpByte2.get();
         if(GetRawInputData((HRAWINPUT)lParam,RID_INPUT,lpByte,&dwSize,sizeof(RAWINPUTHEADER))!=dwSize)
@@ -176,7 +214,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         }
         raw=(PRAWINPUT)lpByte;
-        DEBUG_INFO(" Kbd: make=%04x Flags:%04x Reserved:%04x ExtraInformation:%08x, msg=%04x VK=%04x \n",
+        tickcount = GetTickCount();
+        DEBUG_INFO("(%ld) Kbd: make=%04x Flags:%04x Reserved:%04x ExtraInformation:%08x, msg=%04x VK=%04x \n",
+                   tickcount,
                    raw->data.keyboard.MakeCode,
                    raw->data.keyboard.Flags,
                    raw->data.keyboard.Reserved,
@@ -185,6 +225,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                    raw->data.keyboard.VKey);
 
 
+        shiftstate = ::GetKeyState(VK_SHIFT);
+        ctrlstate = ::GetKeyState(VK_CONTROL);
+        menustate = ::GetKeyState(VK_MENU);
+        lwinstate = ::GetKeyState(VK_LWIN);
+        rwinstate = ::GetKeyState(VK_RWIN);
+        ashiftstate = ::GetAsyncKeyState(VK_SHIFT);
+        actrlstate = ::GetAsyncKeyState(VK_CONTROL);
+        amenustate = ::GetAsyncKeyState(VK_MENU);
+
+
+        //DEBUG_INFO("AfterGet shiftstate 0x%04x ctrlstate 0x%04x menustate 0x%04x lwinstate 0x%04x rwinstate 0x%04x\n",
+        //           shiftstate,ctrlstate,menustate,lwinstate,rwinstate);
+        //DEBUG_INFO("AfterGet ashiftstate 0x%04x actrlstate 0x%04x amenustate 0x%04x\n",
+        //           ashiftstate,actrlstate,amenustate);
+        bret = GetKeyboardState(lpKeyboardState);
+        if(bret)
+        {
+            for(i=0; i<256; i++)
+            {
+                if(lpKeyboardState[i] != g_LastKeyboardState[i])
+                {
+                    DEBUG_INFO("After[%d] state(0x%02x) != laststate(0x%02x)\n",i,lpKeyboardState[i],g_LastKeyboardState[i]);
+                }
+            }
+
+			CopyMemory(g_LastKeyboardState,lpKeyboardState,sizeof(g_LastKeyboardState));
+        }
         break;
     case WM_COMMAND:
         wmId    = LOWORD(wParam);

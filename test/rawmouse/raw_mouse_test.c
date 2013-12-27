@@ -47,6 +47,10 @@ This example can also be compiled with Microsoft Visual C++ version 6, but first
 #include <stdlib.h>
 #include <string.h>
 #include "raw_mouse.h"
+#include "output_debug.h"
+
+UCHAR g_LastKeyboardState[256] = {0};
+
 
 LRESULT CALLBACK
 MainWndProc (HWND hwnd, UINT nMsg, WPARAM wParam, LPARAM lParam)
@@ -58,6 +62,8 @@ MainWndProc (HWND hwnd, UINT nMsg, WPARAM wParam, LPARAM lParam)
         RECT          rc;              /* A rectangle used during drawing */
 	    wchar_t cBuf[256] = {0};
 	    int i;
+		UCHAR lpKeyboardState[256];
+		BOOL bret;
 
         switch (nMsg)
         {
@@ -95,6 +101,19 @@ MainWndProc (HWND hwnd, UINT nMsg, WPARAM wParam, LPARAM lParam)
 
 		case WM_INPUT: 
 		{
+			bret = GetKeyboardState(lpKeyboardState);
+			if(bret)
+			{
+				for(i=0; i<256; i++)
+				{
+					if(lpKeyboardState[i] != g_LastKeyboardState[i])
+					{
+						DEBUG_INFO("Before[%d] state(0x%02x) != laststate(0x%02x)\n",i,lpKeyboardState[i],g_LastKeyboardState[i]);
+					}
+				}
+			
+				CopyMemory(g_LastKeyboardState,lpKeyboardState,sizeof(g_LastKeyboardState));
+			}
 		  add_to_raw_mouse_x_and_y((HRAWINPUT)lParam);
 		  
 		  InvalidateRect(hwnd,0,TRUE);
