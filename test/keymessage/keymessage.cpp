@@ -192,16 +192,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
 
-			DEBUG_INFO("g_LastKeyboardState 0x%p lpKeyboardState 0x%p",g_LastKeyboardState,lpKeyboardState);
 			CopyMemory(g_LastKeyboardState,lpKeyboardState,sizeof(g_LastKeyboardState));
-			DEBUG_INFO("g_LastKeyboardState 0x%p lpKeyboardState 0x%p",g_LastKeyboardState,lpKeyboardState);
         }
 
 
-        //DEBUG_INFO("BeforeGet shiftstate 0x%04x ctrlstate 0x%04x menustate 0x%04x lwinstate 0x%04x rwinstate 0x%04x\n",
-        //           shiftstate,ctrlstate,menustate,lwinstate,rwinstate);
-        //DEBUG_INFO("BeforeGet ashiftstate 0x%04x actrlstate 0x%04x amenustate 0x%04x\n",
-        //           ashiftstate,actrlstate,amenustate);
+        DEBUG_INFO("BeforeGet shiftstate 0x%04x ctrlstate 0x%04x menustate 0x%04x lwinstate 0x%04x rwinstate 0x%04x\n",
+                   shiftstate,ctrlstate,menustate,lwinstate,rwinstate);
+        DEBUG_INFO("BeforeGet ashiftstate 0x%04x actrlstate 0x%04x amenustate 0x%04x\n",
+                   ashiftstate,actrlstate,amenustate);
         if(GetRawInputData((HRAWINPUT)lParam,RID_INPUT,NULL,&dwSize,sizeof(RAWINPUTHEADER))==-1)
         {
             break;
@@ -235,10 +233,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         amenustate = ::GetAsyncKeyState(VK_MENU);
 
 
-        //DEBUG_INFO("AfterGet shiftstate 0x%04x ctrlstate 0x%04x menustate 0x%04x lwinstate 0x%04x rwinstate 0x%04x\n",
-        //           shiftstate,ctrlstate,menustate,lwinstate,rwinstate);
-        //DEBUG_INFO("AfterGet ashiftstate 0x%04x actrlstate 0x%04x amenustate 0x%04x\n",
-        //           ashiftstate,actrlstate,amenustate);
+        DEBUG_INFO("AfterGet shiftstate 0x%04x ctrlstate 0x%04x menustate 0x%04x lwinstate 0x%04x rwinstate 0x%04x\n",
+                   shiftstate,ctrlstate,menustate,lwinstate,rwinstate);
+        DEBUG_INFO("AfterGet ashiftstate 0x%04x actrlstate 0x%04x amenustate 0x%04x\n",
+                   ashiftstate,actrlstate,amenustate);
         bret = GetKeyboardState(lpKeyboardState);
         if(bret)
         {
