@@ -49,6 +49,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MyHyperLink", "MyHyperLink\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vkext", "vkext\vkext.vcxproj", "{4D5BEBA9-2221-46C7-921D-58D64F9111FF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "takedbg", "takedbg\takedbg.vcxproj", "{C05348BD-F8B5-4A0A-9C90-5C814D7F35CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -147,6 +149,10 @@ Global
 		{4D5BEBA9-2221-46C7-921D-58D64F9111FF}.Debug|Win32.Build.0 = Debug|Win32
 		{4D5BEBA9-2221-46C7-921D-58D64F9111FF}.Release|Win32.ActiveCfg = Release|Win32
 		{4D5BEBA9-2221-46C7-921D-58D64F9111FF}.Release|Win32.Build.0 = Release|Win32
+		{C05348BD-F8B5-4A0A-9C90-5C814D7F35CB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C05348BD-F8B5-4A0A-9C90-5C814D7F35CB}.Debug|Win32.Build.0 = Debug|Win32
+		{C05348BD-F8B5-4A0A-9C90-5C814D7F35CB}.Release|Win32.ActiveCfg = Release|Win32
+		{C05348BD-F8B5-4A0A-9C90-5C814D7F35CB}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
