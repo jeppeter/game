@@ -116,6 +116,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     return TRUE;
 }
 
+
+
 BOOL GetCursorBmp(HWND hwnd)
 {
     HCURSOR hcursor=NULL;
@@ -124,6 +126,8 @@ BOOL GetCursorBmp(HWND hwnd)
     ICONINFOEX iconex ;
     BITMAP maskbmp,colorbmp;
     BITMAPINFO maskinfo,colorinfo;
+    BITMAPINFO *pMaskInfo=NULL,*pColorInfo=NULL;
+    UINT maskinfoextsize=0,colorinfoextsize=0;
     HDC  hmaskdc=NULL,hcolordc=NULL;
     VOID *pMaskBuffer=NULL,*pColorBuffer=NULL;
     int masksize=0,colorsize=0,masklen,colorlen;
@@ -178,33 +182,11 @@ BOOL GetCursorBmp(HWND hwnd)
         goto fail;
     }
 
-    masksize = maskbmp.bmWidth * maskbmp.bmHeight * (maskbmp.bmBitsPixel + 7) / 8;
-    pMaskBuffer = malloc(masksize);
-    if(pMaskBuffer == NULL)
-    {
-        ret=  LAST_ERROR_CODE();
-        goto fail;
-    }
 
-    colorsize = colorbmp.bmWidth * colorbmp.bmHeight * (colorbmp.bmBitsPixel + 7)/ 8;
-    pColorBuffer = malloc(colorsize);
-    if(pColorBuffer == NULL)
-    {
-        ret= LAST_ERROR_CODE();
-        goto fail;
-    }
 
     ZeroMemory(&maskinfo,sizeof(maskinfo));
     maskinfo.bmiHeader.biSize = sizeof(maskinfo.bmiHeader);
-	maskinfo.bmiHeader.biWidth = maskbmp.bmWidth;
-	maskinfo.bmiHeader.biHeight = maskbmp.bmHeight;
-	maskinfo.bmiHeader.biPlanes = 1;
-	maskinfo.bmiHeader.biBitCount = maskbmp.bmBitsPixel;
-	maskinfo.bmiHeader.biCompression = BI_RGB;
-	maskinfo.bmiHeader.biSizeImage = masksize;
-	maskinfo.bmiHeader.biClrUsed = 0;
-	maskinfo.bmiHeader.biClrImportant = 0;
-    ret = ::GetDIBits(hmaskdc,iconex.hbmMask,0,maskbmp.bmHeight,pMaskBuffer,&maskinfo, DIB_RGB_COLORS);
+    ret = ::GetDIBits(hmaskdc,iconex.hbmMask,0,maskbmp.bmHeight,NULL,&maskinfo, DIB_RGB_COLORS);
     if(ret == 0)
     {
         ret = LAST_ERROR_CODE();
@@ -212,20 +194,61 @@ BOOL GetCursorBmp(HWND hwnd)
                    hmaskdc,iconex.hbmMask,maskbmp.bmHeight,ret);
         goto fail;
     }
-	masklen = ret;
 
-	ZeroMemory(&colorinfo,sizeof(colorinfo));
-    colorinfo.bmiHeader.biSize = sizeof(colorinfo.bmiHeader);
-	colorinfo.bmiHeader.biWidth = colorbmp.bmWidth;
-	colorinfo.bmiHeader.biHeight = colorbmp.bmHeight;
-	colorinfo.bmiHeader.biPlanes = 1;
-	colorinfo.bmiHeader.biBitCount = colorbmp.bmBitsPixel;
-	colorinfo.bmiHeader.biCompression = BI_RGB;
-	colorinfo.bmiHeader.biSizeImage = colorsize;
-	colorinfo.bmiHeader.biClrUsed = 0;
-	colorinfo.bmiHeader.biClrImportant = 0;
-    SetLastError(0);
-    ret = ::GetDIBits(hcolordc,iconex.hbmColor,0,colorbmp.bmHeight,pColorBuffer,&colorinfo, DIB_RGB_COLORS);
+    maskinfoextsize = sizeof(*pMaskInfo);
+    switch(maskinfo.bmiHeader.biBitCount)
+    {
+    case 1:
+        maskinfoextsize += (1 * sizeof(RGBQUAD));
+        break;
+    case 4:
+        maskinfoextsize += (15 * sizeof(RGBQUAD));
+        break;
+    case 8:
+        maskinfoextsize += (255 * sizeof(RGBQUAD));
+        break;
+    case 16:
+    case 32:
+        maskinfoextsize += (2 * sizeof(RGBQUAD));
+        break;
+    }
+
+    pMaskInfo = (BITMAPINFO*)malloc(maskinfoextsize);
+    if(pMaskInfo == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
+    CopyMemory(pMaskInfo,&maskinfo,sizeof(maskinfo));
+
+    DEBUG_INFO("NULL Get %d\n",ret);
+
+    masksize = maskinfo.bmiHeader.biSizeImage;
+    pMaskBuffer = malloc(masksize);
+    if(pMaskBuffer == NULL)
+    {
+        ret=  LAST_ERROR_CODE();
+        goto fail;
+    }
+    ret = ::GetDIBits(hmaskdc,iconex.hbmMask,0,maskbmp.bmHeight,pMaskBuffer,pMaskInfo, DIB_RGB_COLORS);
+    if(ret == 0)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("[0x%08x]HBITMAP(0x%08x) lines (%d) mask GetDIBits Error(%d)\n",
+                   hmaskdc,iconex.hbmMask,maskbmp.bmHeight,ret);
+        goto fail;
+    }
+    masklen = ret;
+    DEBUG_INFO("Real Get %d\n",ret);
+    DEBUG_BUFFER_FMT(pMaskInfo,maskinfoextsize,"size:%d width:%d height:%d bitcount:%d sizeimg:%d",pMaskInfo->bmiHeader.biSize,
+                     pMaskInfo->bmiHeader.biWidth,pMaskInfo->bmiHeader.biHeight,pMaskInfo->bmiHeader.biBitCount,
+                     pMaskInfo->bmiHeader.biSizeImage);
+    DEBUG_BUFFER_FMT(pMaskBuffer,masksize,"Mask(0x%08x) w:%d h:%d pixel:%d",iconex.hbmMask,maskinfo.bmiHeader.biWidth,
+                     maskinfo.bmiHeader.biHeight,maskinfo.bmiHeader.biBitCount);
+
+    ZeroMemory(&colorinfo,sizeof(colorinfo));
+	colorinfo.bmiHeader.biSize = sizeof(colorinfo.bmiHeader);
+    ret = ::GetDIBits(hcolordc,iconex.hbmColor,0,colorbmp.bmHeight,NULL,&colorinfo, DIB_RGB_COLORS);
     if(ret == 0)
     {
         ret = LAST_ERROR_CODE();
@@ -233,18 +256,70 @@ BOOL GetCursorBmp(HWND hwnd)
                    hcolordc,iconex.hbmColor,colorbmp.bmHeight,ret);
         goto fail;
     }
-	colorlen = ret;
 
-    /*now to display the information*/
-    DEBUG_BUFFER_FMT(&maskinfo,sizeof(maskinfo),"size:%d width:%d height:%d bitcount:%d",maskinfo.bmiHeader.biSize,
-                     maskinfo.bmiHeader.biWidth,maskinfo.bmiHeader.biHeight,maskinfo.bmiHeader.biBitCount);
-    DEBUG_BUFFER_FMT(pMaskBuffer,masksize,"Mask(0x%08x) w:%d h:%d pixel:%d",iconex.hbmMask,maskbmp.bmWidth,
-                     maskbmp.bmHeight,maskbmp.bmBitsPixel);
-    DEBUG_BUFFER_FMT(&colorinfo,sizeof(colorinfo),"size:%d width:%d height:%d bitcount:%d",colorinfo.bmiHeader.biSize,
-                     colorinfo.bmiHeader.biWidth,colorinfo.bmiHeader.biHeight,colorinfo.bmiHeader.biBitCount);
+    colorinfoextsize = sizeof(*pColorInfo);
+    switch(colorinfo.bmiHeader.biBitCount)
+    {
+    case 1:
+        colorinfoextsize += (1 * sizeof(RGBQUAD));
+        break;
+    case 4:
+        colorinfoextsize += (15 * sizeof(RGBQUAD));
+        break;
+    case 8:
+        colorinfoextsize += (255 * sizeof(RGBQUAD));
+        break;
+    case 16:
+    case 32:
+        colorinfoextsize += (2 * sizeof(RGBQUAD));
+        break;
+    }
+
+    pColorInfo = (BITMAPINFO*) malloc(colorinfoextsize);
+    if(pColorInfo == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        goto fail;
+    }
+
+	ZeroMemory(pColorInfo,colorinfoextsize);
+	CopyMemory(pColorInfo,&colorinfo,sizeof(colorinfo));
+
+    colorsize = colorinfo.bmiHeader.biSizeImage;
+    pColorBuffer = malloc(colorsize);
+    if(pColorBuffer == NULL)
+    {
+        ret= LAST_ERROR_CODE();
+        goto fail;
+    }
+
+    SetLastError(0);
+    ret = ::GetDIBits(hcolordc,iconex.hbmColor,0,colorbmp.bmHeight,pColorBuffer,pColorInfo, DIB_RGB_COLORS);
+    if(ret == 0)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("[0x%08x]HBITMAP(0x%08x) lines (%d) color GetDIBits Error(%d)\n",
+                   hcolordc,iconex.hbmColor,colorbmp.bmHeight,ret);
+        goto fail;
+    }
+    colorlen = ret;
+    DEBUG_BUFFER_FMT(pColorInfo,colorinfoextsize,"size:%d width:%d height:%d bitcount:%d imgsize:%d",pColorInfo->bmiHeader.biSize,
+                     pColorInfo->bmiHeader.biWidth,pColorInfo->bmiHeader.biHeight,pColorInfo->bmiHeader.biBitCount,pColorInfo->bmiHeader.biSizeImage);
     DEBUG_BUFFER_FMT(pColorBuffer,colorsize,"Color(0x%08x) w:%d h:%d pixel:%d",iconex.hbmColor,colorbmp.bmWidth,
                      colorbmp.bmHeight,colorbmp.bmBitsPixel);
+    /*now to display the information*/
 
+    if(pMaskInfo)
+    {
+        free(pMaskInfo);
+    }
+    pMaskInfo = NULL;
+
+    if(pColorInfo)
+    {
+        free(pColorInfo);
+    }
+    pColorInfo = NULL;
 
     if(pMaskBuffer)
     {
@@ -267,7 +342,7 @@ BOOL GetCursorBmp(HWND hwnd)
         ReleaseDC(NULL,hcolordc);
     }
     hcolordc = NULL;
-#if 0
+#if 1
     if(iconex.hbmMask)
     {
         DeleteObject(iconex.hbmMask);
@@ -284,6 +359,17 @@ BOOL GetCursorBmp(HWND hwnd)
     return TRUE;
 
 fail:
+    if(pMaskInfo)
+    {
+        free(pMaskInfo);
+    }
+    pMaskInfo = NULL;
+
+    if(pColorInfo)
+    {
+        free(pColorInfo);
+    }
+    pColorInfo = NULL;
     if(pMaskBuffer)
     {
         free(pMaskBuffer);
@@ -304,7 +390,7 @@ fail:
         ReleaseDC(NULL,hcolordc);
     }
     hcolordc = NULL;
-#if 0
+#if 1
     if(iconex.hbmMask)
     {
         DeleteObject(iconex.hbmMask);
