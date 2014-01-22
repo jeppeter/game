@@ -77,7 +77,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbWndExtra		= 0;
     wcex.hInstance		= hInstance;
     wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_GETCURSORBMP));
-    wcex.hCursor		= LoadCursor(NULL, IDC_WAIT);
+    wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
     wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
     wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_GETCURSORBMP);
     wcex.lpszClassName	= szWindowClass;
@@ -131,6 +131,8 @@ BOOL GetCursorBmp(HWND hwnd)
     HDC  hmaskdc=NULL,hcolordc=NULL;
     VOID *pMaskBuffer=NULL,*pColorBuffer=NULL;
     int masksize=0,colorsize=0,masklen,colorlen;
+    FILE* fp=NULL;
+    BITMAPFILEHEADER bfheader;
 
 
     ZeroMemory(&iconex,sizeof(iconex));
@@ -239,15 +241,14 @@ BOOL GetCursorBmp(HWND hwnd)
         goto fail;
     }
     masklen = ret;
-    DEBUG_INFO("Real Get %d\n",ret);
-    DEBUG_BUFFER_FMT(pMaskInfo,maskinfoextsize,"size:%d width:%d height:%d bitcount:%d sizeimg:%d",pMaskInfo->bmiHeader.biSize,
-                     pMaskInfo->bmiHeader.biWidth,pMaskInfo->bmiHeader.biHeight,pMaskInfo->bmiHeader.biBitCount,
-                     pMaskInfo->bmiHeader.biSizeImage);
-    DEBUG_BUFFER_FMT(pMaskBuffer,masksize,"Mask(0x%08x) w:%d h:%d pixel:%d",iconex.hbmMask,maskinfo.bmiHeader.biWidth,
-                     maskinfo.bmiHeader.biHeight,maskinfo.bmiHeader.biBitCount);
+    //DEBUG_BUFFER_FMT(pMaskInfo,maskinfoextsize,"size:%d width:%d height:%d bitcount:%d sizeimg:%d",pMaskInfo->bmiHeader.biSize,
+    //                 pMaskInfo->bmiHeader.biWidth,pMaskInfo->bmiHeader.biHeight,pMaskInfo->bmiHeader.biBitCount,
+    //                 pMaskInfo->bmiHeader.biSizeImage);
+    //DEBUG_BUFFER_FMT(pMaskBuffer,masksize,"Mask(0x%08x) w:%d h:%d pixel:%d",iconex.hbmMask,maskinfo.bmiHeader.biWidth,
+    //                 maskinfo.bmiHeader.biHeight,maskinfo.bmiHeader.biBitCount);
 
     ZeroMemory(&colorinfo,sizeof(colorinfo));
-	colorinfo.bmiHeader.biSize = sizeof(colorinfo.bmiHeader);
+    colorinfo.bmiHeader.biSize = sizeof(colorinfo.bmiHeader);
     ret = ::GetDIBits(hcolordc,iconex.hbmColor,0,colorbmp.bmHeight,NULL,&colorinfo, DIB_RGB_COLORS);
     if(ret == 0)
     {
@@ -282,8 +283,8 @@ BOOL GetCursorBmp(HWND hwnd)
         goto fail;
     }
 
-	ZeroMemory(pColorInfo,colorinfoextsize);
-	CopyMemory(pColorInfo,&colorinfo,sizeof(colorinfo));
+    ZeroMemory(pColorInfo,colorinfoextsize);
+    CopyMemory(pColorInfo,&colorinfo,sizeof(colorinfo));
 
     colorsize = colorinfo.bmiHeader.biSizeImage;
     pColorBuffer = malloc(colorsize);
@@ -303,11 +304,100 @@ BOOL GetCursorBmp(HWND hwnd)
         goto fail;
     }
     colorlen = ret;
+    /*now to display the information*/
     DEBUG_BUFFER_FMT(pColorInfo,colorinfoextsize,"size:%d width:%d height:%d bitcount:%d imgsize:%d",pColorInfo->bmiHeader.biSize,
                      pColorInfo->bmiHeader.biWidth,pColorInfo->bmiHeader.biHeight,pColorInfo->bmiHeader.biBitCount,pColorInfo->bmiHeader.biSizeImage);
     DEBUG_BUFFER_FMT(pColorBuffer,colorsize,"Color(0x%08x) w:%d h:%d pixel:%d",iconex.hbmColor,colorbmp.bmWidth,
                      colorbmp.bmHeight,colorbmp.bmBitsPixel);
-    /*now to display the information*/
+
+    fopen_s(&fp,"cursor.bmp","w");
+    if(fp == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not open cursor.bmp Error(%d)\n",ret);
+        goto fail;
+    }
+
+    ZeroMemory(&bfheader,sizeof(bfheader));
+    bfheader.bfType = 'M' << 8 | 'B';
+    bfheader.bfSize = sizeof(bfheader) + colorinfoextsize + colorsize;
+    bfheader.bfOffBits = sizeof(bfheader) + colorinfoextsize;
+
+    ret = fwrite(&bfheader,sizeof(bfheader),1,fp);
+    if(ret != 1)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not write header Error(%d)\n",ret);
+        goto fail;
+    }
+
+    ret = fwrite(pColorInfo,colorinfoextsize,1,fp);
+    if(ret != 1)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not write info Error(%d)\n",ret);
+        goto fail;
+    }
+
+    ret = fwrite(pColorBuffer,colorsize,1,fp);
+    if(ret != 1)
+    {
+        ret =  LAST_ERROR_CODE();
+        ERROR_INFO("could not write data Error(%d)\n",ret);
+        goto fail;
+    }
+
+
+
+    if(fp)
+    {
+        fclose(fp);
+    }
+    fp = NULL;
+
+    fopen_s(&fp,"mask.bmp","w");
+    if(fp == NULL)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not open mask.bmp Error(%d)\n",ret);
+		goto fail;
+    }
+
+    ZeroMemory(&bfheader,sizeof(bfheader));
+    bfheader.bfType = 'M' << 8 | 'B';
+    bfheader.bfSize = sizeof(bfheader) + maskinfoextsize + masksize;
+    bfheader.bfOffBits = sizeof(bfheader) + maskinfoextsize ;
+
+    ret = fwrite(&bfheader,sizeof(bfheader),1,fp);
+    if(ret != 1)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not write header Error(%d)\n",ret);
+        goto fail;
+    }
+
+    ret = fwrite(pMaskInfo,maskinfoextsize,1,fp);
+    if(ret != 1)
+    {
+        ret = LAST_ERROR_CODE();
+        ERROR_INFO("could not write info Error(%d)\n",ret);
+        goto fail;
+    }
+
+    ret = fwrite(pMaskBuffer,masksize,1,fp);
+    if(ret != 1)
+    {
+        ret =  LAST_ERROR_CODE();
+        ERROR_INFO("could not write data Error(%d)\n",ret);
+        goto fail;
+    }
+	
+    if(fp)
+    {
+        fclose(fp);
+    }
+    fp = NULL;
+
 
     if(pMaskInfo)
     {
@@ -359,6 +449,11 @@ BOOL GetCursorBmp(HWND hwnd)
     return TRUE;
 
 fail:
+    if(fp)
+    {
+        fclose(fp);
+    }
+    fp = NULL;
     if(pMaskInfo)
     {
         free(pMaskInfo);
