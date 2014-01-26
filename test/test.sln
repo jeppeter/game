@@ -53,6 +53,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "takedbg", "takedbg\takedbg.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "getcursorbmp", "getcursorbmp\getcursorbmp.vcxproj", "{516EB387-A566-4D5B-812C-883001D96A21}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "thrdwin", "thrdwin\thrdwin.vcxproj", "{857B1C02-9B2B-4D15-B7A9-A1E234D7C2E6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -159,6 +161,10 @@ Global
 		{516EB387-A566-4D5B-812C-883001D96A21}.Debug|Win32.Build.0 = Debug|Win32
 		{516EB387-A566-4D5B-812C-883001D96A21}.Release|Win32.ActiveCfg = Release|Win32
 		{516EB387-A566-4D5B-812C-883001D96A21}.Release|Win32.Build.0 = Release|Win32
+		{857B1C02-9B2B-4D15-B7A9-A1E234D7C2E6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{857B1C02-9B2B-4D15-B7A9-A1E234D7C2E6}.Debug|Win32.Build.0 = Debug|Win32
+		{857B1C02-9B2B-4D15-B7A9-A1E234D7C2E6}.Release|Win32.ActiveCfg = Release|Win32
+		{857B1C02-9B2B-4D15-B7A9-A1E234D7C2E6}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
