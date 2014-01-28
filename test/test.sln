@@ -55,6 +55,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "getcursorbmp", "getcursorbm
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "thrdwin", "thrdwin\thrdwin.vcxproj", "{857B1C02-9B2B-4D15-B7A9-A1E234D7C2E6}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "didata", "didata\didata.vcxproj", "{97994B34-1A0A-4F38-ACD5-EDC2EBE04D82}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -165,6 +167,10 @@ Global
 		{857B1C02-9B2B-4D15-B7A9-A1E234D7C2E6}.Debug|Win32.Build.0 = Debug|Win32
 		{857B1C02-9B2B-4D15-B7A9-A1E234D7C2E6}.Release|Win32.ActiveCfg = Release|Win32
 		{857B1C02-9B2B-4D15-B7A9-A1E234D7C2E6}.Release|Win32.Build.0 = Release|Win32
+		{97994B34-1A0A-4F38-ACD5-EDC2EBE04D82}.Debug|Win32.ActiveCfg = Debug|Win32
+		{97994B34-1A0A-4F38-ACD5-EDC2EBE04D82}.Debug|Win32.Build.0 = Debug|Win32
+		{97994B34-1A0A-4F38-ACD5-EDC2EBE04D82}.Release|Win32.ActiveCfg = Release|Win32
+		{97994B34-1A0A-4F38-ACD5-EDC2EBE04D82}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
