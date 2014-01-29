@@ -10,6 +10,10 @@
 HINSTANCE hInst;								// 当前实例
 TCHAR szTitle[MAX_LOADSTRING];					// 标题栏文本
 TCHAR szWindowClass[MAX_LOADSTRING];			// 主窗口类名
+BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd);
+int Read_Device(IDIRECTINPUTDEVICE8 *pDev,LPDIDEVICEOBJECTDATA pData,int datanum);
+void FiniDirectInput(void);
+
 
 // 此代码模块中包含的函数的前向声明:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
@@ -30,10 +34,13 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
+    BOOL bret;
+    DIDEVICEOBJECTDATA data[10];
 
     // TODO:  在此放置代码。
     MSG msg;
     HACCEL hAccelTable;
+    int ret;
 
     // 初始化全局字符串
     LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -49,15 +56,42 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
     hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_DIDATA));
 
     // 主消息循环:
-    while(GetMessage(&msg, NULL, 0, 0))
+    ZeroMemory(&msg,sizeof(msg));
+    while(msg.message != WM_QUIT)
     {
-        if(!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+
+        bret = PeekMessage(&msg,NULL,0,0,PM_REMOVE);
+        if(bret)
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        else
+        {
+            ret = Read_Device(st_pKeyboardDev,data,10);
+            if(ret < 0)
+            {
+                break;
+            }
+            else if(ret > 0)
+            {
+                DEBUG_BUFFER_FMT(data,ret,"Keyboard Data:");
+            }
+
+            ret = Read_Device(st_pMouseDev,data,10);
+            if(ret < 0)
+            {
+                break;
+            }
+            else if(ret > 0)
+            {
+                DEBUG_BUFFER_FMT(data,ret,"Mouse Data:");
+            }
+
+        }
     }
 
+	FiniDirectInput();
     return (int) msg.wParam;
 }
 
@@ -102,6 +136,8 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     HWND hWnd;
+    BOOL bret;
+    int ret;
 
     hInst = hInstance; // 将实例句柄存储在全局变量中
 
@@ -116,7 +152,40 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
+    bret = InitDirectInput(hInstance,hWnd);
+    if(!bret)
+    {
+        ret = GetLastError();
+        SetLastError(ret);
+        return FALSE;
+    }
+
     return TRUE;
+}
+
+int Read_Device(IDIRECTINPUTDEVICE8 *pDev,LPDIDEVICEOBJECTDATA pData,int datanum)
+{
+    int retsize=0;
+    HRESULT hr;
+    DWORD ditem=0;
+    while(1)
+    {
+        ditem = datanum;
+        hr = pDev->GetDeviceData(sizeof(*pData),pData,&ditem,0);
+        if(hr == DI_OK)
+        {
+            break;
+        }
+
+        hr = pDev->Acquire();
+        if(FAILED(hr))
+        {
+            ERROR_INFO("Acquire Error(0x%08x)\n",hr);
+            return -1;
+        }
+    }
+
+    return ditem*sizeof(*pData);
 }
 
 void FiniDirectInput(void)
@@ -146,6 +215,7 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
 {
     int ret;
     HRESULT hr;
+    DIPROPDWORD     property;
 
     hr = DirectInput8Create(hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (LPVOID *)&st_pInput, NULL);
     if(FAILED(hr))
@@ -178,6 +248,63 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
     }
 
     /*now for the buffer size set*/
+    ZeroMemory(&property,sizeof(property));
+    property.diph.dwSize =  sizeof(DIPROPDWORD);
+    property.diph.dwHeaderSize =  sizeof(DIPROPHEADER);
+    property.diph.dwObj = 0;
+    property.diph.dwHow = DIPH_DEVICE;
+    property.dwData = 16;
+
+    hr = st_pKeyboardDev->SetProperty(DIPROP_BUFFERSIZE, &(property.diph));
+    if(FAILED(hr))
+    {
+        ERROR_INFO("SetProperty BUFFERSIZE Error(0x%08x)\n",hr);
+        goto fail;
+    }
+
+    /*we do not need any more return value check*/
+    st_pKeyboardDev->Acquire();
+
+    /*now to create mouse device*/
+    hr = st_pInput->CreateDevice(GUID_SysMouse, &st_pMouseDev, NULL);
+    if(FAILED(hr))
+    {
+        ERROR_INFO("Create Mouse Error(0x%08x)\n",hr);
+        goto fail;
+    }
+
+    /*now for the format set and */
+    hr = st_pMouseDev->SetDataFormat(&c_dfDIMouse);
+    if(FAILED(hr))
+    {
+        ERROR_INFO("SetDataFormat Mouse Error(0x%08x)\n",hr);
+        goto fail;
+    }
+
+    hr = st_pMouseDev->SetCooperativeLevel(hwnd,DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+    if(FAILED(hr))
+    {
+        ERROR_INFO("SetCooperativeLevel Mouse Error(0x%08x)\n",hr);
+        goto fail;
+    }
+
+    /*now for the buffer size set*/
+    ZeroMemory(&property,sizeof(property));
+    property.diph.dwSize =  sizeof(DIPROPDWORD);
+    property.diph.dwHeaderSize =  sizeof(DIPROPHEADER);
+    property.diph.dwObj = 0;
+    property.diph.dwHow = DIPH_DEVICE;
+    property.dwData = 16;
+
+    hr = st_pMouseDev->SetProperty(DIPROP_BUFFERSIZE, &(property.diph));
+    if(FAILED(hr))
+    {
+        ERROR_INFO("SetProperty BUFFERSIZE Error(0x%08x)\n",hr);
+        goto fail;
+    }
+
+    st_pMouseDev->Acquire();
+
 
 
     SetLastError(0);
