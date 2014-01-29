@@ -3,15 +3,22 @@
 
 #include "stdafx.h"
 #include "didata.h"
+#include <output_debug.h>
+
+#define   DIRECTINPUT_VERSION   0x0800
+#include <dinput.h>
 
 #define MAX_LOADSTRING 100
+
+#define LAST_ERROR_CODE() ((int)(GetLastError() ? GetLastError() : 1))
+
 
 // 全局变量:
 HINSTANCE hInst;								// 当前实例
 TCHAR szTitle[MAX_LOADSTRING];					// 标题栏文本
 TCHAR szWindowClass[MAX_LOADSTRING];			// 主窗口类名
 BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd);
-int Read_Device(IDIRECTINPUTDEVICE8 *pDev,LPDIDEVICEOBJECTDATA pData,int datanum);
+int Read_Device(IDirectInputDevice8 *pDev,LPDIDEVICEOBJECTDATA pData,int datanum);
 void FiniDirectInput(void);
 
 
@@ -22,9 +29,9 @@ LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 BOOL                                  InitDirectInput(HINSTANCE hInstance,HWND hwnd);
 void                                    FiniDirectInput(void);
-IDIRECTINPUTDEVICE8   *st_pMouseDev=NULL;
-IDIRECTINPUTDEVICE8   *st_pKeyboardDev=NULL;
-IDIRECTINPUT8  *st_pInput=NULL;
+IDirectInputDevice8   *st_pMouseDev=NULL;
+IDirectInputDevice8   *st_pKeyboardDev=NULL;
+IDirectInput8  *st_pInput=NULL;
 
 
 int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
@@ -163,7 +170,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     return TRUE;
 }
 
-int Read_Device(IDIRECTINPUTDEVICE8 *pDev,LPDIDEVICEOBJECTDATA pData,int datanum)
+int Read_Device(IDirectInputDevice8 *pDev,LPDIDEVICEOBJECTDATA pData,int datanum)
 {
     int retsize=0;
     HRESULT hr;
@@ -220,6 +227,7 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
     hr = DirectInput8Create(hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (LPVOID *)&st_pInput, NULL);
     if(FAILED(hr))
     {
+    	ret = LAST_ERROR_CODE();
         ERROR_INFO("Can Not Create Error(0x%08x)\n",hr);
         goto fail;
     }
@@ -227,6 +235,7 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
     hr = st_pInput->CreateDevice(GUID_SysKeyboard, &st_pKeyboardDev, NULL);
     if(FAILED(hr))
     {
+    	ret = LAST_ERROR_CODE();
         ERROR_INFO("Create Keyboard Error(0x%08x)\n",hr);
         goto fail;
     }
@@ -235,6 +244,7 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
     hr = st_pKeyboardDev->SetDataFormat(&c_dfDIKeyboard);
     if(FAILED(hr))
     {
+    	ret = LAST_ERROR_CODE();
         ERROR_INFO("SetDataFormat Keyboard Error(0x%08x)\n",hr);
         goto fail;
     }
@@ -243,6 +253,7 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
     hr = st_pKeyboardDev->SetCooperativeLevel(hwnd,DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
     if(FAILED(hr))
     {
+    	ret = LAST_ERROR_CODE();
         ERROR_INFO("SetCooperativeLevel Keyboard Error(0x%08x)\n",hr);
         goto fail;
     }
@@ -258,6 +269,7 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
     hr = st_pKeyboardDev->SetProperty(DIPROP_BUFFERSIZE, &(property.diph));
     if(FAILED(hr))
     {
+    	ret = LAST_ERROR_CODE();
         ERROR_INFO("SetProperty BUFFERSIZE Error(0x%08x)\n",hr);
         goto fail;
     }
@@ -269,6 +281,7 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
     hr = st_pInput->CreateDevice(GUID_SysMouse, &st_pMouseDev, NULL);
     if(FAILED(hr))
     {
+    	ret = LAST_ERROR_CODE();
         ERROR_INFO("Create Mouse Error(0x%08x)\n",hr);
         goto fail;
     }
@@ -277,6 +290,7 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
     hr = st_pMouseDev->SetDataFormat(&c_dfDIMouse);
     if(FAILED(hr))
     {
+    	ret = LAST_ERROR_CODE();
         ERROR_INFO("SetDataFormat Mouse Error(0x%08x)\n",hr);
         goto fail;
     }
@@ -284,6 +298,7 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
     hr = st_pMouseDev->SetCooperativeLevel(hwnd,DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
     if(FAILED(hr))
     {
+    	ret = LAST_ERROR_CODE();
         ERROR_INFO("SetCooperativeLevel Mouse Error(0x%08x)\n",hr);
         goto fail;
     }
@@ -299,17 +314,17 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
     hr = st_pMouseDev->SetProperty(DIPROP_BUFFERSIZE, &(property.diph));
     if(FAILED(hr))
     {
+    	ret = LAST_ERROR_CODE();
         ERROR_INFO("SetProperty BUFFERSIZE Error(0x%08x)\n",hr);
         goto fail;
     }
 
     st_pMouseDev->Acquire();
 
-
-
     SetLastError(0);
     return TRUE;
 fail:
+	FiniDirectInput();
     SetLastError(ret);
     return FALSE;
 }
