@@ -18,8 +18,9 @@ LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 BOOL                                  InitDirectInput(HINSTANCE hInstance,HWND hwnd);
 void                                    FiniDirectInput(void);
-IDIRECTINPUTDEVICE8   st_pMouseDev=NULL;
-IDIRECTINPUTDEVICE8   st_pKeyboardDev=NULL;
+IDIRECTINPUTDEVICE8   *st_pMouseDev=NULL;
+IDIRECTINPUTDEVICE8   *st_pKeyboardDev=NULL;
+IDIRECTINPUT8  *st_pInput=NULL;
 
 
 int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
@@ -131,6 +132,13 @@ void FiniDirectInput(void)
         st_pMouseDev->Release();
     }
     st_pMouseDev = NULL;
+
+    if(st_pInput)
+    {
+        st_pInput->Release();
+    }
+    st_pInput = NULL;
+
     return ;
 }
 
@@ -139,7 +147,38 @@ BOOL InitDirectInput(HINSTANCE hInstance,HWND hwnd)
     int ret;
     HRESULT hr;
 
-    
+    hr = DirectInput8Create(hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (LPVOID *)&st_pInput, NULL);
+    if(FAILED(hr))
+    {
+        ERROR_INFO("Can Not Create Error(0x%08x)\n",hr);
+        goto fail;
+    }
+
+    hr = st_pInput->CreateDevice(GUID_SysKeyboard, &st_pKeyboardDev, NULL);
+    if(FAILED(hr))
+    {
+        ERROR_INFO("Create Keyboard Error(0x%08x)\n",hr);
+        goto fail;
+    }
+
+    /*now for the format set and */
+    hr = st_pKeyboardDev->SetDataFormat(&c_dfDIKeyboard);
+    if(FAILED(hr))
+    {
+        ERROR_INFO("SetDataFormat Keyboard Error(0x%08x)\n",hr);
+        goto fail;
+    }
+
+    /*set cooperative level*/
+    hr = st_pKeyboardDev->SetCooperativeLevel(hwnd,DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+    if(FAILED(hr))
+    {
+        ERROR_INFO("SetCooperativeLevel Keyboard Error(0x%08x)\n",hr);
+        goto fail;
+    }
+
+    /*now for the buffer size set*/
+
 
     SetLastError(0);
     return TRUE;
