@@ -361,6 +361,7 @@ BOOL read_raw_input(PRAWINPUT raw)
 	  // should be static when I get around to it
 
 	  int i;
+	  DEBUG_BUFFER_FMT(raw,raw->header.dwSize,"<0x%p> mouse",raw);
 
 	  // mouse 0 is sysmouse, so if there is not sysmouse start loop @0
 	  i = 0;
