@@ -59,6 +59,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "didata", "didata\didata.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "capture", "capture\capture.vcxproj", "{21E17AAC-A106-480F-8CB5-48A193429848}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ModelessDialogTrackerDemo", "modelessdialog\ModelessDialogTrackerDemo.vcxproj", "{43C1F129-13FF-4FA7-8C14-E05792110757}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -177,6 +179,10 @@ Global
 		{21E17AAC-A106-480F-8CB5-48A193429848}.Debug|Win32.Build.0 = Debug|Win32
 		{21E17AAC-A106-480F-8CB5-48A193429848}.Release|Win32.ActiveCfg = Release|Win32
 		{21E17AAC-A106-480F-8CB5-48A193429848}.Release|Win32.Build.0 = Release|Win32
+		{43C1F129-13FF-4FA7-8C14-E05792110757}.Debug|Win32.ActiveCfg = Debug|Win32
+		{43C1F129-13FF-4FA7-8C14-E05792110757}.Debug|Win32.Build.0 = Debug|Win32
+		{43C1F129-13FF-4FA7-8C14-E05792110757}.Release|Win32.ActiveCfg = Release|Win32
+		{43C1F129-13FF-4FA7-8C14-E05792110757}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
