@@ -5,6 +5,7 @@
 //////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////
 #include "DialogA.h"
+#include <output_debug.h>
 void CModelessDialogTrackerDemoDlg::OnPopA()
 {
 	if (trackA.IsAlreadyPopped())
@@ -114,6 +115,7 @@ BEGIN_MESSAGE_MAP(CModelessDialogTrackerDemoDlg, CDialog)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	//}}AFX_MSG_MAP
+	ON_WM_ACTIVATE()
 	ON_BN_CLICKED(IDC_BUTTON1, OnPopA)
 	ON_BN_CLICKED(IDC_BUTTON2, OnPopB)
 	ON_BN_CLICKED(IDC_BUTTON3, OnPopC)
@@ -203,4 +205,9 @@ void CModelessDialogTrackerDemoDlg::OnPaint()
 HCURSOR CModelessDialogTrackerDemoDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
+}
+
+void CModelessDialogTrackerDemoDlg::OnActivate(UINT nState,CWnd * pWndOther,BOOL bMinimized)
+{
+	DEBUG_INFO("(0x%08x)%s curwin (0x%08x) window 0x%08x\n",nState,( nState == WA_ACTIVE  || nState == WA_CLICKACTIVE)? "Active" : "Deactive",this->m_hWnd,pWndOther->m_hWnd);
 }

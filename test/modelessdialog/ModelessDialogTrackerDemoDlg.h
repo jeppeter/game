@@ -33,5 +33,6 @@ public:
 	afx_msg void OnPopC();
 	afx_msg void OnCloseABC();
 	afx_msg void OnNotifyDialogB();
+	afx_msg void OnActivate(UINT nState,CWnd* pWndOther,BOOL bMinimized);
 	CStatic ctrlStatusDlgC;
 };
