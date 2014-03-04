@@ -63,6 +63,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ModelessDialogTrackerDemo",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mfcmes", "mfcmes\mfcmes.vcxproj", "{A082F21B-6A59-4855-AC24-672D240340E6}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HWDetect", "HWDetect\HWDetect.vcxproj", "{7B4FF425-5025-47E8-8826-8BD3F69B639C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -189,6 +191,10 @@ Global
 		{A082F21B-6A59-4855-AC24-672D240340E6}.Debug|Win32.Build.0 = Debug|Win32
 		{A082F21B-6A59-4855-AC24-672D240340E6}.Release|Win32.ActiveCfg = Release|Win32
 		{A082F21B-6A59-4855-AC24-672D240340E6}.Release|Win32.Build.0 = Release|Win32
+		{7B4FF425-5025-47E8-8826-8BD3F69B639C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7B4FF425-5025-47E8-8826-8BD3F69B639C}.Debug|Win32.Build.0 = Debug|Win32
+		{7B4FF425-5025-47E8-8826-8BD3F69B639C}.Release|Win32.ActiveCfg = Release|Win32
+		{7B4FF425-5025-47E8-8826-8BD3F69B639C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
