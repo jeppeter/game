@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <oleauto.h>
 #include <shellapi.h>
+#include <output_debug.h>
 
 #pragma warning( disable : 4996 ) // disable deprecated warning 
 #include <strsafe.h>
