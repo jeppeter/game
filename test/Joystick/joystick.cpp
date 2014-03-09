@@ -213,6 +213,7 @@ HRESULT InitDirectInput( HWND hDlg )
     if( SUCCEEDED( pJoyConfig->GetConfig( 0, &PreferredJoyCfg, DIJC_GUIDINSTANCE ) ) ) // This function is expected to fail if no joystick is attached
         enumContext.bPreferredJoyCfgValid = true;
     SAFE_RELEASE( pJoyConfig );
+	DEBUG_BUFFER_FMT(&PreferredJoyCfg,sizeof(PreferredJoyCfg),"<0x%p> DirectInput",g_pDI);
 
     // Look for a simple joystick we can use for this sample program.
     if( FAILED( hr = g_pDI->EnumDevices( DI8DEVCLASS_GAMECTRL,
@@ -425,6 +426,8 @@ BOOL CALLBACK EnumJoysticksCallback( const DIDEVICEINSTANCE* pdidInstance,
     DI_ENUM_CONTEXT* pEnumContext = ( DI_ENUM_CONTEXT* )pContext;
     HRESULT hr;
 
+	DEBUG_BUFFER_FMT(pdidInstance,sizeof(*pdidInstance),"<0x%p> instance",pdidInstance);	
+	DEBUG_BUFFER_FMT(&(pdidInstance->guidInstance),sizeof(pdidInstance->guidInstance),"guid instance");
     if( g_bFilterOutXinputDevices && IsXInputDevice( &pdidInstance->guidProduct ) )
         return DIENUM_CONTINUE;
 
@@ -463,6 +466,7 @@ BOOL CALLBACK EnumObjectsCallback( const DIDEVICEOBJECTINSTANCE* pdidoi,
 
     static int nSliderCount = 0;  // Number of returned slider controls
     static int nPOVCount = 0;     // Number of returned POV controls
+    DEBUG_BUFFER_FMT(pdidoi,sizeof(*pdidoi),"<0x%p> dwType 0x%08x",pdidoi,pdidoi->dwType);
 
     // For axes that are returned, set the DIPROP_RANGE property for the
     // enumerated axis in order to scale min/max values.
